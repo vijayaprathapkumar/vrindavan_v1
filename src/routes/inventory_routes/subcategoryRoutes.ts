@@ -1,18 +1,27 @@
-import express from "express";
+import express from 'express';
 import {
   getSubcategories,
   addSubcategory,
   getSubcategoryById,
   updateSubcategory,
-  deleteSubcategory,
-} from "../../controllers/inventory_controllers/subcategoryController";
+  deleteSubcategory
+} from '../../controllers/inventory_controllers/subcategoryController';
+import {
+  subcategoryValidation,
+  subcategoryIdValidation,
+  validate
+} from '../../validation/inventory/subcategoryValidation';
 
 const router = express.Router();
 
 router.get("/", getSubcategories);
-router.post("/", addSubcategory);
-router.get("/:id", getSubcategoryById);
-router.put("/:id", updateSubcategory);
-router.delete("/:id", deleteSubcategory);
+
+router.post("/", subcategoryValidation, validate, addSubcategory);
+
+router.get("/:id", subcategoryIdValidation, validate, getSubcategoryById);
+
+router.put("/:id", subcategoryIdValidation, subcategoryValidation, validate, updateSubcategory);
+
+router.delete("/:id", subcategoryIdValidation, validate, deleteSubcategory);
 
 export default router;
