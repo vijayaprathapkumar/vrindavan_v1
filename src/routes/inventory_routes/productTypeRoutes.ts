@@ -1,18 +1,27 @@
-import express from "express";
+import express from 'express';
 import {
   getProductTypes,
   addProductType,
   getProductTypeById,
   updateProductType,
   deleteProductType
-} from "../../controllers/inventory_controllers/productTypeController";
+} from '../../controllers/inventory_controllers/productTypeController';
+import {
+  productTypeValidation,
+  productTypeIdValidation,
+  validate
+} from '../../validation/inventory/productTypeValidation'; 
 
 const router = express.Router();
 
 router.get("/", getProductTypes);
-router.post("/", addProductType);
-router.get("/:id", getProductTypeById);
-router.put("/:id", updateProductType);
-router.delete("/:id", deleteProductType);
+
+router.post("/", productTypeValidation, validate, addProductType);
+
+router.get("/:id", productTypeIdValidation, validate, getProductTypeById);
+
+router.put("/:id", productTypeIdValidation, productTypeValidation, validate, updateProductType);
+
+router.delete("/:id", productTypeIdValidation, validate, deleteProductType);
 
 export default router;
