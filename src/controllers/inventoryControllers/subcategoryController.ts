@@ -5,7 +5,7 @@ import {
   getSubcategoryById as fetchSubcategoryById, // Renaming to avoid conflict
   updateSubcategoryById,
   deleteSubcategoryById
-} from "../../models/inventory_models/subcategoryModel";
+} from "../../models/inventoryModels/subcategoryModel";
 import { createResponse } from "../../utils/responseHandler";
 
 export const getSubcategories = async (
