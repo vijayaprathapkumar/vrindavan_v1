@@ -5,7 +5,7 @@ import {
   getProductTypeById as fetchProductTypeById,
   updateProductTypeById,
   deleteProductTypeById
-} from "../../models/inventory_models/productTypeModel";
+} from "../../models/inventoryModels/productTypeModel";
 import { createResponse } from "../../utils/responseHandler";
 
 export const getProductTypes = async (

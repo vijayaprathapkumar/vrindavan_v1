@@ -5,7 +5,7 @@ import {
   getBrandById,
   updateBrandById,
   deleteBrandById
-} from "../../models/inventory_models/productBrandModel";
+} from "../../models/inventoryModels/productBrandModel";
 import { createResponse } from "../../utils/responseHandler";
 
 // Fetch all product brands

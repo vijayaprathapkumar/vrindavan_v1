@@ -5,7 +5,7 @@ import {
   getCategoryById,
   updateCategoryById,
   deleteCategoryById
-} from "../../models/inventory_models/categoryModel";
+} from "../../models/inventoryModels/categoryModel";
 import { createResponse } from "../../utils/responseHandler";
 
 // Fetch all categories
