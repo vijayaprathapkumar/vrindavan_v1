@@ -5,7 +5,7 @@ import {
   getProductById as fetchProductById,
   updateProductById,
   deleteProductById,
-} from "../../models/inventory_models/productModel";
+} from "../../models/inventoryModels/productModel";
 import { createResponse } from "../../utils/responseHandler";
 
 // Fetch all products
