@@ -13,7 +13,7 @@ app.get("/", (req, res) => {
     res.send("Welcome to our vrindavan");
 });
 app.use("/api", routes_1.default);
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });
