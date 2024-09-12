@@ -1,25 +1,31 @@
 import express from "express";
-import authLoginRoutes from "./routes/authLoginRoutes/authLogin";
-import categoryRoutes from "./routes/inventoryRoutes/categoryRoutes";
-import subcategoryRoutes from "./routes/inventoryRoutes/subcategoryRoutes";
-import productRoutes from "./routes/inventoryRoutes/productRoutes";
-import productTypeRoutes from "./routes/inventoryRoutes/productTypeRoutes";
-import productBrandRoutes from "./routes/inventoryRoutes/productBrandRoutes";
-import customerRoutes from "./routes/customerRoutes/customerRoutes";
+import authLoginRoutes from "./routes/authLogin/authLogin";
+import categoryRoutes from "./routes/inventory/categoryRoutes";
+import subcategoryRoutes from "./routes/inventory/subcategoryRoutes";
+import productRoutes from "./routes/inventory/productRoutes";
+import productTypeRoutes from "./routes/inventory/productTypeRoutes";
+import productBrandRoutes from "./routes/inventory/productBrandRoutes";
+import customerRoutes from "./routes/customer/customerRoutes";
+import truckRoutes from "./routes/localities/truckRoutes";
+import hubsRoutes from "./routes/localities/hubsRoutes";
 
 const router = express.Router();
 
 // Auth Login
 router.use("/auth", authLoginRoutes);
 
-// inventory Routes
+// Inventory Routes
 router.use("/categories", categoryRoutes);
 router.use("/subcategories", subcategoryRoutes);
 router.use("/products", productRoutes);
 router.use("/product_brands", productBrandRoutes);
 router.use("/product_types", productTypeRoutes);
 
-//Customers
-
+// Customers
 router.use("/customers", customerRoutes);
+
+// Localities
+router.use("/truck_routes", truckRoutes);
+router.use("/hubs", hubsRoutes);
+
 export default router;
