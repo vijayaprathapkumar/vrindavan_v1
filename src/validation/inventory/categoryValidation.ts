@@ -1,6 +1,5 @@
 import { body, param, validationResult } from 'express-validator';
 
-
 export const categoryValidation = [
   body('name')
     .isString()
@@ -27,13 +26,11 @@ export const categoryValidation = [
     .withMessage('Image URL is required'),
 ];
 
-
 export const categoryIdValidation = [
   param('id')
     .isInt({ gt: 0 })
     .withMessage('Category ID must be a positive integer'),
 ];
-
 
 export const validate = (req, res, next) => {
   const errors = validationResult(req);
