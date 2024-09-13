@@ -1,46 +1,43 @@
 import { body, param, validationResult } from 'express-validator';
 
-export const subcategoryValidation = [
+// Validation rules for subcategory
+export const subCategoryValidation = [
+  body('category_id')
+    .isInt({ gt: 0 })
+    .withMessage('Category ID must be a positive integer')
+    .notEmpty()
+    .withMessage('Category ID is required'),
+
   body('name')
     .isString()
     .withMessage('Name must be a string')
     .notEmpty()
     .withMessage('Name is required'),
 
-  body('categoryID')
-    .isInt({ min: 1 })
-    .withMessage('CategoryID must be a positive integer')
-    .notEmpty()
-    .withMessage('CategoryID is required'),
-
   body('description')
     .isString()
-    .withMessage('Description must be a string')
-    .notEmpty()
-    .withMessage('Description is required'),
+    .withMessage('Description must be a string'),
 
   body('weightage')
-    .isFloat({ min: 0 })
-    .withMessage('Weightage must be a non-negative number')
+    .isString()
+    .withMessage('Weightage must be a string')
     .notEmpty()
     .withMessage('Weightage is required'),
 
-  body('image')
-    .isString()
-    .withMessage('Image must be a string')
-    .notEmpty()
-    .withMessage('Image is required'),
+  body('active')
+    .isBoolean()
+    .withMessage('Active status must be a boolean')
 ];
 
-
-export const subcategoryIdValidation = [
+// Validation rule for subcategory ID
+export const subCategoryIdValidation = [
   param('id')
-    .isInt({ min: 1 })
-    .withMessage('SubcategoryID must be a positive integer'),
+    .isInt({ gt: 0 })
+    .withMessage('Subcategory ID must be a positive integer')
 ];
 
-
-export const validate = (req, res, next) => {
+// Middleware to handle validation errors
+export const validate = (req: any, res: any, next: any) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
