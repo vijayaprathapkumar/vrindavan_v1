@@ -1,62 +1,60 @@
 import { db } from "../../config/databaseConnection";
 import { RowDataPacket, OkPacket } from "mysql2";
 
-export const getAllSubcategories = async (): Promise<RowDataPacket[]> => {
+// Fetch all subcategories
+export const getAllSubCategories = async (): Promise<RowDataPacket[]> => {
   const [rows] = await db
     .promise()
-    .query<RowDataPacket[]>("SELECT * FROM Subcategories");
+    .query<RowDataPacket[]>("SELECT * FROM sub_categories");
   return rows;
 };
 
-export const createSubcategory = async (
+// Create a new subcategory
+export const createSubCategory = async (
+  category_id: number,
   name: string,
-  categoryID: number,
   description: string,
-  weightage: number,
-  image: string
+  weightage: string,
+  active: boolean
 ): Promise<void> => {
   await db
     .promise()
     .query<OkPacket>(
-      "INSERT INTO Subcategories (Name, CategoryID, Description, Weightage, Image) VALUES (?, ?, ?, ?, ?)",
-      [name, categoryID, description, weightage, image]
+      "INSERT INTO sub_categories (category_id, name, description, weightage, active) VALUES (?, ?, ?, ?, ?)",
+      [category_id, name, description, weightage, active]
     );
 };
 
-export const getSubcategoryById = async (
+// Fetch subcategory by ID
+export const getSubCategoryById = async (
   id: number
 ): Promise<RowDataPacket[]> => {
   const [rows] = await db
     .promise()
-    .query<RowDataPacket[]>(
-      "SELECT * FROM Subcategories WHERE SubcategoryID = ?",
-      [id]
-    );
+    .query<RowDataPacket[]>("SELECT * FROM sub_categories WHERE id = ?", [id]);
   return rows;
 };
 
-export const updateSubcategoryById = async (
+// Update subcategory by ID
+export const updateSubCategoryById = async (
   id: number,
+  category_id: number,
   name: string,
-  categoryID: number,
   description: string,
-  weightage: number,
-  image: string
-): Promise<OkPacket> => {
-  const [result] = await db
+  weightage: string,
+  active: boolean
+): Promise<void> => {
+  await db
     .promise()
     .query<OkPacket>(
-      "UPDATE Subcategories SET Name = ?, CategoryID = ?, Description = ?, Weightage = ?, Image = ? WHERE SubcategoryID = ?",
-      [name, categoryID, description, weightage, image, id]
+      "UPDATE sub_categories SET category_id = ?, name = ?, description = ?, weightage = ?, active = ? WHERE id = ?",
+      [category_id, name, description, weightage, active, id]
     );
-  return result;
 };
 
-export const deleteSubcategoryById = async (
-  id: number
-): Promise<OkPacket> => {
-  const [result] = await db
+// Delete subcategory by ID
+export const deleteSubCategoryById = async (id: number): Promise<void> => {
+  await db
     .promise()
-    .query<OkPacket>("DELETE FROM Subcategories WHERE SubcategoryID = ?", [id]);
-  return result;
+    .query<OkPacket>("DELETE FROM sub_categories WHERE id = ?", [id]);
 };
