@@ -9,6 +9,10 @@ import customerRoutes from "./routes/customer/customerRoutes";
 import truckRoutes from "./routes/localities/truckRoutes";
 import hubsRoutes from "./routes/localities/hubsRoutes";
 import localityRoutes from "./routes/localities/localityRoutes";
+import faqCategoryRoutes from "./routes/faqs/faqCategoryRoutes";
+import faqsRoutes from "./routes/faqs/faqsRoutes";
+import deliveryBoyRoutes from "./routes/deliveryBoy/deliveryBoyRoutes";
+import commissionRoutes from "./routes/deliveryBoy/commissionRoutes";
 
 const router = express.Router();
 
@@ -29,4 +33,13 @@ router.use("/customers", customerRoutes);
 router.use("/truck_routes", truckRoutes);
 router.use("/hubs", hubsRoutes);
 router.use("/localities", localityRoutes);
+
+// faqs
+router.use("/faqs_categories", faqCategoryRoutes);
+router.use("/faqs", faqsRoutes);
+
+// deliveryBoys
+router.use("/delivery_boys",deliveryBoyRoutes)
+router.use("/commissions", commissionRoutes);
+
 export default router;
