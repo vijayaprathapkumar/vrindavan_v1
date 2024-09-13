@@ -6,7 +6,7 @@ const databaseConnection_1 = require("../../config/databaseConnection");
 const getAllBrands = async () => {
     const [rows] = await databaseConnection_1.db
         .promise()
-        .query("SELECT * FROM ProductBrands");
+        .query("SELECT * FROM product_brands");
     return rows;
 };
 exports.getAllBrands = getAllBrands;
@@ -14,28 +14,28 @@ exports.getAllBrands = getAllBrands;
 const createBrand = async (name) => {
     await databaseConnection_1.db
         .promise()
-        .query("INSERT INTO ProductBrands (Name, Active) VALUES (?, TRUE)", [name]);
+        .query("INSERT INTO product_brands (Name, Active) VALUES (?, TRUE)", [name]);
 };
 exports.createBrand = createBrand;
 // Update product brand by ID
 const updateBrandById = async (id, name) => {
     await databaseConnection_1.db
         .promise()
-        .query("UPDATE ProductBrands SET Name = ? WHERE BrandID = ?", [name, id]);
+        .query("UPDATE product_brands SET Name = ? WHERE BrandID = ?", [name, id]);
 };
 exports.updateBrandById = updateBrandById;
 // Delete product brand by ID
 const deleteBrandById = async (id) => {
     await databaseConnection_1.db
         .promise()
-        .query("DELETE FROM ProductBrands WHERE BrandID = ?", [id]);
+        .query("DELETE FROM product_brands WHERE BrandID = ?", [id]);
 };
 exports.deleteBrandById = deleteBrandById;
 // Fetch product brand by ID
 const getBrandById = async (id) => {
     const [rows] = await databaseConnection_1.db
         .promise()
-        .query("SELECT * FROM ProductBrands WHERE BrandID = ?", [id]);
+        .query("SELECT * FROM product_brands WHERE BrandID = ?", [id]);
     return rows;
 };
 exports.getBrandById = getBrandById;

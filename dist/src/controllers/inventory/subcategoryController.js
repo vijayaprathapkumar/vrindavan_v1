@@ -1,95 +1,70 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteSubcategory = exports.updateSubcategory = exports.getSubcategoryById = exports.addSubcategory = exports.getSubcategories = void 0;
+exports.deleteSubCategory = exports.updateSubCategory = exports.getSubCategory = exports.addSubCategory = exports.getSubCategories = void 0;
 const subcategoryModel_1 = require("../../models/inventory/subcategoryModel");
 const responseHandler_1 = require("../../utils/responseHandler");
-const getSubcategories = async (req, res) => {
+// Fetch all subcategories
+const getSubCategories = async (req, res) => {
     try {
-        const subcategories = await (0, subcategoryModel_1.getAllSubcategories)();
-        res
-            .status(200)
-            .json((0, responseHandler_1.createResponse)(200, "Subcategories fetched successfully", subcategories));
+        const subCategories = await (0, subcategoryModel_1.getAllSubCategories)();
+        res.status(200).json((0, responseHandler_1.createResponse)(200, "Subcategories fetched successfully", subCategories));
     }
     catch (error) {
-        res
-            .status(500)
-            .json((0, responseHandler_1.createResponse)(500, "Error fetching subcategories", error));
+        res.status(500).json((0, responseHandler_1.createResponse)(500, "Error fetching subcategories", error));
     }
 };
-exports.getSubcategories = getSubcategories;
-const addSubcategory = async (req, res) => {
-    const { name, categoryID, description, weightage, image } = req.body;
+exports.getSubCategories = getSubCategories;
+// Add a new subcategory
+const addSubCategory = async (req, res) => {
+    const { category_id, name, description, weightage, active } = req.body;
     try {
-        await (0, subcategoryModel_1.createSubcategory)(name, categoryID, description, weightage, image);
-        res
-            .status(201)
-            .json((0, responseHandler_1.createResponse)(201, "Subcategory created successfully"));
+        await (0, subcategoryModel_1.createSubCategory)(category_id, name, description, weightage, active);
+        res.status(201).json((0, responseHandler_1.createResponse)(201, "Subcategory created successfully"));
     }
     catch (error) {
-        res
-            .status(500)
-            .json((0, responseHandler_1.createResponse)(500, "Error creating subcategory", error));
+        res.status(500).json((0, responseHandler_1.createResponse)(500, "Error creating subcategory", error));
     }
 };
-exports.addSubcategory = addSubcategory;
-const getSubcategoryById = async (req, res) => {
+exports.addSubCategory = addSubCategory;
+// Get subcategory by ID
+const getSubCategory = async (req, res) => {
     const { id } = req.params;
     try {
-        const subcategory = await (0, subcategoryModel_1.getSubcategoryById)(parseInt(id)); // Using renamed import
-        if (subcategory.length === 0) {
+        const subCategory = await (0, subcategoryModel_1.getSubCategoryById)(parseInt(id));
+        if (subCategory.length === 0) {
             res.status(404).json((0, responseHandler_1.createResponse)(404, "Subcategory not found"));
         }
         else {
-            res
-                .status(200)
-                .json((0, responseHandler_1.createResponse)(200, "Subcategory fetched successfully", subcategory[0]));
+            res.status(200).json((0, responseHandler_1.createResponse)(200, "Subcategory fetched successfully", subCategory));
         }
     }
     catch (error) {
-        res
-            .status(500)
-            .json((0, responseHandler_1.createResponse)(500, "Error fetching subcategory", error));
+        res.status(500).json((0, responseHandler_1.createResponse)(500, "Error fetching subcategory", error));
     }
 };
-exports.getSubcategoryById = getSubcategoryById;
-const updateSubcategory = async (req, res) => {
+exports.getSubCategory = getSubCategory;
+// Update subcategory by ID
+const updateSubCategory = async (req, res) => {
     const { id } = req.params;
-    const { name, categoryID, description, weightage, image } = req.body;
+    const { category_id, name, description, weightage, active } = req.body;
     try {
-        const result = await (0, subcategoryModel_1.updateSubcategoryById)(parseInt(id), name, categoryID, description, weightage, image);
-        if (result.affectedRows === 0) {
-            res.status(404).json((0, responseHandler_1.createResponse)(404, "Subcategory not found"));
-        }
-        else {
-            res
-                .status(200)
-                .json((0, responseHandler_1.createResponse)(200, "Subcategory updated successfully"));
-        }
+        await (0, subcategoryModel_1.updateSubCategoryById)(parseInt(id), category_id, name, description, weightage, active);
+        res.status(200).json((0, responseHandler_1.createResponse)(200, "Subcategory updated successfully"));
     }
     catch (error) {
-        res
-            .status(500)
-            .json((0, responseHandler_1.createResponse)(500, "Error updating subcategory", error));
+        res.status(500).json((0, responseHandler_1.createResponse)(500, "Error updating subcategory", error));
     }
 };
-exports.updateSubcategory = updateSubcategory;
-const deleteSubcategory = async (req, res) => {
+exports.updateSubCategory = updateSubCategory;
+// Delete subcategory by ID
+const deleteSubCategory = async (req, res) => {
     const { id } = req.params;
     try {
-        const result = await (0, subcategoryModel_1.deleteSubcategoryById)(parseInt(id));
-        if (result.affectedRows === 0) {
-            res.status(404).json((0, responseHandler_1.createResponse)(404, "Subcategory not found"));
-        }
-        else {
-            res
-                .status(200)
-                .json((0, responseHandler_1.createResponse)(200, "Subcategory deleted successfully"));
-        }
+        await (0, subcategoryModel_1.deleteSubCategoryById)(parseInt(id));
+        res.status(200).json((0, responseHandler_1.createResponse)(200, "Subcategory deleted successfully"));
     }
     catch (error) {
-        res
-            .status(500)
-            .json((0, responseHandler_1.createResponse)(500, "Error deleting subcategory", error));
+        res.status(500).json((0, responseHandler_1.createResponse)(500, "Error deleting subcategory", error));
     }
 };
-exports.deleteSubcategory = deleteSubcategory;
+exports.deleteSubCategory = deleteSubCategory;

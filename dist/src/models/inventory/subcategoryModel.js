@@ -1,38 +1,41 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteSubcategoryById = exports.updateSubcategoryById = exports.getSubcategoryById = exports.createSubcategory = exports.getAllSubcategories = void 0;
+exports.deleteSubCategoryById = exports.updateSubCategoryById = exports.getSubCategoryById = exports.createSubCategory = exports.getAllSubCategories = void 0;
 const databaseConnection_1 = require("../../config/databaseConnection");
-const getAllSubcategories = async () => {
+// Fetch all subcategories
+const getAllSubCategories = async () => {
     const [rows] = await databaseConnection_1.db
         .promise()
-        .query("SELECT * FROM Subcategories");
+        .query("SELECT * FROM sub_categories");
     return rows;
 };
-exports.getAllSubcategories = getAllSubcategories;
-const createSubcategory = async (name, categoryID, description, weightage, image) => {
+exports.getAllSubCategories = getAllSubCategories;
+// Create a new subcategory
+const createSubCategory = async (category_id, name, description, weightage, active) => {
     await databaseConnection_1.db
         .promise()
-        .query("INSERT INTO Subcategories (Name, CategoryID, Description, Weightage, Image) VALUES (?, ?, ?, ?, ?)", [name, categoryID, description, weightage, image]);
+        .query("INSERT INTO sub_categories (category_id, name, description, weightage, active) VALUES (?, ?, ?, ?, ?)", [category_id, name, description, weightage, active]);
 };
-exports.createSubcategory = createSubcategory;
-const getSubcategoryById = async (id) => {
+exports.createSubCategory = createSubCategory;
+// Fetch subcategory by ID
+const getSubCategoryById = async (id) => {
     const [rows] = await databaseConnection_1.db
         .promise()
-        .query("SELECT * FROM Subcategories WHERE SubcategoryID = ?", [id]);
+        .query("SELECT * FROM sub_categories WHERE id = ?", [id]);
     return rows;
 };
-exports.getSubcategoryById = getSubcategoryById;
-const updateSubcategoryById = async (id, name, categoryID, description, weightage, image) => {
-    const [result] = await databaseConnection_1.db
+exports.getSubCategoryById = getSubCategoryById;
+// Update subcategory by ID
+const updateSubCategoryById = async (id, category_id, name, description, weightage, active) => {
+    await databaseConnection_1.db
         .promise()
-        .query("UPDATE Subcategories SET Name = ?, CategoryID = ?, Description = ?, Weightage = ?, Image = ? WHERE SubcategoryID = ?", [name, categoryID, description, weightage, image, id]);
-    return result;
+        .query("UPDATE sub_categories SET category_id = ?, name = ?, description = ?, weightage = ?, active = ? WHERE id = ?", [category_id, name, description, weightage, active, id]);
 };
-exports.updateSubcategoryById = updateSubcategoryById;
-const deleteSubcategoryById = async (id) => {
-    const [result] = await databaseConnection_1.db
+exports.updateSubCategoryById = updateSubCategoryById;
+// Delete subcategory by ID
+const deleteSubCategoryById = async (id) => {
+    await databaseConnection_1.db
         .promise()
-        .query("DELETE FROM Subcategories WHERE SubcategoryID = ?", [id]);
-    return result;
+        .query("DELETE FROM sub_categories WHERE id = ?", [id]);
 };
-exports.deleteSubcategoryById = deleteSubcategoryById;
+exports.deleteSubCategoryById = deleteSubCategoryById;
