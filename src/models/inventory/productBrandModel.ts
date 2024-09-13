@@ -5,7 +5,7 @@ import { RowDataPacket, OkPacket } from "mysql2";
 export const getAllBrands = async (): Promise<RowDataPacket[]> => {
   const [rows] = await db
     .promise()
-    .query<RowDataPacket[]>("SELECT * FROM ProductBrands");
+    .query<RowDataPacket[]>("SELECT * FROM product_brands");
   return rows;
 };
 
@@ -14,7 +14,7 @@ export const createBrand = async (name: string): Promise<void> => {
   await db
     .promise()
     .query<OkPacket>(
-      "INSERT INTO ProductBrands (Name, Active) VALUES (?, TRUE)",
+      "INSERT INTO product_brands (Name, Active) VALUES (?, TRUE)",
       [name]
     );
 };
@@ -24,7 +24,7 @@ export const updateBrandById = async (id: number, name: string): Promise<void> =
   await db
     .promise()
     .query<OkPacket>(
-      "UPDATE ProductBrands SET Name = ? WHERE BrandID = ?",
+      "UPDATE product_brands SET Name = ? WHERE BrandID = ?",
       [name, id]
     );
 };
@@ -33,14 +33,14 @@ export const updateBrandById = async (id: number, name: string): Promise<void> =
 export const deleteBrandById = async (id: number): Promise<void> => {
   await db
     .promise()
-    .query<OkPacket>("DELETE FROM ProductBrands WHERE BrandID = ?", [id]);
+    .query<OkPacket>("DELETE FROM product_brands WHERE BrandID = ?", [id]);
 };
 
 // Fetch product brand by ID
 export const getBrandById = async (id: number): Promise<RowDataPacket[]> => {
   const [rows] = await db
     .promise()
-    .query<RowDataPacket[]>("SELECT * FROM ProductBrands WHERE BrandID = ?", [id]);
+    .query<RowDataPacket[]>("SELECT * FROM product_brands WHERE BrandID = ?", [id]);
   return rows;
 };
 
