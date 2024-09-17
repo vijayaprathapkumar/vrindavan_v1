@@ -15,6 +15,8 @@ import deliveryBoyRoutes from "./routes/deliveryBoy/deliveryBoyRoutes";
 import commissionRoutes from "./routes/deliveryBoy/commissionRoutes";
 import orderRoutes from "./routes/orders/orderRoutes";
 import routeOrdersRoutes from "./routes/orders/routeOrdersRoutes";
+import hubOrdersRoutes from "./routes/orders/hubOrdersRoutes";
+import devliveryBoyOrders from "./routes/orders/devliveryBoyOrders";
 const router = express.Router();
 
 // Auth Login
@@ -33,7 +35,7 @@ router.use("/customers", customerRoutes);
 // Localities
 router.use("/truck_routes", truckRoutes);
 router.use("/hubs", hubsRoutes);
-router.use('/localities', localityRoutes);
+router.use("/localities", localityRoutes);
 
 // faqs
 router.use("/faqs_categories", faqCategoryRoutes);
@@ -45,5 +47,7 @@ router.use("/commissions", commissionRoutes);
 
 // orders
 router.use("/orders", orderRoutes);
-router.use('/route_orders', routeOrdersRoutes);
+router.use("/route_orders", routeOrdersRoutes);
+router.use("/hub_orders", hubOrdersRoutes);
+router.use("/delivery_orders", devliveryBoyOrders);
 export default router;
