@@ -9,12 +9,12 @@ const requestOTP = async (req, res) => {
     const otp = (0, authLogin_1.generateOTP)();
     const otpExpiresAt = new Date(Date.now() + 10 * 60000); // OTP expires in 10 minutes
     try {
-        databaseConnection_1.db.query("SELECT * FROM users WHERE mobile_number = ?", [mobile_number], (err, result) => {
+        databaseConnection_1.db.query("SELECT * FROM login_otp WHERE mobile_number = ?", [mobile_number], (err, result) => {
             if (err)
                 return res.status(500).json((0, responseHandler_1.createResponse)(500, "Database error"));
             const query = result.length === 0
-                ? "INSERT INTO users (mobile_number, otp_code, otp_expires_at) VALUES (?, ?, ?)"
-                : "UPDATE users SET otp_code = ?, otp_expires_at = ? WHERE mobile_number = ?";
+                ? "INSERT INTO login_otp (mobile_number, otp_code, otp_expires_at) VALUES (?, ?, ?)"
+                : "UPDATE login_otp SET otp_code = ?, otp_expires_at = ? WHERE mobile_number = ?";
             const params = result.length === 0
                 ? [mobile_number, otp, otpExpiresAt]
                 : [otp, otpExpiresAt, mobile_number];
@@ -35,13 +35,11 @@ exports.requestOTP = requestOTP;
 const verifyOTP = async (req, res) => {
     const { mobile_number, otp } = req.body;
     try {
-        databaseConnection_1.db.query("SELECT * FROM users WHERE mobile_number = ? AND otp_code = ? AND otp_expires_at > NOW()", [mobile_number, otp], (err, result) => {
+        databaseConnection_1.db.query("SELECT * FROM login_otp WHERE mobile_number = ? AND otp_code = ? AND otp_expires_at > NOW()", [mobile_number, otp], (err, result) => {
             if (err)
                 return res.status(500).json((0, responseHandler_1.createResponse)(500, "Database error"));
             if (result.length === 0) {
-                return res
-                    .status(400)
-                    .json((0, responseHandler_1.createResponse)(400, "Invalid or expired OTP"));
+                return res.status(400).json((0, responseHandler_1.createResponse)(400, "Invalid or expired OTP"));
             }
             res.json((0, responseHandler_1.createResponse)(200, "OTP verified successfully"));
         });

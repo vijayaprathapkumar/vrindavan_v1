@@ -1,5 +1,6 @@
 import express from "express";
 import dotenv from "dotenv";
+import cors from "cors";
 import routes from "./src/routes";
 
 dotenv.config();
@@ -7,6 +8,14 @@ dotenv.config();
 const app = express();
 
 app.use(express.json());
+
+const corsOptions = {
+  origin: '*',
+  Credentials: true,
+  optionsSuccessStatus: 200
+}
+
+app.use(cors(corsOptions))
 
 app.get("/", (req, res) => {
   res.send("Welcome to our vrindavan");

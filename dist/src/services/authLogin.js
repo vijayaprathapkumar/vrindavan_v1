@@ -34,7 +34,7 @@ const sendOTP = async (phoneNumber, otp) => {
         await sns.send(command);
     }
     catch (error) {
-        console.error("Error sending OTP via SNS:", error instanceof Error ? error.message : "Unknown error");
+        console.error("Error sending OTP via SNS:", error);
         throw new Error("Error sending OTP. Please try again.");
     }
 };
