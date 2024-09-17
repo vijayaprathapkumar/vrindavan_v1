@@ -3,9 +3,7 @@ import { RowDataPacket, OkPacket } from "mysql2";
 
 // Fetch all hubs
 export const getAllHubs = async (): Promise<RowDataPacket[]> => {
-  const [rows] = await db
-    .promise()
-    .query<RowDataPacket[]>("SELECT * FROM hubs");
+  const [rows] = await db.promise().query<RowDataPacket[]>("SELECT * FROM hubs");
   return rows;
 };
 
@@ -16,19 +14,17 @@ export const createHub = async (
   otherDetails: string,
   active: number
 ): Promise<void> => {
-  await db
-    .promise()
-    .query<OkPacket>(
-      "INSERT INTO hubs (route_id, name, other_details, active) VALUES (?, ?, ?, ?)",
-      [routeId, name, otherDetails, active]
-    );
+  await db.promise().query<OkPacket>(
+    "INSERT INTO hubs (route_id, name, other_details, active) VALUES (?, ?, ?, ?)",
+    [routeId, name, otherDetails, active]
+  );
 };
 
 // Fetch hub by ID
 export const getHubById = async (id: number): Promise<RowDataPacket[]> => {
-  const [rows] = await db
-    .promise()
-    .query<RowDataPacket[]>("SELECT * FROM hubs WHERE id = ?", [id]);
+  const [rows] = await db.promise().query<RowDataPacket[]>(
+    "SELECT * FROM hubs WHERE id = ?", [id]
+  );
   return rows;
 };
 
@@ -40,12 +36,10 @@ export const updateHubById = async (
   otherDetails: string,
   active: number
 ): Promise<void> => {
-  await db
-    .promise()
-    .query<OkPacket>(
-      "UPDATE hubs SET route_id = ?, name = ?, other_details = ?, active = ? WHERE id = ?",
-      [routeId, name, otherDetails, active, id]
-    );
+  await db.promise().query<OkPacket>(
+    "UPDATE hubs SET route_id = ?, name = ?, other_details = ?, active = ? WHERE id = ?",
+    [routeId, name, otherDetails, active, id]
+  );
 };
 
 // Delete hub by ID
