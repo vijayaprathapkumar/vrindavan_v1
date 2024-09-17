@@ -3,7 +3,7 @@ import { RowDataPacket, OkPacket } from 'mysql2';
 
 // Fetch all customers
 export const getAllCustomers = async (): Promise<RowDataPacket[]> => {
-  const [rows] = await db.promise().query<RowDataPacket[]>("SELECT * FROM Customers");
+  const [rows] = await db.promise().query<RowDataPacket[]>("SELECT * FROM customers");
   return rows;
 };
 
@@ -18,14 +18,14 @@ export const createCustomer = async (
   status: string
 ): Promise<void> => {
   await db.promise().query<OkPacket>(
-    "INSERT INTO Customers (locality, name, email, mobile, house_no, complete_address, status) VALUES (?, ?, ?, ?, ?, ?, ?)",
+    "INSERT INTO customers (locality, name, email, mobile, house_no, complete_address, status) VALUES (?, ?, ?, ?, ?, ?, ?)",
     [locality, name, email, mobile, houseNo, completeAddress, status]
   );
 };
 
 // Fetch customer by ID
 export const getCustomerById = async (id: number): Promise<RowDataPacket[]> => {
-  const [rows] = await db.promise().query<RowDataPacket[]>("SELECT * FROM Customers WHERE id = ?", [id]);
+  const [rows] = await db.promise().query<RowDataPacket[]>("SELECT * FROM customers WHERE id = ?", [id]);
   return rows;
 };
 
@@ -41,12 +41,12 @@ export const updateCustomerById = async (
   status: string
 ): Promise<void> => {
   await db.promise().query<OkPacket>(
-    "UPDATE Customers SET locality = ?, name = ?, email = ?, mobile = ?, house_no = ?, complete_address = ?, status = ? WHERE id = ?",
+    "UPDATE customers SET locality = ?, name = ?, email = ?, mobile = ?, house_no = ?, complete_address = ?, status = ? WHERE id = ?",
     [locality, name, email, mobile, houseNo, completeAddress, status, id]
   );
 };
 
 // Delete customer by ID
 export const deleteCustomerById = async (id: number): Promise<void> => {
-  await db.promise().query<OkPacket>("DELETE FROM Customers WHERE id = ?", [id]);
+  await db.promise().query<OkPacket>("DELETE FROM customers WHERE id = ?", [id]);
 };
