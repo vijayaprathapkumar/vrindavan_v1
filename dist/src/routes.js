@@ -20,6 +20,8 @@ const deliveryBoyRoutes_1 = __importDefault(require("./routes/deliveryBoy/delive
 const commissionRoutes_1 = __importDefault(require("./routes/deliveryBoy/commissionRoutes"));
 const orderRoutes_1 = __importDefault(require("./routes/orders/orderRoutes"));
 const routeOrdersRoutes_1 = __importDefault(require("./routes/orders/routeOrdersRoutes"));
+const hubOrdersRoutes_1 = __importDefault(require("./routes/orders/hubOrdersRoutes"));
+const devliveryBoyOrders_1 = __importDefault(require("./routes/orders/devliveryBoyOrders"));
 const router = express_1.default.Router();
 // Auth Login
 router.use("/auth", authLogin_1.default);
@@ -34,7 +36,7 @@ router.use("/customers", customerRoutes_1.default);
 // Localities
 router.use("/truck_routes", truckRoutes_1.default);
 router.use("/hubs", hubsRoutes_1.default);
-router.use('/localities', localityRouter_1.default);
+router.use("/localities", localityRouter_1.default);
 // faqs
 router.use("/faqs_categories", faqCategoryRoutes_1.default);
 router.use("/faqs", faqsRoutes_1.default);
@@ -43,5 +45,7 @@ router.use("/delivery_boys", deliveryBoyRoutes_1.default);
 router.use("/commissions", commissionRoutes_1.default);
 // orders
 router.use("/orders", orderRoutes_1.default);
-router.use('/route_orders', routeOrdersRoutes_1.default);
+router.use("/route_orders", routeOrdersRoutes_1.default);
+router.use("/hub_orders", hubOrdersRoutes_1.default);
+router.use("/delivery_orders", devliveryBoyOrders_1.default);
 exports.default = router;
