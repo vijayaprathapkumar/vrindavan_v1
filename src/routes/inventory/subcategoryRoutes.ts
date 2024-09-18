@@ -1,6 +1,6 @@
 import express from 'express';
 import {
-  getSubCategories,
+  getSubCategoriesWithCategory,
   addSubCategory,
   getSubCategory,
   updateSubCategory,
@@ -14,10 +14,14 @@ import {
 
 const router = express.Router();
 
-router.get("/", getSubCategories);
+router.get("/", getSubCategoriesWithCategory);
+
 router.post("/", subCategoryValidation, validate, addSubCategory);
+
 router.get("/:id", subCategoryIdValidation, validate, getSubCategory);
+
 router.put("/:id", subCategoryIdValidation, subCategoryValidation, validate, updateSubCategory);
+
 router.delete("/:id", subCategoryIdValidation, validate, deleteSubCategory);
 
 export default router;

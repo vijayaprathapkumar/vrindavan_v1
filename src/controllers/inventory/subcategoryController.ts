@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import {
-  getAllSubCategories,
+  getAllSubCategoriesWithCategory,
   createSubCategory,
   getSubCategoryById,
   updateSubCategoryById,
@@ -8,13 +8,13 @@ import {
 } from "../../models/inventory/subcategoryModel";
 import { createResponse } from "../../utils/responseHandler";
 
-// Fetch all subcategories
-export const getSubCategories = async (req: Request, res: Response): Promise<void> => {
+// Fetch all subcategories with category relationship
+export const getSubCategoriesWithCategory = async (req: Request, res: Response): Promise<void> => {
   try {
-    const subCategories = await getAllSubCategories();
-    res.status(200).json(createResponse(200, "Subcategories fetched successfully", subCategories));
+    const subCategories = await getAllSubCategoriesWithCategory();
+    res.status(200).json(createResponse(200, "Subcategories with categories fetched successfully", subCategories));
   } catch (error) {
-    res.status(500).json(createResponse(500, "Error fetching subcategories", error));
+    res.status(500).json(createResponse(500, "Error fetching subcategories with categories", error));
   }
 };
 
@@ -22,8 +22,8 @@ export const getSubCategories = async (req: Request, res: Response): Promise<voi
 export const addSubCategory = async (req: Request, res: Response): Promise<void> => {
   const { category_id, name, description, weightage, active } = req.body;
   try {
-    await createSubCategory(category_id, name, description, weightage, active);
-    res.status(201).json(createResponse(201, "Subcategory created successfully"));
+    const result = await createSubCategory(category_id, name, description, weightage, active);
+    res.status(201).json(createResponse(201, "Subcategory created successfully", { insertId: result.insertId }));
   } catch (error) {
     res.status(500).json(createResponse(500, "Error creating subcategory", error));
   }
@@ -37,7 +37,7 @@ export const getSubCategory = async (req: Request, res: Response): Promise<void>
     if (subCategory.length === 0) {
       res.status(404).json(createResponse(404, "Subcategory not found"));
     } else {
-      res.status(200).json(createResponse(200, "Subcategory fetched successfully", subCategory));
+      res.status(200).json(createResponse(200, "Subcategory fetched successfully", subCategory[0]));
     }
   } catch (error) {
     res.status(500).json(createResponse(500, "Error fetching subcategory", error));

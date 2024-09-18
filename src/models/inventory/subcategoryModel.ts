@@ -1,11 +1,21 @@
 import { db } from "../../config/databaseConnection";
 import { RowDataPacket, OkPacket } from "mysql2";
 
-// Fetch all subcategories
-export const getAllSubCategories = async (): Promise<RowDataPacket[]> => {
-  const [rows] = await db
-    .promise()
-    .query<RowDataPacket[]>("SELECT * FROM sub_categories");
+// Fetch all subcategories with category relationship
+export const getAllSubCategoriesWithCategory = async (): Promise<RowDataPacket[]> => {
+  const query = `
+    SELECT 
+      sub_categories.*, 
+      categories.name as category_name, 
+      categories.description as category_description
+    FROM 
+      sub_categories
+    LEFT JOIN 
+      categories 
+    ON 
+      sub_categories.category_id = categories.id;
+  `;
+  const [rows] = await db.promise().query<RowDataPacket[]>(query);
   return rows;
 };
 
@@ -16,22 +26,27 @@ export const createSubCategory = async (
   description: string,
   weightage: string,
   active: boolean
-): Promise<void> => {
-  await db
+): Promise<OkPacket> => {
+  const [result] = await db
     .promise()
     .query<OkPacket>(
       "INSERT INTO sub_categories (category_id, name, description, weightage, active) VALUES (?, ?, ?, ?, ?)",
       [category_id, name, description, weightage, active]
     );
+  return result;
 };
 
 // Fetch subcategory by ID
-export const getSubCategoryById = async (
-  id: number
-): Promise<RowDataPacket[]> => {
+export const getSubCategoryById = async (id: number): Promise<RowDataPacket[]> => {
   const [rows] = await db
     .promise()
-    .query<RowDataPacket[]>("SELECT * FROM sub_categories WHERE id = ?", [id]);
+    .query<RowDataPacket[]>(
+      `SELECT sub_categories.*, categories.name as category_name 
+       FROM sub_categories 
+       LEFT JOIN categories ON sub_categories.category_id = categories.id 
+       WHERE sub_categories.id = ?`,
+      [id]
+    );
   return rows;
 };
 
@@ -54,7 +69,5 @@ export const updateSubCategoryById = async (
 
 // Delete subcategory by ID
 export const deleteSubCategoryById = async (id: number): Promise<void> => {
-  await db
-    .promise()
-    .query<OkPacket>("DELETE FROM sub_categories WHERE id = ?", [id]);
+  await db.promise().query<OkPacket>("DELETE FROM sub_categories WHERE id = ?", [id]);
 };
