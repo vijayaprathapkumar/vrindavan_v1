@@ -1,25 +1,25 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteSubCategory = exports.updateSubCategory = exports.getSubCategory = exports.addSubCategory = exports.getSubCategories = void 0;
+exports.deleteSubCategory = exports.updateSubCategory = exports.getSubCategory = exports.addSubCategory = exports.getSubCategoriesWithCategory = void 0;
 const subcategoryModel_1 = require("../../models/inventory/subcategoryModel");
 const responseHandler_1 = require("../../utils/responseHandler");
-// Fetch all subcategories
-const getSubCategories = async (req, res) => {
+// Fetch all subcategories with category relationship
+const getSubCategoriesWithCategory = async (req, res) => {
     try {
-        const subCategories = await (0, subcategoryModel_1.getAllSubCategories)();
-        res.status(200).json((0, responseHandler_1.createResponse)(200, "Subcategories fetched successfully", subCategories));
+        const subCategories = await (0, subcategoryModel_1.getAllSubCategoriesWithCategory)();
+        res.status(200).json((0, responseHandler_1.createResponse)(200, "Subcategories with categories fetched successfully", subCategories));
     }
     catch (error) {
-        res.status(500).json((0, responseHandler_1.createResponse)(500, "Error fetching subcategories", error));
+        res.status(500).json((0, responseHandler_1.createResponse)(500, "Error fetching subcategories with categories", error));
     }
 };
-exports.getSubCategories = getSubCategories;
+exports.getSubCategoriesWithCategory = getSubCategoriesWithCategory;
 // Add a new subcategory
 const addSubCategory = async (req, res) => {
     const { category_id, name, description, weightage, active } = req.body;
     try {
-        await (0, subcategoryModel_1.createSubCategory)(category_id, name, description, weightage, active);
-        res.status(201).json((0, responseHandler_1.createResponse)(201, "Subcategory created successfully"));
+        const result = await (0, subcategoryModel_1.createSubCategory)(category_id, name, description, weightage, active);
+        res.status(201).json((0, responseHandler_1.createResponse)(201, "Subcategory created successfully", { insertId: result.insertId }));
     }
     catch (error) {
         res.status(500).json((0, responseHandler_1.createResponse)(500, "Error creating subcategory", error));
@@ -35,7 +35,7 @@ const getSubCategory = async (req, res) => {
             res.status(404).json((0, responseHandler_1.createResponse)(404, "Subcategory not found"));
         }
         else {
-            res.status(200).json((0, responseHandler_1.createResponse)(200, "Subcategory fetched successfully", subCategory));
+            res.status(200).json((0, responseHandler_1.createResponse)(200, "Subcategory fetched successfully", subCategory[0]));
         }
     }
     catch (error) {
