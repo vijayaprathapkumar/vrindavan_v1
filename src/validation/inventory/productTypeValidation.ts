@@ -17,8 +17,10 @@ export const productTypeValidation = [
 
 export const productTypeIdValidation = [
   param('id')
-    .isInt({ min: 1 })
-    .withMessage('ProductTypeID must be a positive integer'),
+  .exists()
+  .withMessage('ProductType ID is required')
+  .notEmpty()
+  .withMessage('ProductType ID cannot be empty')
 ];
 
 export const validate = (req, res, next) => {
