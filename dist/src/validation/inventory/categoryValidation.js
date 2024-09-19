@@ -26,8 +26,10 @@ exports.categoryValidation = [
 ];
 exports.categoryIdValidation = [
     (0, express_validator_1.param)('id')
-        .isInt({ gt: 0 })
-        .withMessage('Category ID must be a positive integer'),
+        .exists()
+        .withMessage('category ID is required')
+        .notEmpty()
+        .withMessage('category ID cannot be empty')
 ];
 const validate = (req, res, next) => {
     const errors = (0, express_validator_1.validationResult)(req);
