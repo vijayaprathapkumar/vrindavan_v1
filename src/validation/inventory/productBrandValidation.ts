@@ -12,10 +12,8 @@ export const brandValidation = [
 
 export const brandIdValidation = [
   param('id')
-  .exists()
-  .withMessage('Brand ID is required')
-  .notEmpty()
-  .withMessage('Brand ID cannot be empty')
+    .isInt({ gt: 0 })
+    .withMessage('Brand ID must be a positive integer'),
 ];
 
 
