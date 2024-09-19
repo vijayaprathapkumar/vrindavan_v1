@@ -16,10 +16,8 @@ exports.productTypeValidation = [
 ];
 exports.productTypeIdValidation = [
     (0, express_validator_1.param)('id')
-        .exists()
-        .withMessage('ProductType ID is required')
-        .notEmpty()
-        .withMessage('ProductType ID cannot be empty')
+        .isInt({ min: 1 })
+        .withMessage('ProductTypeID must be a positive integer'),
 ];
 const validate = (req, res, next) => {
     const errors = (0, express_validator_1.validationResult)(req);
