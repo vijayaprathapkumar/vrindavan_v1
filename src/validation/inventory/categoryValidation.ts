@@ -28,10 +28,8 @@ export const categoryValidation = [
 
 export const categoryIdValidation = [
   param('id')
-    .exists()
-    .withMessage('category ID is required')
-    .notEmpty()
-    .withMessage('category ID cannot be empty')
+    .isInt({ gt: 0 })
+    .withMessage('Category ID must be a positive integer'),
 ];
 
 export const validate = (req, res, next) => {
