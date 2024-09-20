@@ -2,17 +2,48 @@ import { db } from "../../config/databaseConnection";
 import { Food } from "../../types/inventory/foodTypes";
 import { RowDataPacket, ResultSetHeader } from "mysql2";
 
-export const getAllFoods = async (): Promise<Food[]> => {
-  const [rows] = await db
-    .promise()
-    .execute<RowDataPacket[]>("SELECT * FROM foods");
+export const getAllFoods = async (filters: {
+  status?: boolean;
+  categoryId?: number;
+  subcategoryId?: number;
+  searchTerm?: string;
+}): Promise<Food[]> => {
+  let query = "SELECT * FROM foods";
+  const conditions: string[] = [];
+  const values: (string | number)[] = [];
+
+  if (filters.status !== undefined) {
+    conditions.push("status = ?");
+    values.push(filters.status ? 1 : 0);
+  }
+
+  if (filters.categoryId) {
+    conditions.push("category_id = ?");
+    values.push(filters.categoryId);
+  }
+
+  if (filters.subcategoryId) {
+    conditions.push("subcategory_id = ?");
+    values.push(filters.subcategoryId);
+  }
+  
+  if (filters.searchTerm) {
+    conditions.push("name LIKE ?");
+    values.push(`%${filters.searchTerm}%`);
+  }
+  
+  if (conditions.length > 0) {
+    query += " WHERE " + conditions.join(" AND ");
+  }
+
+  const [rows] = await db.promise().execute<RowDataPacket[]>(query, values);
   return rows as Food[];
 };
 
 export const getFoodById = async (id: number): Promise<Food | null> => {
-  const [rows] = await db
-    .promise()
-    .execute<RowDataPacket[]>("SELECT * FROM foods WHERE id = ?", [id]);
+  const [rows] = await db.promise().execute<RowDataPacket[]>(
+    "SELECT * FROM foods WHERE id = ?", [id]
+  );
   return rows.length > 0 ? (rows[0] as Food) : null;
 };
 
@@ -51,10 +82,7 @@ export const createFood = async (foodData: Food): Promise<Food> => {
   return { id: result.insertId, ...foodData };
 };
 
-export const updateFood = async (
-  id: number,
-  foodData: Food
-): Promise<Food | null> => {
+export const updateFood = async (id: number, foodData: Food): Promise<Food | null> => {
   const query = `
         UPDATE foods SET name = ?, price = ?, discount_price = ?, description = ?, 
         product_type_id = ?, product_brand_id = ?, locality_id = ?, weightage = ?, 
@@ -93,8 +121,8 @@ export const updateFood = async (
 };
 
 export const deleteFood = async (id: number): Promise<boolean> => {
-  const [result] = await db
-    .promise()
-    .execute<ResultSetHeader>("DELETE FROM foods WHERE id = ?", [id]);
+  const [result] = await db.promise().execute<ResultSetHeader>(
+    "DELETE FROM foods WHERE id = ?", [id]
+  );
   return result.affectedRows > 0;
 };
