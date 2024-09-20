@@ -1,15 +1,38 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
-const foodController_1 = require("../../controllers/inventory/foodController");
+const foodController = __importStar(require("../../controllers/inventory/foodController"));
 const foodValidation_1 = require("../../validation/inventory/foodValidation");
 const router = express_1.default.Router();
-router.get("/", foodController_1.getFoods);
-router.post("/", foodValidation_1.foodValidation, foodValidation_1.validate, foodController_1.addFood);
-router.get("/:id", foodValidation_1.foodIdValidation, foodValidation_1.validate, foodController_1.getFood);
-router.put("/:id", foodValidation_1.foodIdValidation, foodValidation_1.foodValidation, foodValidation_1.validate, foodController_1.updateFood);
-router.delete("/:id", foodValidation_1.foodIdValidation, foodValidation_1.validate, foodController_1.deleteFood);
+router.get("/", foodController.getAllFoods);
+router.get("/:id", foodController.getFoodById);
+router.post("/", foodValidation_1.validateFood, foodController.createFood);
+router.put("/:id", foodValidation_1.validateFood, foodController.updateFood);
+router.delete("/:id", foodController.deleteFood);
 exports.default = router;
