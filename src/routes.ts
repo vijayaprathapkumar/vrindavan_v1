@@ -2,7 +2,7 @@ import express from "express";
 import authLoginRoutes from "./routes/authLogin/authLogin";
 import categoryRoutes from "./routes/inventory/categoryRoutes";
 import subcategoryRoutes from "./routes/inventory/subcategoryRoutes";
-import foodRoutes from "./routes/inventory/foodRoutes";
+
 import productTypeRoutes from "./routes/inventory/productTypeRoutes";
 import productBrandRoutes from "./routes/inventory/productBrandRoutes";
 import customerRoutes from "./routes/customer/customerRoutes";
@@ -17,6 +17,7 @@ import orderRoutes from "./routes/orders/orderRoutes";
 import routeOrdersRoutes from "./routes/orders/routeOrdersRoutes";
 import hubOrdersRoutes from "./routes/orders/hubOrdersRoutes";
 import devliveryBoyOrders from "./routes/orders/devliveryBoyOrders";
+import foodRoutes from "./routes/inventory/foodRoutes";
 const router = express.Router();
 
 // Auth Login

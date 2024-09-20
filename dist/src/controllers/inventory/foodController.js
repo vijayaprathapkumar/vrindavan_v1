@@ -1,67 +1,103 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteFood = exports.updateFood = exports.getFood = exports.addFood = exports.getFoods = void 0;
-const foodModel_1 = require("../../models/inventory/foodModel");
+exports.deleteFood = exports.updateFood = exports.createFood = exports.getFoodById = exports.getAllFoods = void 0;
+const foodModel = __importStar(require("../../models/inventory/foodModel"));
 const responseHandler_1 = require("../../utils/responseHandler");
-// Fetch all foods
-const getFoods = async (req, res) => {
+const getAllFoods = async (req, res) => {
     try {
-        const foods = await (0, foodModel_1.getAllFoods)();
-        res.status(200).json((0, responseHandler_1.createResponse)(200, "Foods fetched successfully", foods));
+        const foods = await foodModel.getAllFoods();
+        res
+            .status(200)
+            .json((0, responseHandler_1.createResponse)(200, "Foods fetched successfully", foods));
     }
     catch (error) {
         res.status(500).json((0, responseHandler_1.createResponse)(500, "Error fetching foods", error));
     }
 };
-exports.getFoods = getFoods;
-// Add a new food
-const addFood = async (req, res) => {
-    const { name, price, discount_price, description, perma_link, ingredients, package_items_count, weight, unit, sku_code, barcode, cgst, sgst, subscription_type, track_inventory, featured, deliverable, restaurant_id, category_id, subcategory_id, product_type_id, hub_id, locality_id, product_brand_id, weightage, status, food_locality } = req.body;
+exports.getAllFoods = getAllFoods;
+const getFoodById = async (req, res) => {
     try {
-        await (0, foodModel_1.createFood)(name, price, discount_price, description, perma_link, ingredients, package_items_count, weight, unit, sku_code, barcode, cgst, sgst, subscription_type, track_inventory, featured, deliverable, restaurant_id, category_id, subcategory_id, product_type_id, hub_id, locality_id, product_brand_id, weightage, status, food_locality);
-        res.status(201).json((0, responseHandler_1.createResponse)(201, "Food created successfully"));
-    }
-    catch (error) {
-        res.status(500).json((0, responseHandler_1.createResponse)(500, "Error creating food", error));
-    }
-};
-exports.addFood = addFood;
-// Get food by ID
-const getFood = async (req, res) => {
-    const { id } = req.params;
-    try {
-        const food = await (0, foodModel_1.getFoodById)(parseInt(id));
-        if (food.length === 0) {
-            res.status(404).json((0, responseHandler_1.createResponse)(404, "Food not found"));
+        const { id } = req.params;
+        const food = await foodModel.getFoodById(Number(id));
+        if (food) {
+            res
+                .status(200)
+                .json((0, responseHandler_1.createResponse)(200, "Food fetched successfully", food));
         }
         else {
-            res.status(200).json((0, responseHandler_1.createResponse)(200, "Food fetched successfully", food));
+            res.status(404).json((0, responseHandler_1.createResponse)(404, "Food not found"));
         }
     }
     catch (error) {
         res.status(500).json((0, responseHandler_1.createResponse)(500, "Error fetching food", error));
     }
 };
-exports.getFood = getFood;
-// Update food by ID
-const updateFood = async (req, res) => {
-    const { id } = req.params;
-    const { name, price, discount_price, description, perma_link, ingredients, package_items_count, weight, unit, sku_code, barcode, cgst, sgst, subscription_type, track_inventory, featured, deliverable, restaurant_id, category_id, subcategory_id, product_type_id, hub_id, locality_id, product_brand_id, weightage, status, food_locality } = req.body;
+exports.getFoodById = getFoodById;
+const createFood = async (req, res) => {
     try {
-        await (0, foodModel_1.updateFoodById)(parseInt(id), name, price, discount_price, description, perma_link, ingredients, package_items_count, weight, unit, sku_code, barcode, cgst, sgst, subscription_type, track_inventory, featured, deliverable, restaurant_id, category_id, subcategory_id, product_type_id, hub_id, locality_id, product_brand_id, weightage, status, food_locality);
-        res.status(200).json((0, responseHandler_1.createResponse)(200, "Food updated successfully"));
+        const foodData = req.body;
+        const newFood = await foodModel.createFood(foodData);
+        res
+            .status(201)
+            .json((0, responseHandler_1.createResponse)(201, "Food created successfully", newFood));
+    }
+    catch (error) {
+        res.status(500).json((0, responseHandler_1.createResponse)(500, "Error creating food", error));
+    }
+};
+exports.createFood = createFood;
+const updateFood = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const foodData = req.body;
+        const updatedFood = await foodModel.updateFood(Number(id), foodData);
+        if (updatedFood) {
+            res
+                .status(200)
+                .json((0, responseHandler_1.createResponse)(200, "Food updated successfully", updatedFood));
+        }
+        else {
+            res.status(404).json((0, responseHandler_1.createResponse)(404, "Food not found"));
+        }
     }
     catch (error) {
         res.status(500).json((0, responseHandler_1.createResponse)(500, "Error updating food", error));
     }
 };
 exports.updateFood = updateFood;
-// Delete food by ID
 const deleteFood = async (req, res) => {
-    const { id } = req.params;
     try {
-        await (0, foodModel_1.deleteFoodById)(parseInt(id));
-        res.status(200).json((0, responseHandler_1.createResponse)(200, "Food deleted successfully"));
+        const { id } = req.params;
+        const deleted = await foodModel.deleteFood(Number(id));
+        if (deleted) {
+            res.status(200).json((0, responseHandler_1.createResponse)(200, "Food deleted successfully"));
+        }
+        else {
+            res.status(404).json((0, responseHandler_1.createResponse)(404, "Food not found"));
+        }
     }
     catch (error) {
         res.status(500).json((0, responseHandler_1.createResponse)(500, "Error deleting food", error));
