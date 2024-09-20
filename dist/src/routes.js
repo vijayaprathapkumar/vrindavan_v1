@@ -7,7 +7,6 @@ const express_1 = __importDefault(require("express"));
 const authLogin_1 = __importDefault(require("./routes/authLogin/authLogin"));
 const categoryRoutes_1 = __importDefault(require("./routes/inventory/categoryRoutes"));
 const subcategoryRoutes_1 = __importDefault(require("./routes/inventory/subcategoryRoutes"));
-const foodRoutes_1 = __importDefault(require("./routes/inventory/foodRoutes"));
 const productTypeRoutes_1 = __importDefault(require("./routes/inventory/productTypeRoutes"));
 const productBrandRoutes_1 = __importDefault(require("./routes/inventory/productBrandRoutes"));
 const customerRoutes_1 = __importDefault(require("./routes/customer/customerRoutes"));
@@ -22,6 +21,7 @@ const orderRoutes_1 = __importDefault(require("./routes/orders/orderRoutes"));
 const routeOrdersRoutes_1 = __importDefault(require("./routes/orders/routeOrdersRoutes"));
 const hubOrdersRoutes_1 = __importDefault(require("./routes/orders/hubOrdersRoutes"));
 const devliveryBoyOrders_1 = __importDefault(require("./routes/orders/devliveryBoyOrders"));
+const foodRoutes_1 = __importDefault(require("./routes/inventory/foodRoutes"));
 const router = express_1.default.Router();
 // Auth Login
 router.use("/auth", authLogin_1.default);
