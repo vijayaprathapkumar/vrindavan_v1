@@ -6,7 +6,7 @@ const getAllFoods = async (filters, limit, offset) => {
     let query = "SELECT * FROM foods";
     const conditions = [];
     const values = [];
-    // Add filters
+    // Add filters if any
     if (filters.status !== undefined) {
         conditions.push("status = ?");
         values.push(filters.status ? 1 : 0);
@@ -23,25 +23,35 @@ const getAllFoods = async (filters, limit, offset) => {
         conditions.push("name LIKE ?");
         values.push(`%${filters.searchTerm}%`);
     }
+    // If there are conditions, append them to the query
     if (conditions.length > 0) {
         query += " WHERE " + conditions.join(" AND ");
     }
-    // Get total count query
-    const countQuery = query.replace("SELECT *", "SELECT COUNT(*) as count");
-    const [countResult] = await databaseConnection_1.db.promise().execute(countQuery, values);
+    // Get total count for pagination only if filters are applied
+    const countQuery = conditions.length > 0
+        ? query.replace("SELECT *", "SELECT COUNT(*) as count")
+        : "SELECT COUNT(*) as count FROM foods";
+    const [countResult] = await databaseConnection_1.db
+        .promise()
+        .execute(countQuery, values);
     const totalItems = countResult[0].count;
-    // Append the LIMIT and OFFSET directly to the query string (no placeholders for LIMIT and OFFSET)
-    query += ` LIMIT ${limit} OFFSET ${offset}`;
-    // Execute the query with filters (excluding LIMIT and OFFSET as placeholders)
+    // Append LIMIT and OFFSET only if filters are applied
+    if (conditions.length > 0) {
+        query += ` LIMIT ${limit} OFFSET ${offset}`;
+    }
+    // Execute the query with or without filters
     const [rows] = await databaseConnection_1.db.promise().execute(query, values);
     return { foods: rows, totalItems };
 };
 exports.getAllFoods = getAllFoods;
 const getFoodById = async (id) => {
-    const [rows] = await databaseConnection_1.db.promise().execute("SELECT * FROM foods WHERE id = ?", [id]);
+    const [rows] = await databaseConnection_1.db
+        .promise()
+        .execute("SELECT * FROM foods WHERE id = ?", [id]);
     return rows.length > 0 ? rows[0] : null;
 };
 exports.getFoodById = getFoodById;
+const defaultRestaurant_id = 1;
 const createFood = async (foodData) => {
     const query = `
         INSERT INTO foods (name, price, discount_price, description, product_type_id, 
@@ -68,7 +78,7 @@ const createFood = async (foodData) => {
         foodData.subcategory_id ?? null,
         foodData.featured ? 1 : 0,
         foodData.track_inventory ? 1 : 0,
-        foodData.restaurant_id,
+        defaultRestaurant_id,
         foodData.status ? 1 : 0,
     ];
     const [result] = await databaseConnection_1.db.promise().execute(query, values);
@@ -103,7 +113,7 @@ const updateFood = async (id, foodData) => {
         foodData.featured ?? false,
         foodData.subscription ?? false,
         foodData.track_inventory ?? false,
-        foodData.restaurant_id,
+        defaultRestaurant_id,
         foodData.status ?? false,
         id,
     ];
@@ -112,7 +122,9 @@ const updateFood = async (id, foodData) => {
 };
 exports.updateFood = updateFood;
 const deleteFood = async (id) => {
-    const [result] = await databaseConnection_1.db.promise().execute("DELETE FROM foods WHERE id = ?", [id]);
+    const [result] = await databaseConnection_1.db
+        .promise()
+        .execute("DELETE FROM foods WHERE id = ?", [id]);
     return result.affectedRows > 0;
 };
 exports.deleteFood = deleteFood;
