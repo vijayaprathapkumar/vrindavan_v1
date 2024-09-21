@@ -38,12 +38,18 @@ const getAllFoods = async (req, res) => {
             subcategoryId: subcategoryId ? Number(subcategoryId) : undefined,
             searchTerm: searchTerm ? String(searchTerm) : undefined,
         };
-        const { foods, totalItems } = await foodModel.getAllFoods(filters, limitNumber, offset);
-        const totalPages = Math.ceil(totalItems / limitNumber);
+        // Check if any filters are applied
+        const hasFilters = Object.values(filters).some(value => value !== undefined);
+        const { foods, totalItems } = await foodModel.getAllFoods(hasFilters ? filters : {}, // Apply filters only if any are present
+        hasFilters ? limitNumber : 0, // Apply limit only if filters are present
+        hasFilters ? offset : 0 // Apply offset only if filters are present
+        );
+        // If no filters are applied, totalItems should be the full count of foods
+        const totalPages = hasFilters ? Math.ceil(totalItems / limitNumber) : 1;
         res.status(200).json((0, responseHandler_1.createResponse)(200, "Foods fetched successfully", {
             foods,
             pagination: {
-                totalItems,
+                totalItems: hasFilters ? totalItems : foods.length, // If no filters, show all items count
                 totalPages,
                 currentPage: pageNumber,
                 pageSize: limitNumber,
@@ -51,6 +57,7 @@ const getAllFoods = async (req, res) => {
         }));
     }
     catch (error) {
+        console.error(error); // Log the error for debugging
         res.status(500).json((0, responseHandler_1.createResponse)(500, "Error fetching foods", error));
     }
 };
