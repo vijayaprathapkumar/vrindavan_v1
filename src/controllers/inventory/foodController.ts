@@ -5,7 +5,7 @@ import { createResponse } from "../../utils/responseHandler";
 export const getAllFoods = async (req: Request, res: Response) => {
   try {
     const { status, categoryId, subcategoryId, searchTerm, page = '1', limit = '10' } = req.query;
-    
+
     const pageNumber = parseInt(page as string, 10) || 1;
     const limitNumber = parseInt(limit as string, 10) || 10;
     const offset = (pageNumber - 1) * limitNumber;
@@ -17,15 +17,23 @@ export const getAllFoods = async (req: Request, res: Response) => {
       searchTerm: searchTerm ? String(searchTerm) : undefined,
     };
 
-    const { foods, totalItems } = await foodModel.getAllFoods(filters, limitNumber, offset);
+    // Check if any filters are applied
+    const hasFilters = Object.values(filters).some(value => value !== undefined);
 
-    const totalPages = Math.ceil(totalItems / limitNumber);
+    const { foods, totalItems } = await foodModel.getAllFoods(
+      hasFilters ? filters : {},  // Apply filters only if any are present
+      hasFilters ? limitNumber : 0,  // Apply limit only if filters are present
+      hasFilters ? offset : 0  // Apply offset only if filters are present
+    );
+
+    // If no filters are applied, totalItems should be the full count of foods
+    const totalPages = hasFilters ? Math.ceil(totalItems / limitNumber) : 1;
 
     res.status(200).json(
       createResponse(200, "Foods fetched successfully", {
         foods,
         pagination: {
-          totalItems,
+          totalItems: hasFilters ? totalItems : foods.length,  // If no filters, show all items count
           totalPages,
           currentPage: pageNumber,
           pageSize: limitNumber,
@@ -33,9 +41,13 @@ export const getAllFoods = async (req: Request, res: Response) => {
       })
     );
   } catch (error) {
+    console.error(error);  // Log the error for debugging
     res.status(500).json(createResponse(500, "Error fetching foods", error));
   }
 };
+
+
+
 
 
 
