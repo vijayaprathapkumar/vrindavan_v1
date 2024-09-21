@@ -4,20 +4,40 @@ import { createResponse } from "../../utils/responseHandler";
 
 export const getAllFoods = async (req: Request, res: Response) => {
   try {
-    const { status, categoryId, subcategoryId,searchTerm } = req.query;
+    const { status, categoryId, subcategoryId, searchTerm, page = '1', limit = '10' } = req.query;
+    
+    const pageNumber = parseInt(page as string, 10) || 1;
+    const limitNumber = parseInt(limit as string, 10) || 10;
+    const offset = (pageNumber - 1) * limitNumber;
+
     const filters = {
       status: status ? status === 'true' : undefined,
       categoryId: categoryId ? Number(categoryId) : undefined,
       subcategoryId: subcategoryId ? Number(subcategoryId) : undefined,
       searchTerm: searchTerm ? String(searchTerm) : undefined,
     };
-    
-    const foods = await foodModel.getAllFoods(filters);
-    res.status(200).json(createResponse(200, "Foods fetched successfully", foods));
+
+    const { foods, totalItems } = await foodModel.getAllFoods(filters, limitNumber, offset);
+
+    const totalPages = Math.ceil(totalItems / limitNumber);
+
+    res.status(200).json(
+      createResponse(200, "Foods fetched successfully", {
+        foods,
+        pagination: {
+          totalItems,
+          totalPages,
+          currentPage: pageNumber,
+          pageSize: limitNumber,
+        },
+      })
+    );
   } catch (error) {
     res.status(500).json(createResponse(500, "Error fetching foods", error));
   }
 };
+
+
 
 export const getFoodById = async (req: Request, res: Response) => {
   try {
