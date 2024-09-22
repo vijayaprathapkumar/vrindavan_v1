@@ -25,13 +25,14 @@ export const getCategories = async (
   }
 };
 
-// Add a new category
+// Add a new category (POST)
 export const addCategory = async (
   req: Request,
   res: Response
 ): Promise<void> => {
   const { name, description, weightage, image } = req.body;
   try {
+    // Pass image only if it's provided
     await createCategory(name, description, weightage, image);
     res.status(201).json(createResponse(201, "Category created successfully"));
   } catch (error) {
@@ -59,14 +60,16 @@ export const getCategory = async (
   }
 };
 
-// Update category by ID
+// Update category by ID (PUT)
 export const updateCategory = async (
   req: Request,
   res: Response
 ): Promise<void> => {
   const { id } = req.params;
   const { name, description, weightage, image } = req.body;
+
   try {
+    // Pass image only if it's provided
     await updateCategoryById(parseInt(id), name, description, weightage, image);
     res.status(200).json(createResponse(200, "Category updated successfully"));
   } catch (error) {
