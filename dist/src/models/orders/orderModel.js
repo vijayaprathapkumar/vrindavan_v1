@@ -461,7 +461,6 @@ const createOrderInDb = async (orderData) => {
             orderData.delivery_status,
         ]);
         const insertId = result.insertId;
-        console.log(`Inserted record ID: ${insertId}`);
         return insertId;
     }
     catch (error) {

@@ -9,19 +9,20 @@ export const getAllCategories = async (): Promise<RowDataPacket[]> => {
   return rows;
 };
 
-// Create a new category
+// Create a new category (with optional image)
 export const createCategory = async (
   name: string,
   description: string,
   weightage: number,
-  image: string
+  image?: string // Optional image
 ): Promise<void> => {
-  await db
-    .promise()
-    .query<OkPacket>(
-      "INSERT INTO categories (name, description, weightage, image) VALUES (?, ?, ?, ?)",
-      [name, description, weightage, image]
-    );
+  const query = image
+    ? "INSERT INTO categories (name, description, weightage, image) VALUES (?, ?, ?, ?)"
+    : "INSERT INTO categories (name, description, weightage) VALUES (?, ?, ?)";
+  
+  const params = image ? [name, description, weightage, image] : [name, description, weightage];
+
+  await db.promise().query<OkPacket>(query, params);
 };
 
 // Fetch category by ID
@@ -32,20 +33,26 @@ export const getCategoryById = async (id: number): Promise<RowDataPacket[]> => {
   return rows;
 };
 
-// Update category by ID
+// Update category by ID (with optional image)
 export const updateCategoryById = async (
   id: number,
   name: string,
   description: string,
   weightage: number,
-  image: string
+  image?: string // Optional image
 ): Promise<void> => {
-  await db
-    .promise()
-    .query<OkPacket>(
-      "UPDATE categories SET name = ?, description = ?, weightage = ?, image = ? WHERE id = ?",
-      [name, description, weightage, image, id]
-    );
+  let query = "UPDATE categories SET name = ?, description = ?, weightage = ?";
+  const params: (string | number)[] = [name, description, weightage];
+
+  if (image) {
+    query += ", image = ?";
+    params.push(image);
+  }
+
+  query += " WHERE id = ?";
+  params.push(id);
+
+  await db.promise().query<OkPacket>(query, params);
 };
 
 // Delete category by ID

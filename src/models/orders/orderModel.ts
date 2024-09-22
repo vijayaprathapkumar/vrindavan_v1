@@ -477,7 +477,6 @@ export const createOrderInDb = async (orderData: any): Promise<any> => {
     );
 
     const insertId = (result as mysql.ResultSetHeader).insertId;
-    console.log(`Inserted record ID: ${insertId}`);
 
     return insertId;
   } catch (error) {

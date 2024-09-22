@@ -7,6 +7,7 @@ const express_1 = __importDefault(require("express"));
 const productBrandController_1 = require("../../controllers/inventory/productBrandController");
 const productBrandValidation_1 = require("../../validation/inventory/productBrandValidation");
 const router = express_1.default.Router();
+// Define routes for product brands
 router.get("/", productBrandController_1.getProductBrands);
 router.post("/", productBrandValidation_1.brandValidation, productBrandValidation_1.validate, productBrandController_1.addProductBrand);
 router.get("/:id", productBrandValidation_1.brandIdValidation, productBrandValidation_1.validate, productBrandController_1.getProductBrandById);

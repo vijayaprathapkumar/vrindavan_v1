@@ -1,4 +1,3 @@
-
 import express from 'express';
 import {
   getProductBrands,
@@ -15,15 +14,11 @@ import {
 
 const router = express.Router();
 
-
+// Define routes for product brands
 router.get("/", getProductBrands);
-
 router.post("/", brandValidation, validate, addProductBrand);
-
 router.get("/:id", brandIdValidation, validate, getProductBrandById);
-
 router.put("/:id", brandIdValidation, brandValidation, validate, updateProductBrand);
-
 router.delete("/:id", brandIdValidation, validate, deleteProductBrand);
 
 export default router;

@@ -20,9 +20,9 @@ export const getCustomers = async (req: Request, res: Response): Promise<void> =
 
 // Add a new customer
 export const addCustomer = async (req: Request, res: Response): Promise<void> => {
-  const { locality, name, email, mobile, house_no, complete_address, status } = req.body;
+  const { localityId, name, email, mobile, houseNo, completeAddress, status } = req.body;
   try {
-    await createCustomer(locality, name, email, mobile, house_no, complete_address, status);
+    await createCustomer(localityId, name, email, mobile, houseNo, completeAddress, status);
     res.status(201).json(createResponse(201, "Customer created successfully"));
   } catch (error) {
     res.status(500).json(createResponse(500, "Error creating customer", error));
@@ -34,7 +34,7 @@ export const getCustomer = async (req: Request, res: Response): Promise<void> =>
   const { id } = req.params;
   try {
     const customer = await getCustomerById(parseInt(id));
-    if (customer.length === 0) {
+    if (!customer) {
       res.status(404).json(createResponse(404, "Customer not found"));
     } else {
       res.status(200).json(createResponse(200, "Customer fetched successfully", customer));
@@ -47,9 +47,11 @@ export const getCustomer = async (req: Request, res: Response): Promise<void> =>
 // Update customer by ID
 export const updateCustomer = async (req: Request, res: Response): Promise<void> => {
   const { id } = req.params;
-  const { locality, name, email, mobile, house_no, complete_address, status } = req.body;
+  const { localityId, name, email, mobile, houseNo, completeAddress, status } = req.body;
+  
   try {
-    await updateCustomerById(parseInt(id), locality, name, email, mobile, house_no, complete_address, status);
+    // Pass undefined if status is not provided
+    await updateCustomerById(Number(id), localityId, name, email, mobile, houseNo, completeAddress, status || undefined);
     res.status(200).json(createResponse(200, "Customer updated successfully"));
   } catch (error) {
     res.status(500).json(createResponse(500, "Error updating customer", error));
