@@ -16,9 +16,9 @@ const getCustomers = async (req, res) => {
 exports.getCustomers = getCustomers;
 // Add a new customer
 const addCustomer = async (req, res) => {
-    const { locality, name, email, mobile, house_no, complete_address, status } = req.body;
+    const { localityId, name, email, mobile, houseNo, completeAddress, status } = req.body;
     try {
-        await (0, customerModel_1.createCustomer)(locality, name, email, mobile, house_no, complete_address, status);
+        await (0, customerModel_1.createCustomer)(localityId, name, email, mobile, houseNo, completeAddress, status);
         res.status(201).json((0, responseHandler_1.createResponse)(201, "Customer created successfully"));
     }
     catch (error) {
@@ -31,7 +31,7 @@ const getCustomer = async (req, res) => {
     const { id } = req.params;
     try {
         const customer = await (0, customerModel_1.getCustomerById)(parseInt(id));
-        if (customer.length === 0) {
+        if (!customer) {
             res.status(404).json((0, responseHandler_1.createResponse)(404, "Customer not found"));
         }
         else {
@@ -46,9 +46,10 @@ exports.getCustomer = getCustomer;
 // Update customer by ID
 const updateCustomer = async (req, res) => {
     const { id } = req.params;
-    const { locality, name, email, mobile, house_no, complete_address, status } = req.body;
+    const { localityId, name, email, mobile, houseNo, completeAddress, status } = req.body;
     try {
-        await (0, customerModel_1.updateCustomerById)(parseInt(id), locality, name, email, mobile, house_no, complete_address, status);
+        // Pass undefined if status is not provided
+        await (0, customerModel_1.updateCustomerById)(Number(id), localityId, name, email, mobile, houseNo, completeAddress, status || undefined);
         res.status(200).json((0, responseHandler_1.createResponse)(200, "Customer updated successfully"));
     }
     catch (error) {

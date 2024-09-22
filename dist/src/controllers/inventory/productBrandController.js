@@ -18,11 +18,11 @@ const getProductBrands = async (req, res) => {
     }
 };
 exports.getProductBrands = getProductBrands;
-// Add a new product brand
+// Add a new product brand (POST)
 const addProductBrand = async (req, res) => {
-    const { name } = req.body;
+    const { name, active } = req.body;
     try {
-        await (0, productBrandModel_1.createBrand)(name);
+        await (0, productBrandModel_1.createBrand)(name, active);
         res
             .status(201)
             .json((0, responseHandler_1.createResponse)(201, "Product brand created successfully"));
@@ -53,12 +53,12 @@ const getProductBrandById = async (req, res) => {
     }
 };
 exports.getProductBrandById = getProductBrandById;
-// Update product brand by ID
+// Update product brand by ID (PUT)
 const updateProductBrand = async (req, res) => {
     const { id } = req.params;
-    const { name } = req.body;
+    const { name, active } = req.body;
     try {
-        await (0, productBrandModel_1.updateBrandById)(parseInt(id), name);
+        await (0, productBrandModel_1.updateBrandById)(parseInt(id), name, active);
         res
             .status(200)
             .json((0, responseHandler_1.createResponse)(200, "Product brand updated successfully"));
