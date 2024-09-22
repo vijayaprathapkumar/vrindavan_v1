@@ -10,13 +10,38 @@ import { createResponse } from '../../utils/responseHandler';
 
 // Fetch all customers
 export const getCustomers = async (req: Request, res: Response): Promise<void> => {
+  const { page = 1, limit = 10, locality, status, searchTerm, isApproved } = req.query;
+
+  // Ensure limit is a valid number
+  const validLimit = [10, 25, 50, 100].includes(Number(limit)) ? Number(limit) : 10;
+
   try {
-    const customers = await getAllCustomers();
-    res.status(200).json(createResponse(200, "Customers fetched successfully", customers));
+    const { customers, total, statusCount } = await getAllCustomers(
+      Number(page),
+      validLimit,
+      locality?.toString(),
+      status?.toString(),
+      searchTerm?.toString(),
+      isApproved?.toString()
+    );
+
+    const totalPages = Math.ceil(total / validLimit);
+
+    res.status(200).json(createResponse(200, "Customers fetched successfully", {
+      customers,
+      total,
+      totalPages,
+      currentPage: Number(page),
+      limit: validLimit,
+      locality: locality || 'All',
+      statusCount,
+    }));
   } catch (error) {
     res.status(500).json(createResponse(500, "Error fetching customers", error));
   }
 };
+
+
 
 // Add a new customer
 export const addCustomer = async (req: Request, res: Response): Promise<void> => {
