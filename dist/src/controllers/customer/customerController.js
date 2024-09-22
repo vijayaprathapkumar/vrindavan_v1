@@ -5,9 +5,21 @@ const customerModel_1 = require("../../models/customer/customerModel");
 const responseHandler_1 = require("../../utils/responseHandler");
 // Fetch all customers
 const getCustomers = async (req, res) => {
+    const { page = 1, limit = 10, locality, status, searchTerm, isApproved } = req.query;
+    // Ensure limit is a valid number
+    const validLimit = [10, 25, 50, 100].includes(Number(limit)) ? Number(limit) : 10;
     try {
-        const customers = await (0, customerModel_1.getAllCustomers)();
-        res.status(200).json((0, responseHandler_1.createResponse)(200, "Customers fetched successfully", customers));
+        const { customers, total, statusCount } = await (0, customerModel_1.getAllCustomers)(Number(page), validLimit, locality?.toString(), status?.toString(), searchTerm?.toString(), isApproved?.toString());
+        const totalPages = Math.ceil(total / validLimit);
+        res.status(200).json((0, responseHandler_1.createResponse)(200, "Customers fetched successfully", {
+            customers,
+            total,
+            totalPages,
+            currentPage: Number(page),
+            limit: validLimit,
+            locality: locality || 'All',
+            statusCount,
+        }));
     }
     catch (error) {
         res.status(500).json((0, responseHandler_1.createResponse)(500, "Error fetching customers", error));
