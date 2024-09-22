@@ -18,10 +18,11 @@ const getCategories = async (req, res) => {
     }
 };
 exports.getCategories = getCategories;
-// Add a new category
+// Add a new category (POST)
 const addCategory = async (req, res) => {
     const { name, description, weightage, image } = req.body;
     try {
+        // Pass image only if it's provided
         await (0, categoryModel_1.createCategory)(name, description, weightage, image);
         res.status(201).json((0, responseHandler_1.createResponse)(201, "Category created successfully"));
     }
@@ -49,11 +50,12 @@ const getCategory = async (req, res) => {
     }
 };
 exports.getCategory = getCategory;
-// Update category by ID
+// Update category by ID (PUT)
 const updateCategory = async (req, res) => {
     const { id } = req.params;
     const { name, description, weightage, image } = req.body;
     try {
+        // Pass image only if it's provided
         await (0, categoryModel_1.updateCategoryById)(parseInt(id), name, description, weightage, image);
         res.status(200).json((0, responseHandler_1.createResponse)(200, "Category updated successfully"));
     }

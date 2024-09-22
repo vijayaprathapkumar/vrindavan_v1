@@ -8,17 +8,13 @@ import {
 } from "../../models/inventory/productTypeModel";
 import { createResponse } from "../../utils/responseHandler";
 
-export const getProductTypes = async (
-  req: Request,
-  res: Response
-): Promise<void> => {
+// Get all product types
+export const getProductTypes = async (req: Request, res: Response): Promise<void> => {
   try {
     const productTypes = await getAllProductTypes();
     res
       .status(200)
-      .json(
-        createResponse(200, "Product types fetched successfully", productTypes)
-      );
+      .json(createResponse(200, "Product types fetched successfully", productTypes));
   } catch (error) {
     res
       .status(500)
@@ -26,13 +22,11 @@ export const getProductTypes = async (
   }
 };
 
-export const addProductType = async (
-  req: Request,
-  res: Response
-): Promise<void> => {
-  const { name, weightage } = req.body;
+// Add a new product type
+export const addProductType = async (req: Request, res: Response): Promise<void> => {
+  const { name, weightage, active } = req.body;
   try {
-    await createProductType(name, weightage);
+    await createProductType(name, weightage, active);
     res
       .status(201)
       .json(createResponse(201, "Product type created successfully"));
@@ -43,10 +37,8 @@ export const addProductType = async (
   }
 };
 
-export const getProductTypeById = async (
-  req: Request,
-  res: Response
-): Promise<void> => {
+// Get product type by ID
+export const getProductTypeById = async (req: Request, res: Response): Promise<void> => {
   const { id } = req.params;
   try {
     const productType = await fetchProductTypeById(Number(id));
@@ -60,24 +52,20 @@ export const getProductTypeById = async (
   }
 };
 
-export const updateProductType = async (
-  req: Request,
-  res: Response
-): Promise<void> => {
+// Update product type by ID
+export const updateProductType = async (req: Request, res: Response): Promise<void> => {
   const { id } = req.params;
-  const { name, weightage } = req.body;
+  const { name, weightage, active } = req.body;
   try {
-    await updateProductTypeById(Number(id), name, weightage);
+    await updateProductTypeById(Number(id), name, weightage, active);
     res.status(200).json(createResponse(200, "Product type updated successfully"));
   } catch (error) {
     res.status(500).json(createResponse(500, "Error updating product type", error));
   }
 };
 
-export const deleteProductType = async (
-  req: Request,
-  res: Response
-): Promise<void> => {
+// Delete product type by ID
+export const deleteProductType = async (req: Request, res: Response): Promise<void> => {
   const { id } = req.params;
   try {
     await deleteProductTypeById(Number(id));

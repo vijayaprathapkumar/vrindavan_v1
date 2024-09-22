@@ -19,11 +19,11 @@ export const categoryValidation = [
     .notEmpty()
     .withMessage('Weightage is required'),
 
+  // Make image optional, but validate if provided
   body('image')
+    .optional() // Mark image as optional for both POST and PUT
     .isString()
-    .withMessage('Image URL must be a string')
-    .notEmpty()
-    .withMessage('Image URL is required'),
+    .withMessage('Image URL must be a string'),
 ];
 
 export const categoryIdValidation = [

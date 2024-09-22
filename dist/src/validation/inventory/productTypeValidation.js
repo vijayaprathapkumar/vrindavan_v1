@@ -13,11 +13,16 @@ exports.productTypeValidation = [
         .withMessage('Weightage must be a non-negative number')
         .notEmpty()
         .withMessage('Weightage is required'),
+    (0, express_validator_1.body)('active')
+        .isBoolean()
+        .withMessage('Active must be a boolean')
+        .notEmpty()
+        .withMessage('Active is required'),
 ];
 exports.productTypeIdValidation = [
     (0, express_validator_1.param)('id')
         .isInt({ min: 1 })
-        .withMessage('ProductTypeID must be a positive integer'),
+        .withMessage('ProductType ID must be a positive integer'),
 ];
 const validate = (req, res, next) => {
     const errors = (0, express_validator_1.validationResult)(req);

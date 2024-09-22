@@ -18,11 +18,11 @@ exports.categoryValidation = [
         .withMessage('Weightage must be a non-negative integer')
         .notEmpty()
         .withMessage('Weightage is required'),
+    // Make image optional, but validate if provided
     (0, express_validator_1.body)('image')
+        .optional() // Mark image as optional for both POST and PUT
         .isString()
-        .withMessage('Image URL must be a string')
-        .notEmpty()
-        .withMessage('Image URL is required'),
+        .withMessage('Image URL must be a string'),
 ];
 exports.categoryIdValidation = [
     (0, express_validator_1.param)('id')
