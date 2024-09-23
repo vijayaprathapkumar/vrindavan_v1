@@ -1,13 +1,37 @@
 import { db } from "../../config/databaseConnection";
 import { RowDataPacket, OkPacket } from "mysql2";
 
-// Fetch all delivery boys
-export const getAllDeliveryBoys = async (): Promise<RowDataPacket[]> => {
-  const [rows] = await db
+export const getAllDeliveryBoys = async (
+  limit: number,
+  offset: number,
+  searchTerm: string
+): Promise<{ deliveryBoys: RowDataPacket[]; totalCount: number }> => {
+  const searchCondition = searchTerm
+    ? `WHERE name LIKE ? OR mobile LIKE ?`
+    : ''; 
+  const searchParams = searchTerm ? [`%${searchTerm}%`, `%${searchTerm}%`] : [];
+
+  // Query for fetching delivery boys with LIMIT and OFFSET
+  const [deliveryBoys] = await db
     .promise()
-    .query<RowDataPacket[]>("SELECT * FROM delivery_boys");
-  return rows;
+    .query<RowDataPacket[]>(
+      `SELECT * FROM delivery_boys ${searchCondition} LIMIT ? OFFSET ?`,
+      [...searchParams, limit, offset]
+    );
+
+  const [[totalCountRow]] = await db
+    .promise()
+    .query<RowDataPacket[]>(
+      `SELECT COUNT(*) as totalCount FROM delivery_boys ${searchCondition}`,
+      searchParams
+    );
+
+  const totalCount = totalCountRow.totalCount;
+
+  return { deliveryBoys, totalCount };
 };
+
+
 
 // Create a new delivery boy
 export const createDeliveryBoy = async (

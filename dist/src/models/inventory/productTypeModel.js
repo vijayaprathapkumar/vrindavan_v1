@@ -2,12 +2,43 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.deleteProductTypeById = exports.updateProductTypeById = exports.getProductTypeById = exports.createProductType = exports.getAllProductTypes = void 0;
 const databaseConnection_1 = require("../../config/databaseConnection");
-// Fetch all product types
-const getAllProductTypes = async () => {
+const getAllProductTypes = async (searchTerm, limit, offset) => {
+    // Query to get the total count of records
+    const countQuery = `
+    SELECT COUNT(*) as total FROM product_types
+    WHERE Name LIKE ? OR Weightage LIKE ? OR Active LIKE ?
+  `;
+    let activeValue = null;
+    if (searchTerm.toLowerCase() === "true") {
+        activeValue = 1;
+    }
+    else if (searchTerm.toLowerCase() === "false") {
+        activeValue = 0;
+    }
+    const [countResult] = await databaseConnection_1.db
+        .promise()
+        .query(countQuery, [
+        `%${searchTerm}%`,
+        `${searchTerm}`,
+        activeValue,
+    ]);
+    const total = countResult[0].total; // Get the total count
+    // Fetch the actual records
+    const query = `
+    SELECT * FROM product_types
+    WHERE Name LIKE ? OR Weightage LIKE ? OR Active LIKE ?
+    LIMIT ? OFFSET ?
+  `;
     const [rows] = await databaseConnection_1.db
         .promise()
-        .query("SELECT * FROM product_types");
-    return rows;
+        .query(query, [
+        `%${searchTerm}%`,
+        `${searchTerm}`,
+        activeValue,
+        limit,
+        offset,
+    ]);
+    return { total, rows };
 };
 exports.getAllProductTypes = getAllProductTypes;
 // Create a new product type
