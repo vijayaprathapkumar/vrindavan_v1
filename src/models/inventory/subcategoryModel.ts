@@ -2,7 +2,11 @@ import { db } from "../../config/databaseConnection";
 import { RowDataPacket, OkPacket } from "mysql2";
 
 // Fetch all subcategories with category relationship
-export const getAllSubCategoriesWithCategory = async (): Promise<RowDataPacket[]> => {
+export const getAllSubCategoriesWithCategory = async (
+  limit: number,
+  offset: number,
+  searchTerm: string
+): Promise<RowDataPacket[]> => {
   const query = `
     SELECT 
       sub_categories.*, 
@@ -13,11 +17,19 @@ export const getAllSubCategoriesWithCategory = async (): Promise<RowDataPacket[]
     LEFT JOIN 
       categories 
     ON 
-      sub_categories.category_id = categories.id;
+      sub_categories.category_id = categories.id
+    WHERE 
+      sub_categories.name LIKE ? OR 
+      categories.name LIKE ? OR 
+      sub_categories.weightage LIKE ?
+    LIMIT ? 
+    OFFSET ?;
   `;
-  const [rows] = await db.promise().query<RowDataPacket[]>(query);
+  const searchWildcard = `%${searchTerm}%`;
+  const [rows] = await db.promise().query<RowDataPacket[]>(query, [searchWildcard, searchWildcard, searchWildcard, limit, offset]);
   return rows;
 };
+
 
 // Create a new subcategory
 export const createSubCategory = async (

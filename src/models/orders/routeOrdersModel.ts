@@ -1,10 +1,53 @@
 import { db } from "../../config/databaseConnection";
 import { RowDataPacket } from "mysql2";
 
-export const getAllRouteOrders = async (): Promise<any[]> => {
+export const getAllRouteOrders = async (
+  page: number = 1,
+  limit: number = 100,
+  startDate?: string,
+  endDate?: string,
+  routeName: string = "All Routes",
+  foodName: string = "All Products",
+  searchTerm: string = ""
+): Promise<any[]> => {
+  const offset = (page - 1) * limit;
+  const conditions: string[] = [];
+  const queryParams: any[] = [];
+
+  // Date filter
+  if (startDate && endDate) {
+    conditions.push(`o.created_at BETWEEN ? AND ?`);
+    queryParams.push(startDate, endDate);
+  }
+
+  // Route name filter
+  if (routeName !== "All Routes") {
+    conditions.push(`r1.name = ?`);
+    queryParams.push(routeName);
+  }
+
+  // Food name filter
+  if (foodName !== "All Products") {
+    conditions.push(`f.name = ?`);
+    queryParams.push(foodName);
+  }
+
+  // Search term filter (search in route name, hub name, food name)
+  if (searchTerm) {
+    conditions.push(`(
+      r1.name LIKE ? OR 
+      h.name LIKE ? OR 
+      f.name LIKE ?
+    )`);
+    queryParams.push(`%${searchTerm}%`, `%${searchTerm}%`, `%${searchTerm}%`);
+  }
+
+  const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+
   try {
+    console.time("getAllRouteOrdersQuery");
     const [rows] = await db.promise().query<RowDataPacket[]>(`
-     SELECT
+      SELECT
         r1.id AS route_id,
         r1.name AS route_name,
         h.id AS hub_id,
@@ -17,15 +60,20 @@ export const getAllRouteOrders = async (): Promise<any[]> => {
         pt.id AS product_type_id,
         pt.name AS product_type_name,
         pt.weightage AS product_type_weightage,
-        pt.active AS product_type_active
+        pt.active AS product_type_active,
+        o.created_at AS order_date
       FROM orders o
       LEFT JOIN truck_routes r1 ON o.route_id = r1.id
       LEFT JOIN hubs h ON o.hub_id = h.id
       LEFT JOIN food_orders fo ON o.id = fo.order_id
       LEFT JOIN foods f ON fo.food_id = f.id
       LEFT JOIN product_types pt ON f.product_type_id = pt.id
-      ORDER BY o.id, f.id;
-    `);
+      ${whereClause}
+      ORDER BY o.id, f.id
+      LIMIT ? OFFSET ?;
+    `, [...queryParams, limit, offset]);
+
+    console.timeEnd("getAllRouteOrdersQuery");
 
     const structuredData = rows.map((row: any) => ({
       Route: row.route_name,
@@ -38,7 +86,8 @@ export const getAllRouteOrders = async (): Promise<any[]> => {
         name: row.product_type_name,
         weightage: row.product_type_weightage,
         active: row.product_type_active
-      }
+      },
+      OrderDate: row.order_date
     }));
 
     return structuredData;

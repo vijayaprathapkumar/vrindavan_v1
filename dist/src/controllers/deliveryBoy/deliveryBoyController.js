@@ -6,10 +6,19 @@ const responseHandler_1 = require("../../utils/responseHandler");
 // Fetch all delivery boys
 const getDeliveryBoys = async (req, res) => {
     try {
-        const deliveryBoys = await (0, deliveryBoyModel_1.getAllDeliveryBoys)();
-        res
-            .status(200)
-            .json((0, responseHandler_1.createResponse)(200, "Delivery boys fetched successfully", deliveryBoys));
+        const limit = parseInt(req.query.limit) || 10; // Default limit to 10
+        const page = parseInt(req.query.page) || 1; // Default page to 1
+        const offset = (page - 1) * limit;
+        const searchTerm = req.query.searchTerm ? req.query.searchTerm : '';
+        // Fetch filtered delivery boys and total count
+        const { deliveryBoys, totalCount } = await (0, deliveryBoyModel_1.getAllDeliveryBoys)(limit, offset, searchTerm);
+        res.status(200).json((0, responseHandler_1.createResponse)(200, "Delivery boys fetched successfully", {
+            deliveryBoys,
+            totalCount,
+            limit,
+            page,
+            totalPages: Math.ceil(totalCount / limit), // Calculate total pages
+        }));
     }
     catch (error) {
         res.status(500).json((0, responseHandler_1.createResponse)(500, "Error fetching delivery boys", error));
