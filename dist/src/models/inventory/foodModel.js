@@ -6,7 +6,6 @@ const getAllFoods = async (filters, limit, offset) => {
     let query = "SELECT * FROM foods";
     const conditions = [];
     const values = [];
-    // Add filters if any
     if (filters.status !== undefined) {
         conditions.push("status = ?");
         values.push(filters.status ? 1 : 0);
@@ -23,11 +22,9 @@ const getAllFoods = async (filters, limit, offset) => {
         conditions.push("name LIKE ?");
         values.push(`%${filters.searchTerm}%`);
     }
-    // If there are conditions, append them to the query
     if (conditions.length > 0) {
         query += " WHERE " + conditions.join(" AND ");
     }
-    // Get total count for pagination only if filters are applied
     const countQuery = conditions.length > 0
         ? query.replace("SELECT *", "SELECT COUNT(*) as count")
         : "SELECT COUNT(*) as count FROM foods";
@@ -35,11 +32,7 @@ const getAllFoods = async (filters, limit, offset) => {
         .promise()
         .execute(countQuery, values);
     const totalItems = countResult[0].count;
-    // Append LIMIT and OFFSET only if filters are applied
-    if (conditions.length > 0) {
-        query += ` LIMIT ${limit} OFFSET ${offset}`;
-    }
-    // Execute the query with or without filters
+    query += ` LIMIT ${limit} OFFSET ${offset}`;
     const [rows] = await databaseConnection_1.db.promise().execute(query, values);
     return { foods: rows, totalItems };
 };
