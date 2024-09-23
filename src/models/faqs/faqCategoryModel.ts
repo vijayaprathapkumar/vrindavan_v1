@@ -5,7 +5,9 @@ import { RowDataPacket, OkPacket } from "mysql2";
 export const getAllFaqCategories = async (): Promise<RowDataPacket[]> => {
   const [rows] = await db
     .promise()
-    .query<RowDataPacket[]>("SELECT id, name, weightage FROM faq_categories");
+    .query<RowDataPacket[]>(
+      "SELECT id, name, weightage, created_at, updated_at FROM faq_categories"
+    );
   return rows;
 };
 
@@ -23,7 +25,10 @@ export const createFaqCategory = async (name: string, weightage: number): Promis
 export const getFaqCategoryById = async (id: number): Promise<RowDataPacket[]> => {
   const [rows] = await db
     .promise()
-    .query<RowDataPacket[]>("SELECT id, name, weightage FROM faq_categories WHERE id = ?", [id]);
+    .query<RowDataPacket[]>(
+      "SELECT id, name, weightage, created_at, updated_at FROM faq_categories WHERE id = ?",
+      [id]
+    );
   return rows;
 };
 
@@ -36,7 +41,7 @@ export const updateFaqCategoryById = async (
   await db
     .promise()
     .query<OkPacket>(
-      "UPDATE faq_categories SET name = ?, weightage = ? WHERE id = ?",
+      "UPDATE faq_categories SET name = ?, weightage = ?, updated_at = NOW() WHERE id = ?",
       [name, weightage, id]
     );
 };

@@ -6,7 +6,7 @@ const databaseConnection_1 = require("../../config/databaseConnection");
 const getAllFaqCategories = async () => {
     const [rows] = await databaseConnection_1.db
         .promise()
-        .query("SELECT id, name, weightage FROM faq_categories");
+        .query("SELECT id, name, weightage, created_at, updated_at FROM faq_categories");
     return rows;
 };
 exports.getAllFaqCategories = getAllFaqCategories;
@@ -21,7 +21,7 @@ exports.createFaqCategory = createFaqCategory;
 const getFaqCategoryById = async (id) => {
     const [rows] = await databaseConnection_1.db
         .promise()
-        .query("SELECT id, name, weightage FROM faq_categories WHERE id = ?", [id]);
+        .query("SELECT id, name, weightage, created_at, updated_at FROM faq_categories WHERE id = ?", [id]);
     return rows;
 };
 exports.getFaqCategoryById = getFaqCategoryById;
@@ -29,7 +29,7 @@ exports.getFaqCategoryById = getFaqCategoryById;
 const updateFaqCategoryById = async (id, name, weightage) => {
     await databaseConnection_1.db
         .promise()
-        .query("UPDATE faq_categories SET name = ?, weightage = ? WHERE id = ?", [name, weightage, id]);
+        .query("UPDATE faq_categories SET name = ?, weightage = ?, updated_at = NOW() WHERE id = ?", [name, weightage, id]);
 };
 exports.updateFaqCategoryById = updateFaqCategoryById;
 // Delete FAQ category by ID
