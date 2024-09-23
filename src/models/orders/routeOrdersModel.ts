@@ -45,7 +45,6 @@ export const getAllRouteOrders = async (
   const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
 
   try {
-    console.time("getAllRouteOrdersQuery");
     const [rows] = await db.promise().query<RowDataPacket[]>(`
       SELECT
         r1.id AS route_id,
@@ -73,7 +72,6 @@ export const getAllRouteOrders = async (
       LIMIT ? OFFSET ?;
     `, [...queryParams, limit, offset]);
 
-    console.timeEnd("getAllRouteOrdersQuery");
 
     const structuredData = rows.map((row: any) => ({
       Route: row.route_name,

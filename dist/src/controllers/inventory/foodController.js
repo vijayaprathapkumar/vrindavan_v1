@@ -28,28 +28,22 @@ const foodModel = __importStar(require("../../models/inventory/foodModel"));
 const responseHandler_1 = require("../../utils/responseHandler");
 const getAllFoods = async (req, res) => {
     try {
-        const { status, categoryId, subcategoryId, searchTerm, page = '1', limit = '10' } = req.query;
+        const { status, categoryId, subcategoryId, searchTerm, page = "1", limit = "10", } = req.query;
         const pageNumber = parseInt(page, 10) || 1;
         const limitNumber = parseInt(limit, 10) || 10;
         const offset = (pageNumber - 1) * limitNumber;
         const filters = {
-            status: status ? status === 'true' : undefined,
+            status: status ? status === "true" : undefined,
             categoryId: categoryId ? Number(categoryId) : undefined,
             subcategoryId: subcategoryId ? Number(subcategoryId) : undefined,
             searchTerm: searchTerm ? String(searchTerm) : undefined,
         };
-        // Check if any filters are applied
-        const hasFilters = Object.values(filters).some(value => value !== undefined);
-        const { foods, totalItems } = await foodModel.getAllFoods(hasFilters ? filters : {}, // Apply filters only if any are present
-        hasFilters ? limitNumber : 0, // Apply limit only if filters are present
-        hasFilters ? offset : 0 // Apply offset only if filters are present
-        );
-        // If no filters are applied, totalItems should be the full count of foods
-        const totalPages = hasFilters ? Math.ceil(totalItems / limitNumber) : 1;
+        const { foods, totalItems } = await foodModel.getAllFoods(filters, limitNumber, offset);
+        const totalPages = Math.ceil(totalItems / limitNumber);
         res.status(200).json((0, responseHandler_1.createResponse)(200, "Foods fetched successfully", {
             foods,
             pagination: {
-                totalItems: hasFilters ? totalItems : foods.length, // If no filters, show all items count
+                totalItems,
                 totalPages,
                 currentPage: pageNumber,
                 pageSize: limitNumber,
@@ -57,7 +51,7 @@ const getAllFoods = async (req, res) => {
         }));
     }
     catch (error) {
-        console.error(error); // Log the error for debugging
+        console.error(error);
         res.status(500).json((0, responseHandler_1.createResponse)(500, "Error fetching foods", error));
     }
 };
@@ -67,7 +61,9 @@ const getFoodById = async (req, res) => {
         const { id } = req.params;
         const food = await foodModel.getFoodById(Number(id));
         if (food) {
-            res.status(200).json((0, responseHandler_1.createResponse)(200, "Food fetched successfully", food));
+            res
+                .status(200)
+                .json((0, responseHandler_1.createResponse)(200, "Food fetched successfully", food));
         }
         else {
             res.status(404).json((0, responseHandler_1.createResponse)(404, "Food not found"));
@@ -82,7 +78,9 @@ const createFood = async (req, res) => {
     try {
         const foodData = req.body;
         const newFood = await foodModel.createFood(foodData);
-        res.status(201).json((0, responseHandler_1.createResponse)(201, "Food created successfully", newFood));
+        res
+            .status(201)
+            .json((0, responseHandler_1.createResponse)(201, "Food created successfully", newFood));
     }
     catch (error) {
         res.status(500).json((0, responseHandler_1.createResponse)(500, "Error creating food", error));
@@ -95,7 +93,9 @@ const updateFood = async (req, res) => {
         const foodData = req.body;
         const updatedFood = await foodModel.updateFood(Number(id), foodData);
         if (updatedFood) {
-            res.status(200).json((0, responseHandler_1.createResponse)(200, "Food updated successfully", updatedFood));
+            res
+                .status(200)
+                .json((0, responseHandler_1.createResponse)(200, "Food updated successfully", updatedFood));
         }
         else {
             res.status(404).json((0, responseHandler_1.createResponse)(404, "Food not found"));

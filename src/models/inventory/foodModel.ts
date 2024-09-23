@@ -16,7 +16,6 @@ export const getAllFoods = async (
   const conditions: string[] = [];
   const values: (string | number)[] = [];
 
-  // Add filters if any
   if (filters.status !== undefined) {
     conditions.push("status = ?");
     values.push(filters.status ? 1 : 0);
@@ -37,32 +36,26 @@ export const getAllFoods = async (
     values.push(`%${filters.searchTerm}%`);
   }
 
-  // If there are conditions, append them to the query
   if (conditions.length > 0) {
     query += " WHERE " + conditions.join(" AND ");
   }
 
-  // Get total count for pagination only if filters are applied
-  const countQuery = conditions.length > 0 
-    ? query.replace("SELECT *", "SELECT COUNT(*) as count") 
-    : "SELECT COUNT(*) as count FROM foods";
+  const countQuery =
+    conditions.length > 0
+      ? query.replace("SELECT *", "SELECT COUNT(*) as count")
+      : "SELECT COUNT(*) as count FROM foods";
 
   const [countResult] = await db
     .promise()
     .execute<RowDataPacket[]>(countQuery, values);
   const totalItems = countResult[0].count;
 
-  // Append LIMIT and OFFSET only if filters are applied
-  if (conditions.length > 0) {
-    query += ` LIMIT ${limit} OFFSET ${offset}`;
-  }
+  query += ` LIMIT ${limit} OFFSET ${offset}`;
 
-  // Execute the query with or without filters
   const [rows] = await db.promise().execute<RowDataPacket[]>(query, values);
 
   return { foods: rows as Food[], totalItems };
 };
-
 
 export const getFoodById = async (id: number): Promise<Food | null> => {
   const [rows] = await db

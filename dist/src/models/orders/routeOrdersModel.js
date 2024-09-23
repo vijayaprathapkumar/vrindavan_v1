@@ -32,7 +32,6 @@ const getAllRouteOrders = async (page = 1, limit = 100, startDate, endDate, rout
     }
     const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
     try {
-        console.time("getAllRouteOrdersQuery");
         const [rows] = await databaseConnection_1.db.promise().query(`
       SELECT
         r1.id AS route_id,
@@ -59,7 +58,6 @@ const getAllRouteOrders = async (page = 1, limit = 100, startDate, endDate, rout
       ORDER BY o.id, f.id
       LIMIT ? OFFSET ?;
     `, [...queryParams, limit, offset]);
-        console.timeEnd("getAllRouteOrdersQuery");
         const structuredData = rows.map((row) => ({
             Route: row.route_name,
             Hub: row.hub_name,
