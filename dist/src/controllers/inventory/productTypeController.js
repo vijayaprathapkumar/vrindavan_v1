@@ -5,16 +5,23 @@ const productTypeModel_1 = require("../../models/inventory/productTypeModel");
 const responseHandler_1 = require("../../utils/responseHandler");
 // Get all product types
 const getProductTypes = async (req, res) => {
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 10;
+    const searchTerm = req.query.searchTerm || '';
+    const offset = (page - 1) * limit;
     try {
-        const productTypes = await (0, productTypeModel_1.getAllProductTypes)();
-        res
-            .status(200)
-            .json((0, responseHandler_1.createResponse)(200, "Product types fetched successfully", productTypes));
+        const { total, rows } = await (0, productTypeModel_1.getAllProductTypes)(searchTerm, limit, offset);
+        const totalPages = Math.ceil(total / limit);
+        res.status(200).json((0, responseHandler_1.createResponse)(200, "Product types fetched successfully", {
+            data: rows,
+            total,
+            totalPages,
+            currentPage: page,
+            limit,
+        }));
     }
     catch (error) {
-        res
-            .status(500)
-            .json((0, responseHandler_1.createResponse)(500, "Error fetching product types", error));
+        res.status(500).json((0, responseHandler_1.createResponse)(500, "Error fetching product types", error));
     }
 };
 exports.getProductTypes = getProductTypes;

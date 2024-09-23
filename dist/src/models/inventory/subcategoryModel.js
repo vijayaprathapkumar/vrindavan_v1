@@ -3,7 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.deleteSubCategoryById = exports.updateSubCategoryById = exports.getSubCategoryById = exports.createSubCategory = exports.getAllSubCategoriesWithCategory = void 0;
 const databaseConnection_1 = require("../../config/databaseConnection");
 // Fetch all subcategories with category relationship
-const getAllSubCategoriesWithCategory = async () => {
+const getAllSubCategoriesWithCategory = async (limit, offset, searchTerm) => {
     const query = `
     SELECT 
       sub_categories.*, 
@@ -14,9 +14,16 @@ const getAllSubCategoriesWithCategory = async () => {
     LEFT JOIN 
       categories 
     ON 
-      sub_categories.category_id = categories.id;
+      sub_categories.category_id = categories.id
+    WHERE 
+      sub_categories.name LIKE ? OR 
+      categories.name LIKE ? OR 
+      sub_categories.weightage LIKE ?
+    LIMIT ? 
+    OFFSET ?;
   `;
-    const [rows] = await databaseConnection_1.db.promise().query(query);
+    const searchWildcard = `%${searchTerm}%`;
+    const [rows] = await databaseConnection_1.db.promise().query(query, [searchWildcard, searchWildcard, searchWildcard, limit, offset]);
     return rows;
 };
 exports.getAllSubCategoriesWithCategory = getAllSubCategoriesWithCategory;

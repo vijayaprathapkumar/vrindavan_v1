@@ -2,12 +2,20 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.deleteDeliveryBoyById = exports.updateDeliveryBoyById = exports.getDeliveryBoyById = exports.createDeliveryBoy = exports.getAllDeliveryBoys = void 0;
 const databaseConnection_1 = require("../../config/databaseConnection");
-// Fetch all delivery boys
-const getAllDeliveryBoys = async () => {
-    const [rows] = await databaseConnection_1.db
+const getAllDeliveryBoys = async (limit, offset, searchTerm) => {
+    const searchCondition = searchTerm
+        ? `WHERE name LIKE ? OR mobile LIKE ?`
+        : '';
+    const searchParams = searchTerm ? [`%${searchTerm}%`, `%${searchTerm}%`] : [];
+    // Query for fetching delivery boys with LIMIT and OFFSET
+    const [deliveryBoys] = await databaseConnection_1.db
         .promise()
-        .query("SELECT * FROM delivery_boys");
-    return rows;
+        .query(`SELECT * FROM delivery_boys ${searchCondition} LIMIT ? OFFSET ?`, [...searchParams, limit, offset]);
+    const [[totalCountRow]] = await databaseConnection_1.db
+        .promise()
+        .query(`SELECT COUNT(*) as totalCount FROM delivery_boys ${searchCondition}`, searchParams);
+    const totalCount = totalCountRow.totalCount;
+    return { deliveryBoys, totalCount };
 };
 exports.getAllDeliveryBoys = getAllDeliveryBoys;
 // Create a new delivery boy

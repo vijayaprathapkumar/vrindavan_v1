@@ -1,26 +1,48 @@
 import { db } from "../../config/databaseConnection";
 import { RowDataPacket, OkPacket } from "mysql2";
 
-// Fetch all categories
-export const getAllCategories = async (): Promise<RowDataPacket[]> => {
-  const [rows] = await db
-    .promise()
-    .query<RowDataPacket[]>("SELECT * FROM categories");
+// Fetch all categories with limit and offset for pagination
+export const getAllCategories = async (
+  limit: number,
+  offset: number,
+  searchTerm: string
+): Promise<RowDataPacket[]> => {
+  const query = `
+    SELECT * FROM categories 
+    WHERE name LIKE ? OR weightage = ?
+    LIMIT ? OFFSET ?
+  `;
+  const params = [`%${searchTerm}%`, parseInt(searchTerm) || -1, limit, offset];
+  const [rows] = await db.promise().query<RowDataPacket[]>(query, params);
   return rows;
 };
+
+// Fetch total count of categories that match the search term
+export const getCategoriesCount = async (searchTerm: string): Promise<number> => {
+  const query = `
+    SELECT COUNT(*) as count FROM categories 
+    WHERE name LIKE ? OR weightage = ?
+  `;
+  const params = [`%${searchTerm}%`, parseInt(searchTerm) || -1];
+  const [rows] = await db.promise().query<RowDataPacket[]>(query, params);
+  return rows[0].count;
+};
+
 
 // Create a new category (with optional image)
 export const createCategory = async (
   name: string,
   description: string,
   weightage: number,
-  image?: string // Optional image
+  image?: string
 ): Promise<void> => {
   const query = image
     ? "INSERT INTO categories (name, description, weightage, image) VALUES (?, ?, ?, ?)"
     : "INSERT INTO categories (name, description, weightage) VALUES (?, ?, ?)";
-  
-  const params = image ? [name, description, weightage, image] : [name, description, weightage];
+
+  const params = image
+    ? [name, description, weightage, image]
+    : [name, description, weightage];
 
   await db.promise().query<OkPacket>(query, params);
 };
@@ -39,7 +61,7 @@ export const updateCategoryById = async (
   name: string,
   description: string,
   weightage: number,
-  image?: string // Optional image
+  image?: string
 ): Promise<void> => {
   let query = "UPDATE categories SET name = ?, description = ?, weightage = ?";
   const params: (string | number)[] = [name, description, weightage];

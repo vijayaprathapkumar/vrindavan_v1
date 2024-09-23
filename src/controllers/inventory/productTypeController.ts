@@ -10,17 +10,30 @@ import { createResponse } from "../../utils/responseHandler";
 
 // Get all product types
 export const getProductTypes = async (req: Request, res: Response): Promise<void> => {
+  const page = Number(req.query.page) || 1;
+  const limit = Number(req.query.limit) || 10;
+  const searchTerm = (req.query.searchTerm as string) || '';
+
+  const offset = (page - 1) * limit;
+
   try {
-    const productTypes = await getAllProductTypes();
-    res
-      .status(200)
-      .json(createResponse(200, "Product types fetched successfully", productTypes));
+    const { total, rows } = await getAllProductTypes(searchTerm, limit, offset);
+    
+
+    const totalPages = Math.ceil(total / limit);
+
+    res.status(200).json(createResponse(200, "Product types fetched successfully", {
+      data: rows,
+      total,
+      totalPages,
+      currentPage: page,
+      limit, 
+    }));
   } catch (error) {
-    res
-      .status(500)
-      .json(createResponse(500, "Error fetching product types", error));
+    res.status(500).json(createResponse(500, "Error fetching product types", error));
   }
 };
+
 
 // Add a new product type
 export const addProductType = async (req: Request, res: Response): Promise<void> => {
