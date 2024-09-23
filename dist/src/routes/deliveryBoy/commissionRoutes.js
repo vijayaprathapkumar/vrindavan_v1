@@ -9,8 +9,5 @@ const commissionValidation_1 = require("../../validation/deliveryBoy/commissionV
 const router = express_1.default.Router();
 // Define routes for commissions
 router.get("/", commissionController_1.getDetailedCommissions);
-router.post("/", commissionValidation_1.commissionValidation, commissionValidation_1.validate, commissionController_1.addDetailedCommission);
 router.get("/:id", commissionValidation_1.commissionIdValidation, commissionValidation_1.validate, commissionController_1.getDetailedCommission);
-router.put("/:id", commissionValidation_1.commissionIdValidation, commissionValidation_1.commissionValidation, commissionValidation_1.validate, commissionController_1.updateDetailedCommission);
-router.delete("/:id", commissionValidation_1.commissionIdValidation, commissionValidation_1.validate, commissionController_1.deleteDetailedCommission);
 exports.default = router;

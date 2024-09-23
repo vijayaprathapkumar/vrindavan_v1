@@ -1,22 +1,38 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteCategoryById = exports.updateCategoryById = exports.getCategoryById = exports.createCategory = exports.getAllCategories = void 0;
+exports.deleteCategoryById = exports.updateCategoryById = exports.getCategoryById = exports.createCategory = exports.getCategoriesCount = exports.getAllCategories = void 0;
 const databaseConnection_1 = require("../../config/databaseConnection");
-// Fetch all categories
-const getAllCategories = async () => {
-    const [rows] = await databaseConnection_1.db
-        .promise()
-        .query("SELECT * FROM categories");
+// Fetch all categories with limit and offset for pagination
+const getAllCategories = async (limit, offset, searchTerm) => {
+    const query = `
+    SELECT * FROM categories 
+    WHERE name LIKE ? OR weightage = ?
+    LIMIT ? OFFSET ?
+  `;
+    const params = [`%${searchTerm}%`, parseInt(searchTerm) || -1, limit, offset];
+    const [rows] = await databaseConnection_1.db.promise().query(query, params);
     return rows;
 };
 exports.getAllCategories = getAllCategories;
+// Fetch total count of categories that match the search term
+const getCategoriesCount = async (searchTerm) => {
+    const query = `
+    SELECT COUNT(*) as count FROM categories 
+    WHERE name LIKE ? OR weightage = ?
+  `;
+    const params = [`%${searchTerm}%`, parseInt(searchTerm) || -1];
+    const [rows] = await databaseConnection_1.db.promise().query(query, params);
+    return rows[0].count;
+};
+exports.getCategoriesCount = getCategoriesCount;
 // Create a new category (with optional image)
-const createCategory = async (name, description, weightage, image // Optional image
-) => {
+const createCategory = async (name, description, weightage, image) => {
     const query = image
         ? "INSERT INTO categories (name, description, weightage, image) VALUES (?, ?, ?, ?)"
         : "INSERT INTO categories (name, description, weightage) VALUES (?, ?, ?)";
-    const params = image ? [name, description, weightage, image] : [name, description, weightage];
+    const params = image
+        ? [name, description, weightage, image]
+        : [name, description, weightage];
     await databaseConnection_1.db.promise().query(query, params);
 };
 exports.createCategory = createCategory;
@@ -29,8 +45,7 @@ const getCategoryById = async (id) => {
 };
 exports.getCategoryById = getCategoryById;
 // Update category by ID (with optional image)
-const updateCategoryById = async (id, name, description, weightage, image // Optional image
-) => {
+const updateCategoryById = async (id, name, description, weightage, image) => {
     let query = "UPDATE categories SET name = ?, description = ?, weightage = ?";
     const params = [name, description, weightage];
     if (image) {

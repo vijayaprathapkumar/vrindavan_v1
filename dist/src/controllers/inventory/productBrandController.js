@@ -5,32 +5,37 @@ const productBrandModel_1 = require("../../models/inventory/productBrandModel");
 const responseHandler_1 = require("../../utils/responseHandler");
 // Fetch all product brands
 const getProductBrands = async (req, res) => {
+    const { searchTerm, limit = 10, page = 1 } = req.query;
+    const parsedLimit = Number(limit);
+    const parsedPage = Number(page);
+    const offset = (parsedPage - 1) * parsedLimit;
     try {
-        const brands = await (0, productBrandModel_1.getAllBrands)();
-        res
-            .status(200)
-            .json((0, responseHandler_1.createResponse)(200, "Product brands fetched successfully", brands));
+        const brands = await (0, productBrandModel_1.getAllBrands)(searchTerm, parsedLimit, offset);
+        const totalCount = await (0, productBrandModel_1.getBrandsCount)(searchTerm);
+        res.status(200).json((0, responseHandler_1.createResponse)(200, "Product brands fetched successfully", {
+            brands,
+            pagination: {
+                total: totalCount,
+                limit: parsedLimit,
+                page: parsedPage,
+                totalPages: Math.ceil(totalCount / parsedLimit),
+            }
+        }));
     }
     catch (error) {
-        res
-            .status(500)
-            .json((0, responseHandler_1.createResponse)(500, "Error fetching product brands", error));
+        res.status(500).json((0, responseHandler_1.createResponse)(500, "Error fetching product brands", error));
     }
 };
 exports.getProductBrands = getProductBrands;
 // Add a new product brand (POST)
 const addProductBrand = async (req, res) => {
-    const { name, active } = req.body;
+    const { name, active = true } = req.body;
     try {
         await (0, productBrandModel_1.createBrand)(name, active);
-        res
-            .status(201)
-            .json((0, responseHandler_1.createResponse)(201, "Product brand created successfully"));
+        res.status(201).json((0, responseHandler_1.createResponse)(201, "Product brand created successfully"));
     }
     catch (error) {
-        res
-            .status(500)
-            .json((0, responseHandler_1.createResponse)(500, "Error creating product brand", error));
+        res.status(500).json((0, responseHandler_1.createResponse)(500, "Error creating product brand", error));
     }
 };
 exports.addProductBrand = addProductBrand;
@@ -43,9 +48,7 @@ const getProductBrandById = async (req, res) => {
             res.status(404).json((0, responseHandler_1.createResponse)(404, "Product brand not found"));
         }
         else {
-            res
-                .status(200)
-                .json((0, responseHandler_1.createResponse)(200, "Product brand fetched successfully", brand));
+            res.status(200).json((0, responseHandler_1.createResponse)(200, "Product brand fetched successfully", brand));
         }
     }
     catch (error) {
@@ -59,14 +62,10 @@ const updateProductBrand = async (req, res) => {
     const { name, active } = req.body;
     try {
         await (0, productBrandModel_1.updateBrandById)(parseInt(id), name, active);
-        res
-            .status(200)
-            .json((0, responseHandler_1.createResponse)(200, "Product brand updated successfully"));
+        res.status(200).json((0, responseHandler_1.createResponse)(200, "Product brand updated successfully"));
     }
     catch (error) {
-        res
-            .status(500)
-            .json((0, responseHandler_1.createResponse)(500, "Error updating product brand", error));
+        res.status(500).json((0, responseHandler_1.createResponse)(500, "Error updating product brand", error));
     }
 };
 exports.updateProductBrand = updateProductBrand;
@@ -75,14 +74,10 @@ const deleteProductBrand = async (req, res) => {
     const { id } = req.params;
     try {
         await (0, productBrandModel_1.deleteBrandById)(parseInt(id));
-        res
-            .status(200)
-            .json((0, responseHandler_1.createResponse)(200, "Product brand deleted successfully"));
+        res.status(200).json((0, responseHandler_1.createResponse)(200, "Product brand deleted successfully"));
     }
     catch (error) {
-        res
-            .status(500)
-            .json((0, responseHandler_1.createResponse)(500, "Error deleting product brand", error));
+        res.status(500).json((0, responseHandler_1.createResponse)(500, "Error deleting product brand", error));
     }
 };
 exports.deleteProductBrand = deleteProductBrand;
