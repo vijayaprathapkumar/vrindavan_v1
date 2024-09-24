@@ -19,6 +19,7 @@ import hubOrdersRoutes from "./routes/orders/hubOrdersRoutes";
 import devliveryBoyOrders from "./routes/orders/devliveryBoyOrders";
 import foodRoutes from "./routes/inventory/foodRoutes";
 import bannerRoutes from "./routes/banner/bannerRoutes"
+import dealOfTheDayRoutes from "./routes/dealOfTheDay/dealOfTheDayRoutes";
 const router = express.Router();
 
 // Auth Login
@@ -57,4 +58,8 @@ router.use("/delivery_orders", devliveryBoyOrders);
 //Banners
 
 router.use("/banners", bannerRoutes);
+
+//deal of the day
+
+router.use("/deals_of_the_day", dealOfTheDayRoutes);
 export default router;
