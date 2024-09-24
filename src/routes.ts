@@ -2,7 +2,6 @@ import express from "express";
 import authLoginRoutes from "./routes/authLogin/authLogin";
 import categoryRoutes from "./routes/inventory/categoryRoutes";
 import subcategoryRoutes from "./routes/inventory/subcategoryRoutes";
-
 import productTypeRoutes from "./routes/inventory/productTypeRoutes";
 import productBrandRoutes from "./routes/inventory/productBrandRoutes";
 import customerRoutes from "./routes/customer/customerRoutes";
@@ -21,6 +20,7 @@ import foodRoutes from "./routes/inventory/foodRoutes";
 import bannerRoutes from "./routes/banner/bannerRoutes"
 import dealOfTheDayRoutes from "./routes/dealOfTheDay/dealOfTheDayRoutes";
 import addToCartsRoutes from "./routes/addToCard/addToCartsRoutes";
+import subscriptionsRoutes from "./routes/subscriptions/subscriptionsRoutes";
 const router = express.Router();
 
 // Auth Login
@@ -64,6 +64,10 @@ router.use("/banners", bannerRoutes);
 
 router.use("/deals_of_the_day", dealOfTheDayRoutes);
 
-
+//AddToCarts
 router.use("/add_to_carts",addToCartsRoutes );
+
+//subscriptions
+router.use("/subscriptions",subscriptionsRoutes);
+
 export default router;
