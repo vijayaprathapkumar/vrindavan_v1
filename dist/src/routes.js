@@ -22,6 +22,7 @@ const routeOrdersRoutes_1 = __importDefault(require("./routes/orders/routeOrders
 const hubOrdersRoutes_1 = __importDefault(require("./routes/orders/hubOrdersRoutes"));
 const devliveryBoyOrders_1 = __importDefault(require("./routes/orders/devliveryBoyOrders"));
 const foodRoutes_1 = __importDefault(require("./routes/inventory/foodRoutes"));
+const bannerRoutes_1 = __importDefault(require("./routes/banner/bannerRoutes"));
 const router = express_1.default.Router();
 // Auth Login
 router.use("/auth", authLogin_1.default);
@@ -48,4 +49,6 @@ router.use("/orders", orderRoutes_1.default);
 router.use("/route_orders", routeOrdersRoutes_1.default);
 router.use("/hub_orders", hubOrdersRoutes_1.default);
 router.use("/delivery_orders", devliveryBoyOrders_1.default);
+//Banners
+router.use("/banners", bannerRoutes_1.default);
 exports.default = router;
