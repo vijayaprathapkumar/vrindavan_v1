@@ -20,6 +20,7 @@ import devliveryBoyOrders from "./routes/orders/devliveryBoyOrders";
 import foodRoutes from "./routes/inventory/foodRoutes";
 import bannerRoutes from "./routes/banner/bannerRoutes"
 import dealOfTheDayRoutes from "./routes/dealOfTheDay/dealOfTheDayRoutes";
+import addToCartsRoutes from "./routes/addToCard/addToCartsRoutes";
 const router = express.Router();
 
 // Auth Login
@@ -62,4 +63,7 @@ router.use("/banners", bannerRoutes);
 //deal of the day
 
 router.use("/deals_of_the_day", dealOfTheDayRoutes);
+
+
+router.use("/add_to_carts",addToCartsRoutes );
 export default router;
