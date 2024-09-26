@@ -1,18 +1,25 @@
-import express from "express";
+import { Router } from 'express';
 import {
-  fetchSubscriptions,
-  addNewSubscription,
-  updateExistingSubscription,
-  removeSubscription,
-  fetchSubscriptionById,
-} from "../../controllers/subscriptions/subscriptionsControllers";
+  addSubscription,
+  getSubscriptions,
+  deleteSubscription,
+  pauseSubscription,
+  resumeSubscription,
+  updateSubscription,
+  cancelSubscription,
+  getSubscriptionById,
+} from '../../controllers/subscriptions/subscriptionsControllers';
 
-const router = express.Router();
+const router = Router();
 
-router.get("/:userId", fetchSubscriptions); 
-router.get("/subscription/:id", fetchSubscriptionById); 
-router.post("/", addNewSubscription);
-router.put("/:id", updateExistingSubscription); 
-router.delete("/:id", removeSubscription); 
+// Define the routes for subscriptions
+router.post('/', addSubscription);
+router.get('/:userId', getSubscriptions);
+router.get('/subById/:id', getSubscriptionById);
+router.put('/:id', updateSubscription);
+router.delete('/:id', deleteSubscription);
+router.put('/pause/:id', pauseSubscription);
+router.put('/resume/:id', resumeSubscription);
+router.put('/cancel/:id', cancelSubscription);
 
 export default router;
