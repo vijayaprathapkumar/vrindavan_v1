@@ -12,13 +12,11 @@ export const customerValidation = [
     .optional()
     .notEmpty()
     .withMessage("House Number cannot be empty if provided"),
-  body("completeAddress")
-    .notEmpty()
-    .withMessage("Complete Address is required"),
+  body("completeAddress").notEmpty().withMessage("Complete Address is required"),
   body("status")
     .optional()
-    .isIn(["Active", "Inactive", "Follow Up", "Guest"])
-    .withMessage("Status is invalid"),
+    .isIn([0, 1])
+    .withMessage("Status must be 0 (Inactive) or 1 (Active)"),
 ];
 
 // Validation rules for customer ID
