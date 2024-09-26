@@ -71,17 +71,24 @@ export const getAllCustomers = async (
     params.push(locality);
   }
 
+  const statusMap: { [key: string]: number } = {
+    Active: 1,
+    Inactive: 2,
+    "Follow Up": 3,
+    Guest: 4,
+  };
+
   if (status && status !== "All") {
     const statusConditions = [];
     const statuses = status.split(",");
     statuses.forEach((s) => {
-      if (s === "Active") {
+      if (s === "1") {
         statusConditions.push(`u.is_deactivated = 0`);
-      } else if (s === "Inactive") {
+      } else if (s === "2") {
         statusConditions.push(`u.is_deactivated = 1`);
-      } else if (s === "Follow Up") {
+      } else if (s === "3") {
         statusConditions.push(`u.status = 'Follow Up'`);
-      } else if (s === "Guest") {
+      } else if (s === "4") {
         statusConditions.push(`u.status = 'Guest'`);
       }
     });
@@ -97,7 +104,6 @@ export const getAllCustomers = async (
     }
   }
 
-  // Total count query remains the same
   let totalCountQuery = `
     SELECT COUNT(*) as total 
     FROM users u
@@ -115,10 +121,9 @@ export const getAllCustomers = async (
   if (status && status !== "All") {
     const statuses = status.split(",");
     statuses.forEach((s) => {
-      if (s === "Active") {
-        totalCountConditions.push(`u.is_deactivated = 0`);
-      } else if (s === "Inactive") {
-        totalCountConditions.push(`u.is_deactivated = 1`);
+      const mappedStatus = statusMap[s.trim()];
+      if (mappedStatus) {
+        totalCountConditions.push(`u.is_deactivated = ${mappedStatus - 1}`); 
       }
     });
 
@@ -203,7 +208,6 @@ export const createCustomer = async (
   status?: string
 ): Promise<void> => {
   try {
-    // Check if the email already exists
     const existingUserQuery = `
       SELECT id FROM users WHERE email = ?;
     `;
@@ -215,7 +219,6 @@ export const createCustomer = async (
       throw new Error(`User with email ${email} already exists`);
     }
 
-    // Insert user into users table
     const insertUserQuery = `
       INSERT INTO users (name, email, phone, status, created_at, updated_at) 
       VALUES (?, ?, ?, ?, NOW(), NOW());
@@ -224,7 +227,6 @@ export const createCustomer = async (
       .promise()
       .query<OkPacket>(insertUserQuery, [name, email, mobile, status]);
 
-    // Insert address into delivery_addresses table
     const insertAddressQuery = `
      INSERT INTO delivery_addresses (user_id, locality_id, house_no, complete_address, created_at, updated_at) 
   VALUES (?, ?, ?, ?, NOW(), NOW());
@@ -363,7 +365,9 @@ export const updateCustomerById = async (
 ): Promise<void> => {
   try {
     const existingUserQuery = `SELECT id FROM users WHERE id = ?;`;
-    const [existingUsers] = await db.promise().query<RowDataPacket[]>(existingUserQuery, [id]);
+    const [existingUsers] = await db
+      .promise()
+      .query<RowDataPacket[]>(existingUserQuery, [id]);
 
     if (existingUsers.length === 0) {
       throw new Error(`User with ID ${id} does not exist`);
@@ -371,7 +375,9 @@ export const updateCustomerById = async (
 
     if (email) {
       const duplicateEmailQuery = `SELECT id FROM users WHERE email = ? AND id != ?;`;
-      const [duplicateEmails] = await db.promise().query<RowDataPacket[]>(duplicateEmailQuery, [email, id]);
+      const [duplicateEmails] = await db
+        .promise()
+        .query<RowDataPacket[]>(duplicateEmailQuery, [email, id]);
 
       if (duplicateEmails.length > 0) {
         throw new Error(`Email ${email} is already in use by another customer`);
@@ -388,7 +394,9 @@ export const updateCustomerById = async (
       WHERE id = ?;
     `;
 
-    await db.promise().query<OkPacket>(updateUserQuery, [name, email, mobile, status, id]);
+    await db
+      .promise()
+      .query<OkPacket>(updateUserQuery, [name, email, mobile, status, id]);
 
     const updateAddressQuery = `
       UPDATE delivery_addresses SET
@@ -399,14 +407,19 @@ export const updateCustomerById = async (
       WHERE user_id = ?;
     `;
 
-    await db.promise().query<OkPacket>(updateAddressQuery, [localityId, houseNo, completeAddress, id]);
-
+    await db
+      .promise()
+      .query<OkPacket>(updateAddressQuery, [
+        localityId,
+        houseNo,
+        completeAddress,
+        id,
+      ]);
   } catch (error) {
     console.error("Error updating customer:", error.message);
     throw new Error("Error updating customer: " + error.message);
   }
 };
-
 
 // Delete customer by ID
 export const deleteCustomerById = async (customerId: number): Promise<void> => {
@@ -419,15 +432,14 @@ export const deleteCustomerById = async (customerId: number): Promise<void> => {
       [customerId]
     );
 
-    await connection.query<OkPacket>(
-      "DELETE FROM users WHERE id = ?",
-      [customerId]
-    );
+    await connection.query<OkPacket>("DELETE FROM users WHERE id = ?", [
+      customerId,
+    ]);
 
     await connection.commit();
   } catch (error) {
     await connection.rollback();
-    throw error; 
+    throw error;
   } finally {
     await connection.release();
   }

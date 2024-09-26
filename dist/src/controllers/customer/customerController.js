@@ -4,9 +4,11 @@ exports.deleteCustomer = exports.updateCustomer = exports.getCustomer = exports.
 const customerModel_1 = require("../../models/customer/customerModel");
 const responseHandler_1 = require("../../utils/responseHandler");
 // Fetch all customers with pagination and filters
+// Fetch all customers with pagination and filters
 const getCustomers = async (req, res) => {
     const { page = 1, limit = 10, locality, status, searchTerm } = req.query;
-    const validLimit = [10, 25, 50, 100].includes(Number(limit)) ? Number(limit) : 10;
+    // Allow any positive integer for limit, defaulting to 10 if not specified
+    const validLimit = Number(limit) > 0 ? Number(limit) : 10;
     try {
         const { customers, total, statusCount } = await (0, customerModel_1.getAllCustomers)(Number(page), validLimit, locality?.toString(), status?.toString(), searchTerm?.toString());
         const totalPages = Math.ceil(total / validLimit);
