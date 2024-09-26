@@ -8,11 +8,10 @@ import {
 } from '../../models/customer/customerModel';
 import { createResponse } from '../../utils/responseHandler';
 
-// Fetch all customers
+// Fetch all customers with pagination and filters
 export const getCustomers = async (req: Request, res: Response): Promise<void> => {
-  const { page = 1, limit = 10, locality, status, searchTerm, isApproved } = req.query;
+  const { page = 1, limit = 10, locality, status, searchTerm } = req.query;
 
-  // Ensure limit is a valid number
   const validLimit = [10, 25, 50, 100].includes(Number(limit)) ? Number(limit) : 10;
 
   try {
@@ -21,8 +20,7 @@ export const getCustomers = async (req: Request, res: Response): Promise<void> =
       validLimit,
       locality?.toString(),
       status?.toString(),
-      searchTerm?.toString(),
-      isApproved?.toString()
+      searchTerm?.toString()
     );
 
     const totalPages = Math.ceil(total / validLimit);
@@ -41,8 +39,6 @@ export const getCustomers = async (req: Request, res: Response): Promise<void> =
   }
 };
 
-
-
 // Add a new customer
 export const addCustomer = async (req: Request, res: Response): Promise<void> => {
   const { localityId, name, email, mobile, houseNo, completeAddress, status } = req.body;
@@ -50,7 +46,8 @@ export const addCustomer = async (req: Request, res: Response): Promise<void> =>
     await createCustomer(localityId, name, email, mobile, houseNo, completeAddress, status);
     res.status(201).json(createResponse(201, "Customer created successfully"));
   } catch (error) {
-    res.status(500).json(createResponse(500, "Error creating customer", error));
+    console.error("Error in addCustomer:", error); 
+    res.status(500).json(createResponse(500, "Error creating customer", error.message));
   }
 };
 
@@ -73,13 +70,22 @@ export const getCustomer = async (req: Request, res: Response): Promise<void> =>
 export const updateCustomer = async (req: Request, res: Response): Promise<void> => {
   const { id } = req.params;
   const { localityId, name, email, mobile, houseNo, completeAddress, status } = req.body;
-  
+
   try {
-    // Pass undefined if status is not provided
-    await updateCustomerById(Number(id), localityId, name, email, mobile, houseNo, completeAddress, status || undefined);
-    res.status(200).json(createResponse(200, "Customer updated successfully"));
+    await updateCustomerById(
+      parseInt(id),
+      localityId,
+      name,
+      email,
+      mobile,
+      houseNo,
+      completeAddress,
+      status
+    );
+    res.status(200).json({ message: "Customer updated successfully" });
   } catch (error) {
-    res.status(500).json(createResponse(500, "Error updating customer", error));
+    console.error("Error updating customer:", error);
+    res.status(400).json({ message: error.message });
   }
 };
 

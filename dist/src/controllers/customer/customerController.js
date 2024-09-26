@@ -3,13 +3,12 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.deleteCustomer = exports.updateCustomer = exports.getCustomer = exports.addCustomer = exports.getCustomers = void 0;
 const customerModel_1 = require("../../models/customer/customerModel");
 const responseHandler_1 = require("../../utils/responseHandler");
-// Fetch all customers
+// Fetch all customers with pagination and filters
 const getCustomers = async (req, res) => {
-    const { page = 1, limit = 10, locality, status, searchTerm, isApproved } = req.query;
-    // Ensure limit is a valid number
+    const { page = 1, limit = 10, locality, status, searchTerm } = req.query;
     const validLimit = [10, 25, 50, 100].includes(Number(limit)) ? Number(limit) : 10;
     try {
-        const { customers, total, statusCount } = await (0, customerModel_1.getAllCustomers)(Number(page), validLimit, locality?.toString(), status?.toString(), searchTerm?.toString(), isApproved?.toString());
+        const { customers, total, statusCount } = await (0, customerModel_1.getAllCustomers)(Number(page), validLimit, locality?.toString(), status?.toString(), searchTerm?.toString());
         const totalPages = Math.ceil(total / validLimit);
         res.status(200).json((0, responseHandler_1.createResponse)(200, "Customers fetched successfully", {
             customers,
@@ -34,7 +33,8 @@ const addCustomer = async (req, res) => {
         res.status(201).json((0, responseHandler_1.createResponse)(201, "Customer created successfully"));
     }
     catch (error) {
-        res.status(500).json((0, responseHandler_1.createResponse)(500, "Error creating customer", error));
+        console.error("Error in addCustomer:", error);
+        res.status(500).json((0, responseHandler_1.createResponse)(500, "Error creating customer", error.message));
     }
 };
 exports.addCustomer = addCustomer;
@@ -60,12 +60,12 @@ const updateCustomer = async (req, res) => {
     const { id } = req.params;
     const { localityId, name, email, mobile, houseNo, completeAddress, status } = req.body;
     try {
-        // Pass undefined if status is not provided
-        await (0, customerModel_1.updateCustomerById)(Number(id), localityId, name, email, mobile, houseNo, completeAddress, status || undefined);
-        res.status(200).json((0, responseHandler_1.createResponse)(200, "Customer updated successfully"));
+        await (0, customerModel_1.updateCustomerById)(parseInt(id), localityId, name, email, mobile, houseNo, completeAddress, status);
+        res.status(200).json({ message: "Customer updated successfully" });
     }
     catch (error) {
-        res.status(500).json((0, responseHandler_1.createResponse)(500, "Error updating customer", error));
+        console.error("Error updating customer:", error);
+        res.status(400).json({ message: error.message });
     }
 };
 exports.updateCustomer = updateCustomer;
