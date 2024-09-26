@@ -52,7 +52,7 @@ export const getAllCartItems = async (userId: number): Promise<CartItem[]> => {
         c.quantity, 
         c.created_at, 
         c.updated_at,
-        f.id AS food_id, -- include food id for the separate object
+        f.id AS food_id,
         f.name AS food_name,
         f.price,
         f.discount_price,

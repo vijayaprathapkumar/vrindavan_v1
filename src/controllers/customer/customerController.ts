@@ -9,10 +9,12 @@ import {
 import { createResponse } from '../../utils/responseHandler';
 
 // Fetch all customers with pagination and filters
+// Fetch all customers with pagination and filters
 export const getCustomers = async (req: Request, res: Response): Promise<void> => {
   const { page = 1, limit = 10, locality, status, searchTerm } = req.query;
 
-  const validLimit = [10, 25, 50, 100].includes(Number(limit)) ? Number(limit) : 10;
+  // Allow any positive integer for limit, defaulting to 10 if not specified
+  const validLimit = Number(limit) > 0 ? Number(limit) : 10;
 
   try {
     const { customers, total, statusCount } = await getAllCustomers(
@@ -38,6 +40,8 @@ export const getCustomers = async (req: Request, res: Response): Promise<void> =
     res.status(500).json(createResponse(500, "Error fetching customers", error));
   }
 };
+
+
 
 // Add a new customer
 export const addCustomer = async (req: Request, res: Response): Promise<void> => {
