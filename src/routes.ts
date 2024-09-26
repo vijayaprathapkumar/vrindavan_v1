@@ -20,7 +20,8 @@ import foodRoutes from "./routes/inventory/foodRoutes";
 import bannerRoutes from "./routes/banner/bannerRoutes"
 import dealOfTheDayRoutes from "./routes/dealOfTheDay/dealOfTheDayRoutes";
 import addToCartsRoutes from "./routes/addToCard/addToCartsRoutes";
-import subscriptionsRoutes from "./routes/subscriptions/subscriptionsRoutes";
+import walletTransactionRoutes from "./routes/wallet/walletTransationsRoutes"
+
 const router = express.Router();
 
 // Auth Login
@@ -67,7 +68,8 @@ router.use("/deals_of_the_day", dealOfTheDayRoutes);
 //AddToCarts
 router.use("/add_to_carts",addToCartsRoutes );
 
-//subscriptions
-router.use("/subscriptions",subscriptionsRoutes);
+//walletTransations
+router.use("/wallet", walletTransactionRoutes);
+
 
 export default router;
