@@ -21,6 +21,7 @@ import foodRoutes from "./routes/inventory/foodRoutes";
 import bannerRoutes from "./routes/banner/bannerRoutes"
 import dealOfTheDayRoutes from "./routes/dealOfTheDay/dealOfTheDayRoutes";
 import addToCartsRoutes from "./routes/addToCard/addToCartsRoutes";
+import walletTransactionRoutes from "./routes/wallet/walletTransationsRoutes"
 const router = express.Router();
 
 // Auth Login
@@ -66,4 +67,9 @@ router.use("/deals_of_the_day", dealOfTheDayRoutes);
 
 
 router.use("/add_to_carts",addToCartsRoutes );
+
+
+//walletTransations
+router.use("/wallet", walletTransactionRoutes);
+
 export default router;
