@@ -2,7 +2,6 @@ import express from "express";
 import authLoginRoutes from "./routes/authLogin/authLogin";
 import categoryRoutes from "./routes/inventory/categoryRoutes";
 import subcategoryRoutes from "./routes/inventory/subcategoryRoutes";
-
 import productTypeRoutes from "./routes/inventory/productTypeRoutes";
 import productBrandRoutes from "./routes/inventory/productBrandRoutes";
 import customerRoutes from "./routes/customer/customerRoutes";
@@ -22,6 +21,7 @@ import bannerRoutes from "./routes/banner/bannerRoutes"
 import dealOfTheDayRoutes from "./routes/dealOfTheDay/dealOfTheDayRoutes";
 import addToCartsRoutes from "./routes/addToCard/addToCartsRoutes";
 import walletTransactionRoutes from "./routes/wallet/walletTransationsRoutes"
+
 const router = express.Router();
 
 // Auth Login
@@ -65,11 +65,11 @@ router.use("/banners", bannerRoutes);
 
 router.use("/deals_of_the_day", dealOfTheDayRoutes);
 
-
+//AddToCarts
 router.use("/add_to_carts",addToCartsRoutes );
-
 
 //walletTransations
 router.use("/wallet", walletTransactionRoutes);
+
 
 export default router;
