@@ -21,6 +21,7 @@ import bannerRoutes from "./routes/banner/bannerRoutes"
 import dealOfTheDayRoutes from "./routes/dealOfTheDay/dealOfTheDayRoutes";
 import addToCartsRoutes from "./routes/addToCard/addToCartsRoutes";
 import walletTransactionRoutes from "./routes/wallet/walletTransationsRoutes"
+import subscriptionsRoutes from "./routes/subscriptions/subscriptionsRoutes";
 
 const router = express.Router();
 
@@ -70,6 +71,10 @@ router.use("/add_to_carts",addToCartsRoutes );
 
 //walletTransations
 router.use("/wallet", walletTransactionRoutes);
+
+//subscriptions
+router.use("/subscriptions", subscriptionsRoutes);
+
 
 
 export default router;
