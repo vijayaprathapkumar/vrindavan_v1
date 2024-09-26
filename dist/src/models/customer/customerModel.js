@@ -85,6 +85,7 @@ const getAllCustomers = async (page, limit, locality, status, searchTerm, isAppr
             query += ` AND (${statusConditions.join(" OR ")}) `;
         }
     }
+    // Total count query remains the same
     let totalCountQuery = `
     SELECT COUNT(*) as total 
     FROM users u
@@ -114,7 +115,7 @@ const getAllCustomers = async (page, limit, locality, status, searchTerm, isAppr
     const [[totalCount]] = await databaseConnection_1.db
         .promise()
         .query(totalCountQuery, params);
-    query += ` LIMIT ? OFFSET ?;`;
+    query += ` ORDER BY u.created_at DESC LIMIT ? OFFSET ?;`;
     params.push(limit, offset);
     const [rows] = await databaseConnection_1.db.promise().query(query, params);
     const statusCountQuery = `
@@ -130,40 +131,40 @@ const getAllCustomers = async (page, limit, locality, status, searchTerm, isAppr
         .query(statusCountQuery);
     return {
         customers: rows.map((row) => ({
-            userId: row.user_id,
-            userName: row.user_name,
+            user_id: row.user_id,
+            user_name: row.user_name,
             email: row.email,
             phone: row.phone,
-            apiToken: row.api_token,
-            deviceToken: row.device_token,
-            deliveryPriority: row.delivery_priority,
-            creditLimit: row.credit_limit,
-            stripeId: row.stripe_id,
-            cardBrand: row.card_brand,
-            cardLastFour: row.card_last_four,
-            trialEndsAt: row.trial_ends_at,
-            braintreeId: row.braintree_id,
-            paypalEmail: row.paypal_email,
-            rememberToken: row.remember_token,
+            api_token: row.api_token,
+            device_token: row.device_token,
+            delivery_priority: row.delivery_priority,
+            credit_limit: row.credit_limit,
+            stripe_id: row.stripe_id,
+            card_brand: row.card_brand,
+            card_last_four: row.card_last_four,
+            trial_ends_at: row.trial_ends_at,
+            braintree_id: row.braintree_id,
+            paypal_email: row.paypal_email,
+            remember_token: row.remember_token,
             status: row.status,
-            isDeactivated: row.is_deactivated,
-            isDeactivatedAt: row.is_deactivated_at,
-            createdAt: row.created_at,
-            updatedAt: row.updated_at,
+            is_deactivated: row.is_deactivated,
+            is_deactivated_at: row.is_deactivated_at,
+            created_at: row.created_at,
+            updated_at: row.updated_at,
             address: {
-                addressId: row.address_id,
+                address_id: row.address_id,
                 description: row.description,
                 address: row.address,
                 latitude: row.latitude,
                 longitude: row.longitude,
-                houseNo: row.house_no,
-                completeAddress: row.complete_address,
-                isApproved: row.is_approve,
-                isDefault: row.is_default,
-                localityId: row.locality_id,
-                localityName: row.locality_name,
-                createdAt: row.address_created_at,
-                updatedAt: row.address_updated_at,
+                house_no: row.house_no,
+                complete_address: row.complete_address,
+                is_approve: row.is_approve,
+                is_default: row.is_default,
+                locality_id: row.locality_id,
+                locality_name: row.locality_name,
+                created_at: row.address_created_at,
+                updated_at: row.address_updated_at,
             },
         })),
         total: totalCount.total,
@@ -186,15 +187,16 @@ const createCustomer = async (localityId, name, email, mobile, houseNo, complete
         }
         // Insert user into users table
         const insertUserQuery = `
-      INSERT INTO users (name, email, phone) VALUES (?, ?, ?);
+      INSERT INTO users (name, email, phone, status, created_at, updated_at) 
+      VALUES (?, ?, ?, ?, NOW(), NOW());
     `;
         const [userResult] = await databaseConnection_1.db
             .promise()
-            .query(insertUserQuery, [name, email, mobile]);
+            .query(insertUserQuery, [name, email, mobile, status]);
         // Insert address into delivery_addresses table
         const insertAddressQuery = `
-      INSERT INTO delivery_addresses (user_id, locality_id, house_no, complete_address) 
-      VALUES (?, ?, ?, ?);
+     INSERT INTO delivery_addresses (user_id, locality_id, house_no, complete_address, created_at, updated_at) 
+  VALUES (?, ?, ?, ?, NOW(), NOW());
     `;
         const addressValues = [
             userResult.insertId,
@@ -205,6 +207,7 @@ const createCustomer = async (localityId, name, email, mobile, houseNo, complete
         await databaseConnection_1.db.promise().query(insertAddressQuery, addressValues);
     }
     catch (error) {
+        console.error("Error creating customer:", error);
         throw new Error("Error creating customer: " + (error.message || "Unknown error"));
     }
 };
@@ -267,106 +270,106 @@ const getCustomerById = async (id) => {
         return null;
     const row = rows[0];
     return {
-        userId: row.user_id,
-        userName: row.user_name,
+        user_id: row.user_id,
+        user_name: row.user_name,
         email: row.email,
         phone: row.phone,
-        apiToken: row.api_token,
-        deviceToken: row.device_token,
-        deliveryPriority: row.delivery_priority,
-        creditLimit: row.credit_limit,
-        stripeId: row.stripe_id,
-        cardBrand: row.card_brand,
-        cardLastFour: row.card_last_four,
-        trialEndsAt: row.trial_ends_at,
-        braintreeId: row.braintree_id,
-        paypalEmail: row.paypal_email,
-        rememberToken: row.remember_token,
+        api_token: row.api_token,
+        device_token: row.device_token,
+        delivery_priority: row.delivery_priority,
+        credit_limit: row.credit_limit,
+        stripe_id: row.stripe_id,
+        card_brand: row.card_brand,
+        card_last_four: row.card_last_four,
+        trial_ends_at: row.trial_ends_at,
+        braintree_id: row.braintree_id,
+        paypal_email: row.paypal_email,
+        remember_token: row.remember_token,
         status: row.status,
-        isDeactivated: row.is_deactivated,
-        isDeactivatedAt: row.is_deactivated_at,
-        createdAt: row.created_at,
-        updatedAt: row.updated_at,
+        is_deactivated: row.is_deactivated,
+        is_deactivated_at: row.is_deactivated_at,
+        created_at: row.created_at,
+        updated_at: row.updated_at,
         address: {
-            addressId: row.address_id,
+            address_id: row.address_id,
             description: row.description,
             address: row.address,
             latitude: row.latitude,
             longitude: row.longitude,
-            houseNo: row.house_no,
-            completeAddress: row.complete_address,
-            isApproved: row.is_approve,
-            isDefault: row.is_default,
-            localityId: row.locality_id,
-            localityName: row.locality_name,
-            createdAt: row.address_created_at,
-            updatedAt: row.address_updated_at,
+            house_no: row.house_no,
+            complete_address: row.complete_address,
+            is_approve: row.is_approve,
+            is_default: row.is_default,
+            locality_id: row.locality_id,
+            locality_name: row.locality_name,
         },
-        customFields: row.custom_field_id
-            ? [
-                {
-                    customFieldId: row.custom_field_id,
-                    name: row.custom_field_name,
-                },
-            ]
-            : [],
-        priorities: row.priority_id
-            ? [
-                {
-                    priorityId: row.priority_id,
-                    markPriority: row.mark_priority,
-                },
-            ]
-            : [],
+        custom_fields: rows.map((row) => ({
+            custom_field_id: row.custom_field_id,
+            custom_field_name: row.custom_field_name,
+        })),
+        priority: {
+            priority_id: row.priority_id,
+            mark_priority: row.mark_priority,
+        },
     };
 };
 exports.getCustomerById = getCustomerById;
 // Update customer by ID
 const updateCustomerById = async (id, localityId, name, email, mobile, houseNo, completeAddress, status) => {
     try {
-        // Check if the customer exists
         const existingUserQuery = `SELECT id FROM users WHERE id = ?;`;
-        const [existingUsers] = await databaseConnection_1.db
-            .promise()
-            .query(existingUserQuery, [id]);
+        const [existingUsers] = await databaseConnection_1.db.promise().query(existingUserQuery, [id]);
         if (existingUsers.length === 0) {
             throw new Error(`User with ID ${id} does not exist`);
         }
-        // Update user in users table
+        if (email) {
+            const duplicateEmailQuery = `SELECT id FROM users WHERE email = ? AND id != ?;`;
+            const [duplicateEmails] = await databaseConnection_1.db.promise().query(duplicateEmailQuery, [email, id]);
+            if (duplicateEmails.length > 0) {
+                throw new Error(`Email ${email} is already in use by another customer`);
+            }
+        }
         const updateUserQuery = `
       UPDATE users SET
       name = COALESCE(?, name),
       email = COALESCE(?, email),
-      phone = COALESCE(?, phone)
+      phone = COALESCE(?, phone),
+      status = COALESCE(?, status),
+      updated_at = NOW()
       WHERE id = ?;
     `;
-        await databaseConnection_1.db
-            .promise()
-            .query(updateUserQuery, [name, email, mobile, id]);
-        // Update delivery address in delivery_addresses table
+        await databaseConnection_1.db.promise().query(updateUserQuery, [name, email, mobile, status, id]);
         const updateAddressQuery = `
       UPDATE delivery_addresses SET
       locality_id = COALESCE(?, locality_id),
       house_no = COALESCE(?, house_no),
-      complete_address = COALESCE(?, complete_address)
+      complete_address = COALESCE(?, complete_address),
+      updated_at = NOW()
       WHERE user_id = ?;
     `;
-        const addressValues = [localityId, houseNo, completeAddress];
-        if (status) {
-            addressValues.push(status);
-        }
-        addressValues.push(id);
-        await databaseConnection_1.db.promise().query(updateAddressQuery, addressValues);
+        await databaseConnection_1.db.promise().query(updateAddressQuery, [localityId, houseNo, completeAddress, id]);
     }
     catch (error) {
-        throw new Error("Error updating customer: " + (error.message || "Unknown error")); // Provide a more informative message
+        console.error("Error updating customer:", error.message);
+        throw new Error("Error updating customer: " + error.message);
     }
 };
 exports.updateCustomerById = updateCustomerById;
 // Delete customer by ID
-const deleteCustomerById = async (id) => {
-    await databaseConnection_1.db
-        .promise()
-        .query("DELETE FROM delivery_addresses WHERE id = ?", [id]);
+const deleteCustomerById = async (customerId) => {
+    const connection = await databaseConnection_1.db.promise().getConnection();
+    await connection.beginTransaction();
+    try {
+        await connection.query("DELETE FROM delivery_addresses WHERE user_id = ?", [customerId]);
+        await connection.query("DELETE FROM users WHERE id = ?", [customerId]);
+        await connection.commit();
+    }
+    catch (error) {
+        await connection.rollback();
+        throw error;
+    }
+    finally {
+        await connection.release();
+    }
 };
 exports.deleteCustomerById = deleteCustomerById;
