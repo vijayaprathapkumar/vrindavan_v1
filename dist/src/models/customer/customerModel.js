@@ -60,20 +60,26 @@ const getAllCustomers = async (page, limit, locality, status, searchTerm, isAppr
         query += ` AND l.name = ? `;
         params.push(locality);
     }
+    const statusMap = {
+        Active: 1,
+        Inactive: 2,
+        "Follow Up": 3,
+        Guest: 4,
+    };
     if (status && status !== "All") {
         const statusConditions = [];
         const statuses = status.split(",");
         statuses.forEach((s) => {
-            if (s === "Active") {
+            if (s === "1") {
                 statusConditions.push(`u.is_deactivated = 0`);
             }
-            else if (s === "Inactive") {
+            else if (s === "2") {
                 statusConditions.push(`u.is_deactivated = 1`);
             }
-            else if (s === "Follow Up") {
+            else if (s === "3") {
                 statusConditions.push(`u.status = 'Follow Up'`);
             }
-            else if (s === "Guest") {
+            else if (s === "4") {
                 statusConditions.push(`u.status = 'Guest'`);
             }
         });
@@ -85,7 +91,6 @@ const getAllCustomers = async (page, limit, locality, status, searchTerm, isAppr
             query += ` AND (${statusConditions.join(" OR ")}) `;
         }
     }
-    // Total count query remains the same
     let totalCountQuery = `
     SELECT COUNT(*) as total 
     FROM users u
@@ -101,11 +106,9 @@ const getAllCustomers = async (page, limit, locality, status, searchTerm, isAppr
     if (status && status !== "All") {
         const statuses = status.split(",");
         statuses.forEach((s) => {
-            if (s === "Active") {
-                totalCountConditions.push(`u.is_deactivated = 0`);
-            }
-            else if (s === "Inactive") {
-                totalCountConditions.push(`u.is_deactivated = 1`);
+            const mappedStatus = statusMap[s.trim()];
+            if (mappedStatus) {
+                totalCountConditions.push(`u.is_deactivated = ${mappedStatus - 1}`);
             }
         });
         if (totalCountConditions.length > 0) {
@@ -175,7 +178,6 @@ exports.getAllCustomers = getAllCustomers;
 // Create a new customer
 const createCustomer = async (localityId, name, email, mobile, houseNo, completeAddress, status) => {
     try {
-        // Check if the email already exists
         const existingUserQuery = `
       SELECT id FROM users WHERE email = ?;
     `;
@@ -185,7 +187,6 @@ const createCustomer = async (localityId, name, email, mobile, houseNo, complete
         if (existingUsers.length > 0) {
             throw new Error(`User with email ${email} already exists`);
         }
-        // Insert user into users table
         const insertUserQuery = `
       INSERT INTO users (name, email, phone, status, created_at, updated_at) 
       VALUES (?, ?, ?, ?, NOW(), NOW());
@@ -193,7 +194,6 @@ const createCustomer = async (localityId, name, email, mobile, houseNo, complete
         const [userResult] = await databaseConnection_1.db
             .promise()
             .query(insertUserQuery, [name, email, mobile, status]);
-        // Insert address into delivery_addresses table
         const insertAddressQuery = `
      INSERT INTO delivery_addresses (user_id, locality_id, house_no, complete_address, created_at, updated_at) 
   VALUES (?, ?, ?, ?, NOW(), NOW());
@@ -318,13 +318,17 @@ exports.getCustomerById = getCustomerById;
 const updateCustomerById = async (id, localityId, name, email, mobile, houseNo, completeAddress, status) => {
     try {
         const existingUserQuery = `SELECT id FROM users WHERE id = ?;`;
-        const [existingUsers] = await databaseConnection_1.db.promise().query(existingUserQuery, [id]);
+        const [existingUsers] = await databaseConnection_1.db
+            .promise()
+            .query(existingUserQuery, [id]);
         if (existingUsers.length === 0) {
             throw new Error(`User with ID ${id} does not exist`);
         }
         if (email) {
             const duplicateEmailQuery = `SELECT id FROM users WHERE email = ? AND id != ?;`;
-            const [duplicateEmails] = await databaseConnection_1.db.promise().query(duplicateEmailQuery, [email, id]);
+            const [duplicateEmails] = await databaseConnection_1.db
+                .promise()
+                .query(duplicateEmailQuery, [email, id]);
             if (duplicateEmails.length > 0) {
                 throw new Error(`Email ${email} is already in use by another customer`);
             }
@@ -338,7 +342,9 @@ const updateCustomerById = async (id, localityId, name, email, mobile, houseNo, 
       updated_at = NOW()
       WHERE id = ?;
     `;
-        await databaseConnection_1.db.promise().query(updateUserQuery, [name, email, mobile, status, id]);
+        await databaseConnection_1.db
+            .promise()
+            .query(updateUserQuery, [name, email, mobile, status, id]);
         const updateAddressQuery = `
       UPDATE delivery_addresses SET
       locality_id = COALESCE(?, locality_id),
@@ -347,7 +353,14 @@ const updateCustomerById = async (id, localityId, name, email, mobile, houseNo, 
       updated_at = NOW()
       WHERE user_id = ?;
     `;
-        await databaseConnection_1.db.promise().query(updateAddressQuery, [localityId, houseNo, completeAddress, id]);
+        await databaseConnection_1.db
+            .promise()
+            .query(updateAddressQuery, [
+            localityId,
+            houseNo,
+            completeAddress,
+            id,
+        ]);
     }
     catch (error) {
         console.error("Error updating customer:", error.message);
@@ -361,7 +374,9 @@ const deleteCustomerById = async (customerId) => {
     await connection.beginTransaction();
     try {
         await connection.query("DELETE FROM delivery_addresses WHERE user_id = ?", [customerId]);
-        await connection.query("DELETE FROM users WHERE id = ?", [customerId]);
+        await connection.query("DELETE FROM users WHERE id = ?", [
+            customerId,
+        ]);
         await connection.commit();
     }
     catch (error) {
