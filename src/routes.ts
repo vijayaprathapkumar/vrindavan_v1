@@ -1,5 +1,5 @@
 import express from "express";
-import authLoginRoutes from "./routes/authLogin/authLogin";
+import authLoginRoutes from "./routes/authLogin/authLoginRoute";
 import categoryRoutes from "./routes/inventory/categoryRoutes";
 import subcategoryRoutes from "./routes/inventory/subcategoryRoutes";
 import productTypeRoutes from "./routes/inventory/productTypeRoutes";
@@ -64,10 +64,10 @@ router.use("/banners", bannerRoutes);
 
 //deal of the day
 
-router.use("/deals_of_the_day", dealOfTheDayRoutes);
+router.use("/deals", dealOfTheDayRoutes);
 
 //AddToCarts
-router.use("/add_to_carts",addToCartsRoutes );
+router.use("/cart",addToCartsRoutes );
 
 //walletTransations
 router.use("/wallet", walletTransactionRoutes);

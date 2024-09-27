@@ -4,7 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
-const authLogin_1 = __importDefault(require("./routes/authLogin/authLogin"));
+const authLoginRoute_1 = __importDefault(require("./routes/authLogin/authLoginRoute"));
 const categoryRoutes_1 = __importDefault(require("./routes/inventory/categoryRoutes"));
 const subcategoryRoutes_1 = __importDefault(require("./routes/inventory/subcategoryRoutes"));
 const productTypeRoutes_1 = __importDefault(require("./routes/inventory/productTypeRoutes"));
@@ -29,7 +29,7 @@ const walletTransationsRoutes_1 = __importDefault(require("./routes/wallet/walle
 const subscriptionsRoutes_1 = __importDefault(require("./routes/subscriptions/subscriptionsRoutes"));
 const router = express_1.default.Router();
 // Auth Login
-router.use("/auth", authLogin_1.default);
+router.use("/auth", authLoginRoute_1.default);
 // Inventory Routes
 router.use("/categories", categoryRoutes_1.default);
 router.use("/subcategories", subcategoryRoutes_1.default);
@@ -56,9 +56,9 @@ router.use("/delivery_orders", devliveryBoyOrders_1.default);
 //Banners
 router.use("/banners", bannerRoutes_1.default);
 //deal of the day
-router.use("/deals_of_the_day", dealOfTheDayRoutes_1.default);
+router.use("/deals", dealOfTheDayRoutes_1.default);
 //AddToCarts
-router.use("/add_to_carts", addToCartsRoutes_1.default);
+router.use("/cart", addToCartsRoutes_1.default);
 //walletTransations
 router.use("/wallet", walletTransationsRoutes_1.default);
 //subscriptions

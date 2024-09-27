@@ -16,7 +16,7 @@ const getAllBrands = async (searchTerm, limit = 10, offset = 0) => {
             queryParams.push(`%${searchTerm}%`);
         }
     }
-    query += " LIMIT ? OFFSET ?";
+    query += " ORDER BY created_at DESC LIMIT ? OFFSET ?";
     queryParams.push(limit, offset);
     const [rows] = await databaseConnection_1.db.promise().query(query, queryParams);
     return rows;

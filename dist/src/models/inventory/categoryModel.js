@@ -7,6 +7,7 @@ const getAllCategories = async (limit, offset, searchTerm) => {
     const query = `
     SELECT * FROM categories 
     WHERE name LIKE ? OR weightage = ?
+    ORDER BY created_at DESC
     LIMIT ? OFFSET ?
   `;
     const params = [`%${searchTerm}%`, parseInt(searchTerm) || -1, limit, offset];
@@ -28,8 +29,14 @@ exports.getCategoriesCount = getCategoriesCount;
 // Create a new category (with optional image)
 const createCategory = async (name, description, weightage, image) => {
     const query = image
-        ? "INSERT INTO categories (name, description, weightage, image) VALUES (?, ?, ?, ?)"
-        : "INSERT INTO categories (name, description, weightage) VALUES (?, ?, ?)";
+        ? `
+      INSERT INTO categories (name, description, weightage, image, created_at, updated_at) 
+      VALUES (?, ?, ?, ?, NOW(), NOW())
+    `
+        : `
+      INSERT INTO categories (name, description, weightage, created_at, updated_at) 
+      VALUES (?, ?, ?, NOW(), NOW())
+    `;
     const params = image
         ? [name, description, weightage, image]
         : [name, description, weightage];
@@ -46,7 +53,7 @@ const getCategoryById = async (id) => {
 exports.getCategoryById = getCategoryById;
 // Update category by ID (with optional image)
 const updateCategoryById = async (id, name, description, weightage, image) => {
-    let query = "UPDATE categories SET name = ?, description = ?, weightage = ?";
+    let query = "UPDATE categories SET name = ?, description = ?, weightage = ?, updated_at = NOW()";
     const params = [name, description, weightage];
     if (image) {
         query += ", image = ?";

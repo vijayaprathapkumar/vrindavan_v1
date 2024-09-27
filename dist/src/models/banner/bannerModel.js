@@ -2,29 +2,30 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.deleteBannerById = exports.updateBanner = exports.getBannerById = exports.createBanner = exports.getAllBanners = void 0;
 const databaseConnection_1 = require("../../config/databaseConnection");
+// Fetch all banners
 const getAllBanners = async (page, limit, searchTerm) => {
     const offset = (page - 1) * limit;
     let query = `
-      SELECT
-        id AS banner_id,
-        banner_name,
-        banner_type,
-        banner_location,
-        banner_link,
-        banner_content,
-        food_id,
-        banner_weightage,
-        date_from,
-        date_to,
-        status,
-        banner_image,
-        created_at,
-        updated_at
-      FROM
-        banners
-      WHERE
-        id IS NOT NULL
-    `;
+    SELECT
+      id AS banner_id,
+      banner_name,
+      banner_type,
+      banner_location,
+      banner_link,
+      banner_content,
+      food_id,
+      banner_weightage,
+      date_from,
+      date_to,
+      status,
+      banner_image,
+      created_at,
+      updated_at
+    FROM
+      banners
+    WHERE
+      id IS NOT NULL
+  `;
     const params = [];
     if (searchTerm) {
         query += ` AND banner_name LIKE ?`;
@@ -36,10 +37,10 @@ const getAllBanners = async (page, limit, searchTerm) => {
         .promise()
         .query(query, params);
     const totalCountQuery = `
-      SELECT COUNT(*) AS total 
-      FROM banners 
-      ${searchTerm ? "WHERE banner_name LIKE ?" : ""}
-    `;
+    SELECT COUNT(*) AS total 
+    FROM banners 
+    ${searchTerm ? "WHERE banner_name LIKE ?" : ""};
+  `;
     const countParams = [];
     if (searchTerm)
         countParams.push(`%${searchTerm}%`);
@@ -70,24 +71,24 @@ const getAllBanners = async (page, limit, searchTerm) => {
 exports.getAllBanners = getAllBanners;
 // Create a new banner
 const createBanner = async (bannerData) => {
-    const { bannerName, bannerType, bannerLocation, bannerLink, bannerContent, bannerImage, foodId, bannerWeightage, dateFrom, dateTo, status, } = bannerData;
+    const { banner_name, banner_type, banner_location, banner_link, banner_content, food_id, banner_weightage, date_from, date_to, status, banner_image, } = bannerData;
     const sql = `
-      INSERT INTO banners 
-      (banner_name, banner_type, banner_location, banner_link, banner_content, banner_image, food_id, banner_weightage, date_from, date_to, status) 
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
-    `;
+    INSERT INTO banners 
+    (banner_name, banner_type, banner_location, banner_link, banner_content, food_id, banner_weightage, date_from, date_to, status, banner_image) 
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+  `;
     const values = [
-        bannerName,
-        bannerType,
-        bannerLocation,
-        bannerLink,
-        bannerContent,
-        bannerImage,
-        foodId,
-        bannerWeightage,
-        dateFrom,
-        dateTo,
+        banner_name,
+        banner_type,
+        banner_location,
+        banner_link,
+        banner_content,
+        food_id,
+        banner_weightage,
+        date_from,
+        date_to,
         status,
+        banner_image,
     ];
     const [result] = await databaseConnection_1.db.promise().query(sql, values);
     return result;
@@ -139,7 +140,7 @@ const getBannerById = async (id) => {
 };
 exports.getBannerById = getBannerById;
 // Update banner by ID
-const updateBanner = async (id, bannerName, bannerType, bannerLocation, bannerLink, bannerContent, bannerImage, foodId, bannerWeightage, dateFrom, dateTo, status) => {
+const updateBanner = async (id, banner_name, banner_type, banner_location, banner_link, banner_content, food_id, banner_weightage, date_from, date_to, status, banner_image) => {
     const updateBannerQuery = `
     UPDATE banners 
     SET 
@@ -148,28 +149,26 @@ const updateBanner = async (id, bannerName, bannerType, bannerLocation, bannerLi
       banner_location = COALESCE(?, banner_location),
       banner_link = COALESCE(?, banner_link),
       banner_content = COALESCE(?, banner_content),
-      banner_image = COALESCE(?, banner_image),
       food_id = COALESCE(?, food_id),
       banner_weightage = COALESCE(?, banner_weightage),
       date_from = COALESCE(?, date_from),
       date_to = COALESCE(?, date_to),
-      status = COALESCE(?, status)
+      status = COALESCE(?, status),
+      banner_image = COALESCE(?, banner_image)
     WHERE id = ?;
   `;
-    await databaseConnection_1.db
-        .promise()
-        .query(updateBannerQuery, [
-        bannerName,
-        bannerType,
-        bannerLocation,
-        bannerLink,
-        bannerContent,
-        bannerImage,
-        foodId,
-        bannerWeightage,
-        dateFrom,
-        dateTo,
+    await databaseConnection_1.db.promise().query(updateBannerQuery, [
+        banner_name,
+        banner_type,
+        banner_location,
+        banner_link,
+        banner_content,
+        food_id,
+        banner_weightage,
+        date_from,
+        date_to,
         status,
+        banner_image,
         id,
     ]);
 };
