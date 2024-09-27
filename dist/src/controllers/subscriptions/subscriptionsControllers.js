@@ -164,22 +164,18 @@ exports.cancelSubscription = cancelSubscription;
 const getSubscriptionById = async (req, res) => {
     const id = parseInt(req.params.id);
     console.log('id', id);
-    // Validate that the id is a number
     if (isNaN(id)) {
         return res
             .status(400)
             .json((0, responseHandler_1.createResponse)(400, "Invalid subscription ID."));
     }
     try {
-        // Call the model to fetch the subscription by id
         const subscription = await (0, subscriptionsModels_1.getSubscriptionGetByIdModel)(id);
-        // If no subscription found, return 404
         if (!subscription) {
             return res
                 .status(404)
                 .json((0, responseHandler_1.createResponse)(404, "Subscription not found."));
         }
-        // Return the subscription details in the response
         res.status(200).json((0, responseHandler_1.createResponse)(200, "Subscription fetched successfully.", subscription));
     }
     catch (error) {

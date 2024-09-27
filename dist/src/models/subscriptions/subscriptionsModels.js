@@ -60,15 +60,11 @@ const getAllSubscriptionsModel = (userId, page, limit, searchTerm) => {
       LEFT JOIN foods ON user_subscriptions.product_id = foods.id 
       WHERE user_subscriptions.user_id = ? 
     `;
-        // Add search functionality for the food name if searchTerm is provided
         if (searchQuery) {
             query += ` AND foods.name LIKE ?`;
         }
-        // Add pagination
         query += ` LIMIT ?, ?`;
-        // Define query parameters
         const params = searchQuery ? [userId, searchQuery, offset, limit] : [userId, offset, limit];
-        // Execute the query
         databaseConnection_1.db.query(query, params, (error, results) => {
             if (error) {
                 return reject(error);
@@ -92,7 +88,7 @@ exports.getTotalSubscriptionsCountModel = getTotalSubscriptionsCountModel;
 const updateSubscriptionModel = (id, subscription) => {
     const updatedSubscription = {
         ...subscription,
-        updated_at: new Date(), // Update timestamp
+        updated_at: new Date(),
     };
     return new Promise((resolve, reject) => {
         databaseConnection_1.db.query("UPDATE user_subscriptions SET ? WHERE id = ?", [updatedSubscription, id], (error, results) => {

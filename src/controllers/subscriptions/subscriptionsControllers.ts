@@ -214,7 +214,6 @@ export const getSubscriptionById = async (req: Request, res: Response) => {
   const id = parseInt(req.params.id);
 console.log('id',id);
 
-  // Validate that the id is a number
   if (isNaN(id)) {
     return res
       .status(400)
@@ -222,17 +221,14 @@ console.log('id',id);
   }
 
   try {
-    // Call the model to fetch the subscription by id
     const subscription = await getSubscriptionGetByIdModel(id);
 
-    // If no subscription found, return 404
     if (!subscription) {
       return res
         .status(404)
         .json(createResponse(404, "Subscription not found."));
     }
 
-    // Return the subscription details in the response
     res.status(200).json(
       createResponse(200, "Subscription fetched successfully.", subscription)
     );
