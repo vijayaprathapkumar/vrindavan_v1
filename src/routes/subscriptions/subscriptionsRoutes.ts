@@ -12,7 +12,6 @@ import {
 
 const router = Router();
 
-// Define the routes for subscriptions
 router.post('/', addSubscription);
 router.get('/:userId', getSubscriptions);
 router.get('/subById/:id', getSubscriptionById);

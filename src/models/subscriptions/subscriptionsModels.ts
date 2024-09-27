@@ -2,8 +2,6 @@
 
 import { db } from "../../config/databaseConnection";
 import { RowDataPacket, OkPacket } from "mysql2";
-
-// Define the Subscription interface
 export interface Subscription {
   id?: number;
   user_id: number;
@@ -97,18 +95,14 @@ export const getAllSubscriptionsModel = (
       WHERE user_subscriptions.user_id = ? 
     `;
 
-    // Add search functionality for the food name if searchTerm is provided
     if (searchQuery) {
       query += ` AND foods.name LIKE ?`;
     }
 
-    // Add pagination
     query += ` LIMIT ?, ?`;
 
-    // Define query parameters
     const params: any[] = searchQuery ? [userId, searchQuery, offset, limit] : [userId, offset, limit];
 
-    // Execute the query
     db.query<RowDataPacket[]>(query, params, (error, results) => {
       if (error) {
         return reject(error);
@@ -143,7 +137,7 @@ export const updateSubscriptionModel = (
 ): Promise<OkPacket> => {
   const updatedSubscription = {
     ...subscription,
-    updated_at: new Date(), // Update timestamp
+    updated_at: new Date(), 
   };
 
   return new Promise((resolve, reject) => {
