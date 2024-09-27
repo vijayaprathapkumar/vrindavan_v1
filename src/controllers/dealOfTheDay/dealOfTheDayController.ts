@@ -43,22 +43,27 @@ export const fetchDeals = async (req: Request, res: Response) => {
 // Create a new deal
 export const addDeal = async (req: Request, res: Response) => {
   const {
-    foodId,
+    food_id,
     unit,
     price,
-    offerPrice,
+    offer_price,
     quantity,
     description,
     status,
     weightage,
   } = req.body;
 
+  // Validate required fields
+  if (!food_id || !price || !offer_price || !quantity) {
+    return res.status(400).json(createResponse(400, "Missing required fields."));
+  }
+
   try {
     await createDeal({
-      foodId,
+      food_id,
       unit,
       price,
-      offerPrice,
+      offer_price,
       quantity,
       description,
       status,
