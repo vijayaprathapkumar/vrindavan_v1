@@ -52,24 +52,77 @@ export const addSubscriptionModel = (
 export const getAllSubscriptionsModel = (
   userId: number,
   page: number,
-  limit: number
-): Promise<Subscription[]> => {
+  limit: number,
+  searchTerm?: string
+): Promise<any[]> => {
   const offset = (page - 1) * limit;
+  const searchQuery = searchTerm ? `%${searchTerm}%` : null;
+
   return new Promise((resolve, reject) => {
-    db.query<RowDataPacket[]>(
-      "SELECT * FROM user_subscriptions WHERE user_id = ? ORDER BY updated_at DESC LIMIT ? OFFSET ?",
-      [userId, limit, offset],
-      (error, results) => {
-        if (error) {
-          return reject(error);
-        }
-        resolve(results as Subscription[]);
+    let query = `
+      SELECT user_subscriptions.*, 
+              foods.id as food_id, 
+              foods.name, 
+              foods.price, 
+              foods.discount_price, 
+              foods.description, 
+              foods.perma_link, 
+              foods.ingredients, 
+              foods.package_items_count, 
+              foods.weight, 
+              foods.unit, 
+              foods.sku_code, 
+              foods.barcode, 
+              foods.cgst, 
+              foods.sgst, 
+              foods.subscription_type, 
+              foods.track_inventory, 
+              foods.featured, 
+              foods.deliverable, 
+              foods.restaurant_id, 
+              foods.category_id, 
+              foods.subcategory_id, 
+              foods.product_type_id, 
+              foods.hub_id, 
+              foods.locality_id, 
+              foods.product_brand_id, 
+              foods.weightage, 
+              foods.status, 
+              foods.created_at, 
+              foods.updated_at, 
+              foods.food_locality, 
+              foods.image
+      FROM user_subscriptions 
+      LEFT JOIN foods ON user_subscriptions.product_id = foods.id 
+      WHERE user_subscriptions.user_id = ? 
+    `;
+
+    // Add search functionality for the food name if searchTerm is provided
+    if (searchQuery) {
+      query += ` AND foods.name LIKE ?`;
+    }
+
+    // Add pagination
+    query += ` LIMIT ?, ?`;
+
+    // Define query parameters
+    const params: any[] = searchQuery ? [userId, searchQuery, offset, limit] : [userId, offset, limit];
+
+    // Execute the query
+    db.query<RowDataPacket[]>(query, params, (error, results) => {
+      if (error) {
+        return reject(error);
       }
-    );
+      resolve(results);
+    });
   });
 };
 
-export const getTotalSubscriptionsCountModel = (userId: number): Promise<number> => {
+
+
+export const getTotalSubscriptionsCountModel = (
+  userId: number
+): Promise<number> => {
   return new Promise((resolve, reject) => {
     db.query<RowDataPacket[]>(
       "SELECT COUNT(*) as count FROM user_subscriptions WHERE user_id = ?",
@@ -83,7 +136,6 @@ export const getTotalSubscriptionsCountModel = (userId: number): Promise<number>
     );
   });
 };
-
 
 export const updateSubscriptionModel = (
   id: number,
@@ -124,7 +176,6 @@ export const deleteSubscriptionModel = (id: number): Promise<OkPacket> => {
   });
 };
 
-
 // Model to pause a subscription by ID
 export const pauseSubscriptionModel = (id: number): Promise<OkPacket> => {
   return new Promise((resolve, reject) => {
@@ -158,18 +209,29 @@ export const resumeSubscriptionModel = (id: number): Promise<OkPacket> => {
 };
 
 // Model to get a subscription by ID
-export const getSubscriptionByIdModel = (
-  id: number
-): Promise<Subscription | null> => {
+export const getSubscriptionByIdModel = (id: number): Promise<any | null> => {
   return new Promise((resolve, reject) => {
     db.query<RowDataPacket[]>(
-      "SELECT * FROM user_subscriptions WHERE id = ?",
+      `SELECT user_subscriptions.*, 
+              foods.id as food_id, foods.name, foods.price, foods.discount_price, 
+              foods.description, foods.perma_link, foods.ingredients, 
+              foods.package_items_count, foods.weight, foods.unit, foods.sku_code, 
+              foods.barcode, foods.cgst, foods.sgst, foods.subscription_type, 
+              foods.track_inventory, foods.featured, foods.deliverable, 
+              foods.restaurant_id, foods.category_id, foods.subcategory_id, 
+              foods.product_type_id, foods.hub_id, foods.locality_id, 
+              foods.product_brand_id, foods.weightage, foods.status, 
+              foods.created_at as food_created_at, foods.updated_at as food_updated_at, 
+              foods.food_locality, foods.image
+      FROM user_subscriptions
+      JOIN foods ON user_subscriptions.product_id = foods.id
+      WHERE user_subscriptions.id = ?`,
       [id],
       (error, results) => {
         if (error) {
           return reject(error);
         }
-        resolve(results.length > 0 ? (results[0] as Subscription) : null);
+        resolve(results.length > 0 ? results[0] : null);
       }
     );
   });
@@ -182,7 +244,7 @@ export const updateCancelSubscriptionModel = (
   return new Promise((resolve, reject) => {
     db.query<OkPacket>(
       "UPDATE user_subscriptions SET cancel_subscription = ?, updated_at = NOW() WHERE id = ?",
-      [cancel_subscription, id],  
+      [cancel_subscription, id],
       (error, results) => {
         if (error) {
           return reject(error);
@@ -193,7 +255,6 @@ export const updateCancelSubscriptionModel = (
   });
 };
 
-
 export const getSubscriptionGetByIdModel = (
   id: number
 ): Promise<Subscription | null> => {
@@ -203,10 +264,10 @@ export const getSubscriptionGetByIdModel = (
       [id],
       (error, results) => {
         if (error) {
-          console.log("Query Results:", error); 
+          console.log("Query Results:", error);
           return reject(error);
         }
-        console.log("Query Results:", results); 
+        console.log("Query Results:", results);
         resolve(results.length > 0 ? (results[0] as Subscription) : null);
       }
     );
