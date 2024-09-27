@@ -26,13 +26,14 @@ const getSubscriptions = async (req, res) => {
     const userId = parseInt(req.params.userId);
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
+    const searchTerm = req.query.searchTerm || "";
     if (isNaN(userId)) {
         return res.status(400).json((0, responseHandler_1.createResponse)(400, "Invalid user ID."));
     }
     try {
         const totalRecords = await (0, subscriptionsModels_1.getTotalSubscriptionsCountModel)(userId);
         const totalPages = Math.ceil(totalRecords / limit);
-        const subscriptions = await (0, subscriptionsModels_1.getAllSubscriptionsModel)(userId, page, limit);
+        const subscriptions = await (0, subscriptionsModels_1.getAllSubscriptionsModel)(userId, page, limit, searchTerm);
         const response = {
             subscriptions,
             pagination: {
