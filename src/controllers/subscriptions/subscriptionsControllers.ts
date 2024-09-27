@@ -41,6 +41,7 @@ export const getSubscriptions = async (req: Request, res: Response) => {
   const userId = parseInt(req.params.userId);
   const page = parseInt(req.query.page as string) || 1;
   const limit = parseInt(req.query.limit as string) || 10;
+  const searchTerm = req.query.searchTerm as string || "";
 
   if (isNaN(userId)) {
     return res.status(400).json(createResponse(400, "Invalid user ID."));
@@ -50,7 +51,12 @@ export const getSubscriptions = async (req: Request, res: Response) => {
     const totalRecords = await getTotalSubscriptionsCountModel(userId);
     const totalPages = Math.ceil(totalRecords / limit);
 
-    const subscriptions = await getAllSubscriptionsModel(userId, page, limit);
+    const subscriptions = await getAllSubscriptionsModel(
+      userId,
+      page,
+      limit,
+      searchTerm
+    );
 
     const response = {
       subscriptions,
@@ -72,6 +78,7 @@ export const getSubscriptions = async (req: Request, res: Response) => {
       .json(createResponse(500, "Failed to fetch subscriptions.", error.message));
   }
 };
+
 
 
 export const updateSubscription = async (req: Request, res: Response) => {
