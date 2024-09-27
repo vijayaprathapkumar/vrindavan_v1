@@ -1,5 +1,5 @@
 import express from "express";
-import { requestOTP, verifyOTP } from "../../controllers/authLogin/authLogin";
+import { requestOTP, verifyOTP } from "../../controllers/authLogin/authLoginController";
 import {
   requestOTPValidation,
   verifyOTPValidation,

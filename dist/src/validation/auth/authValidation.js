@@ -3,29 +3,11 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.validate = exports.verifyOTPValidation = exports.requestOTPValidation = void 0;
 const express_validator_1 = require("express-validator");
 exports.requestOTPValidation = [
-    (0, express_validator_1.body)("mobile_number")
-        .isString()
-        .withMessage("Mobile number must be a string")
-        .matches(/^\+\d+$/)
-        .withMessage("Mobile number must start with a plus sign followed by digits")
-        .isLength({ min: 11, max: 15 })
-        .withMessage("Mobile number must be between 11 and 15 characters long"),
+    (0, express_validator_1.body)('mobile_number').isMobilePhone('any').withMessage('Invalid mobile number'),
 ];
 exports.verifyOTPValidation = [
-    (0, express_validator_1.body)("mobile_number")
-        .isString()
-        .withMessage("Mobile number must be a string")
-        .matches(/^\+\d+$/)
-        .withMessage("Mobile number must start with a plus sign followed by digits")
-        .isLength({ min: 11, max: 15 })
-        .withMessage("Mobile number must be between 11 and 15 characters long"),
-    (0, express_validator_1.body)("otp")
-        .isString()
-        .withMessage("OTP must be a string")
-        .isLength({ min: 6, max: 6 })
-        .withMessage("OTP must be 6 digits long")
-        .matches(/^\d+$/)
-        .withMessage("OTP must contain only digits"),
+    (0, express_validator_1.body)('mobile_number').isMobilePhone('any').withMessage('Invalid mobile number'),
+    (0, express_validator_1.body)('otp').isLength({ min: 6, max: 6 }).withMessage('OTP must be 6 digits'),
 ];
 const validate = (req, res, next) => {
     const errors = (0, express_validator_1.validationResult)(req);
