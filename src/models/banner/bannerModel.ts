@@ -18,6 +18,7 @@ export interface Banner {
   updated_at?: Date;
 }
 
+// Fetch all banners
 export const getAllBanners = async (
   page: number,
   limit: number,
@@ -26,26 +27,26 @@ export const getAllBanners = async (
   const offset = (page - 1) * limit;
 
   let query = `
-      SELECT
-        id AS banner_id,
-        banner_name,
-        banner_type,
-        banner_location,
-        banner_link,
-        banner_content,
-        food_id,
-        banner_weightage,
-        date_from,
-        date_to,
-        status,
-        banner_image,
-        created_at,
-        updated_at
-      FROM
-        banners
-      WHERE
-        id IS NOT NULL
-    `;
+    SELECT
+      id AS banner_id,
+      banner_name,
+      banner_type,
+      banner_location,
+      banner_link,
+      banner_content,
+      food_id,
+      banner_weightage,
+      date_from,
+      date_to,
+      status,
+      banner_image,
+      created_at,
+      updated_at
+    FROM
+      banners
+    WHERE
+      id IS NOT NULL
+  `;
 
   const params: any[] = [];
 
@@ -62,10 +63,10 @@ export const getAllBanners = async (
     .query(query, params);
 
   const totalCountQuery = `
-      SELECT COUNT(*) AS total 
-      FROM banners 
-      ${searchTerm ? "WHERE banner_name LIKE ?" : ""}
-    `;
+    SELECT COUNT(*) AS total 
+    FROM banners 
+    ${searchTerm ? "WHERE banner_name LIKE ?" : ""};
+  `;
 
   const countParams: any[] = [];
   if (searchTerm) countParams.push(`%${searchTerm}%`);
@@ -99,55 +100,55 @@ export const getAllBanners = async (
 
 // Create a new banner
 export const createBanner = async (bannerData: {
-  bannerName: string;
-  bannerType: number;
-  bannerLocation: number;
-  bannerLink: string;
-  bannerContent: string;
-  bannerImage: string;
-  foodId: string;
-  bannerWeightage: number;
-  dateFrom: string;
-  dateTo: string;
+  banner_name: string;
+  banner_type: number;
+  banner_location: number;
+  banner_link: string;
+  banner_content: string;
+  food_id: string;
+  banner_weightage: number;
+  date_from: string;
+  date_to: string;
   status: number;
+  banner_image: string;
 }) => {
   const {
-    bannerName,
-    bannerType,
-    bannerLocation,
-    bannerLink,
-    bannerContent,
-    bannerImage,
-    foodId,
-    bannerWeightage,
-    dateFrom,
-    dateTo,
+    banner_name,
+    banner_type,
+    banner_location,
+    banner_link,
+    banner_content,
+    food_id,
+    banner_weightage,
+    date_from,
+    date_to,
     status,
+    banner_image,
   } = bannerData;
 
   const sql = `
-      INSERT INTO banners 
-      (banner_name, banner_type, banner_location, banner_link, banner_content, banner_image, food_id, banner_weightage, date_from, date_to, status) 
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
-    `;
+    INSERT INTO banners 
+    (banner_name, banner_type, banner_location, banner_link, banner_content, food_id, banner_weightage, date_from, date_to, status, banner_image) 
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+  `;
 
   const values = [
-    bannerName,
-    bannerType,
-    bannerLocation,
-    bannerLink,
-    bannerContent,
-    bannerImage,
-    foodId,
-    bannerWeightage,
-    dateFrom,
-    dateTo,
+    banner_name,
+    banner_type,
+    banner_location,
+    banner_link,
+    banner_content,
+    food_id,
+    banner_weightage,
+    date_from,
+    date_to,
     status,
+    banner_image,
   ];
 
   const [result]: [OkPacket, any] = await db.promise().query(sql, values);
 
-  return result; 
+  return result;
 };
 
 // Fetch banner by ID
@@ -200,17 +201,17 @@ export const getBannerById = async (id: number): Promise<Banner | null> => {
 // Update banner by ID
 export const updateBanner = async (
   id: number,
-  bannerName?: string,
-  bannerType?: number,
-  bannerLocation?: number,
-  bannerLink?: string,
-  bannerContent?: string,
-  bannerImage?: string,
-  foodId?: string,
-  bannerWeightage?: number,
-  dateFrom?: string,
-  dateTo?: string,
-  status?: number
+  banner_name?: string,
+  banner_type?: number,
+  banner_location?: number,
+  banner_link?: string,
+  banner_content?: string,
+  food_id?: string,
+  banner_weightage?: number,
+  date_from?: string,
+  date_to?: string,
+  status?: number,
+  banner_image?: string
 ): Promise<void> => {
   const updateBannerQuery = `
     UPDATE banners 
@@ -220,31 +221,29 @@ export const updateBanner = async (
       banner_location = COALESCE(?, banner_location),
       banner_link = COALESCE(?, banner_link),
       banner_content = COALESCE(?, banner_content),
-      banner_image = COALESCE(?, banner_image),
       food_id = COALESCE(?, food_id),
       banner_weightage = COALESCE(?, banner_weightage),
       date_from = COALESCE(?, date_from),
       date_to = COALESCE(?, date_to),
-      status = COALESCE(?, status)
+      status = COALESCE(?, status),
+      banner_image = COALESCE(?, banner_image)
     WHERE id = ?;
   `;
 
-  await db
-    .promise()
-    .query<OkPacket>(updateBannerQuery, [
-      bannerName,
-      bannerType,
-      bannerLocation,
-      bannerLink,
-      bannerContent,
-      bannerImage,
-      foodId,
-      bannerWeightage,
-      dateFrom,
-      dateTo,
-      status,
-      id,
-    ]);
+  await db.promise().query<OkPacket>(updateBannerQuery, [
+    banner_name,
+    banner_type,
+    banner_location,
+    banner_link,
+    banner_content,
+    food_id,
+    banner_weightage,
+    date_from,
+    date_to,
+    status,
+    banner_image,
+    id,
+  ]);
 };
 
 // Delete banner by ID

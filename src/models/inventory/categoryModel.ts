@@ -10,6 +10,7 @@ export const getAllCategories = async (
   const query = `
     SELECT * FROM categories 
     WHERE name LIKE ? OR weightage = ?
+    ORDER BY created_at DESC
     LIMIT ? OFFSET ?
   `;
   const params = [`%${searchTerm}%`, parseInt(searchTerm) || -1, limit, offset];
@@ -28,7 +29,6 @@ export const getCategoriesCount = async (searchTerm: string): Promise<number> =>
   return rows[0].count;
 };
 
-
 // Create a new category (with optional image)
 export const createCategory = async (
   name: string,
@@ -37,8 +37,14 @@ export const createCategory = async (
   image?: string
 ): Promise<void> => {
   const query = image
-    ? "INSERT INTO categories (name, description, weightage, image) VALUES (?, ?, ?, ?)"
-    : "INSERT INTO categories (name, description, weightage) VALUES (?, ?, ?)";
+    ? `
+      INSERT INTO categories (name, description, weightage, image, created_at, updated_at) 
+      VALUES (?, ?, ?, ?, NOW(), NOW())
+    `
+    : `
+      INSERT INTO categories (name, description, weightage, created_at, updated_at) 
+      VALUES (?, ?, ?, NOW(), NOW())
+    `;
 
   const params = image
     ? [name, description, weightage, image]
@@ -63,7 +69,7 @@ export const updateCategoryById = async (
   weightage: number,
   image?: string
 ): Promise<void> => {
-  let query = "UPDATE categories SET name = ?, description = ?, weightage = ?";
+  let query = "UPDATE categories SET name = ?, description = ?, weightage = ?, updated_at = NOW()";
   const params: (string | number)[] = [name, description, weightage];
 
   if (image) {

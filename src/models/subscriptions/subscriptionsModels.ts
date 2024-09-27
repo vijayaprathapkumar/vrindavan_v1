@@ -98,8 +98,8 @@ export const getAllSubscriptionsModel = (
     if (searchQuery) {
       query += ` AND foods.name LIKE ?`;
     }
-
-    query += ` LIMIT ?, ?`;
+    
+    query += ` ORDER BY user_subscriptions.created_at DESC LIMIT ?, ?`;
 
     const params: any[] = searchQuery ? [userId, searchQuery, offset, limit] : [userId, offset, limit];
 
@@ -111,7 +111,6 @@ export const getAllSubscriptionsModel = (
     });
   });
 };
-
 
 
 export const getTotalSubscriptionsCountModel = (

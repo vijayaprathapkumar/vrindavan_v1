@@ -17,7 +17,7 @@ export const getAllBrands = async (searchTerm?: string, limit: number = 10, offs
     }
   }
 
-  query += " LIMIT ? OFFSET ?";
+  query += " ORDER BY created_at DESC LIMIT ? OFFSET ?";
   queryParams.push(limit, offset);
 
   const [rows] = await db.promise().query<RowDataPacket[]>(query, queryParams);

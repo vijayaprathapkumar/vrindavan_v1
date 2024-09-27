@@ -1,9 +1,11 @@
 import { db } from "../../config/databaseConnection"; // Adjust the path to your database connection
 import { RowDataPacket, OkPacket } from "mysql2";
 
-// Fetch all hubs
+// Fetch all hubs, ordered by created_at
 export const getAllHubs = async (): Promise<RowDataPacket[]> => {
-  const [rows] = await db.promise().query<RowDataPacket[]>("SELECT * FROM hubs");
+  const [rows] = await db.promise().query<RowDataPacket[]>(
+    "SELECT * FROM hubs ORDER BY created_at DESC" // Order by created_at to show recent entries first
+  );
   return rows;
 };
 
@@ -15,8 +17,8 @@ export const createHub = async (
   active: number
 ): Promise<void> => {
   await db.promise().query<OkPacket>(
-    "INSERT INTO hubs (route_id, name, other_details, active) VALUES (?, ?, ?, ?)",
-    [routeId, name, otherDetails, active]
+    "INSERT INTO hubs (route_id, name, other_details, active, created_at, updated_at) VALUES (?, ?, ?, ?, NOW(), NOW())",
+    [routeId, name, otherDetails, active] // Set created_at and updated_at to NOW()
   );
 };
 
@@ -37,8 +39,8 @@ export const updateHubById = async (
   active: number
 ): Promise<void> => {
   await db.promise().query<OkPacket>(
-    "UPDATE hubs SET route_id = ?, name = ?, other_details = ?, active = ? WHERE id = ?",
-    [routeId, name, otherDetails, active, id]
+    "UPDATE hubs SET route_id = ?, name = ?, other_details = ?, active = ?, updated_at = NOW() WHERE id = ?",
+    [routeId, name, otherDetails, active, id] 
   );
 };
 

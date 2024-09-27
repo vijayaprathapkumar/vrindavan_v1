@@ -45,39 +45,38 @@ export const fetchBanners = async (req: Request, res: Response) => {
 // Create a new banner
 export const addBanner = async (req: Request, res: Response) => {
   const {
-    bannerName,
-    bannerType,
-    bannerLocation,
-    bannerLink,
-    bannerContent,
-    bannerImage, 
-    foodId,
-    bannerWeightage,
-    dateFrom,
-    dateTo,
-    status,
+    banner_name, 
+    banner_type, 
+    banner_location,
+    banner_link, 
+    banner_content,
+    food_id,
+    banner_weightage, 
+    date_from, 
+    date_to, 
+    status, 
+    banner_image, 
   } = req.body;
 
   try {
     await createBanner({
-      bannerName,
-      bannerType,
-      bannerLocation,
-      bannerLink,
-      bannerContent,
-      bannerImage, 
-      foodId,
-      bannerWeightage,
-      dateFrom,
-      dateTo,
+      banner_name,
+      banner_type,
+      banner_location,
+      banner_link,
+      banner_content,
+      food_id,
+      banner_weightage,
+      date_from,
+      date_to,
       status,
+      banner_image,
     });
     res.status(201).json(createResponse(201, "Banner created successfully."));
   } catch (error) {
     res.status(500).json(createResponse(500, "Failed to create banner."));
   }
 };
-
 
 // Get a banner by ID
 export const fetchBannerById = async (req: Request, res: Response) => {
@@ -98,33 +97,33 @@ export const fetchBannerById = async (req: Request, res: Response) => {
 export const updateBanner = async (req: Request, res: Response) => {
   const { id } = req.params;
   const {
-    bannerName,
-    bannerType,
-    bannerLocation,
-    bannerLink,
-    bannerContent,
-    bannerImage,
-    foodId,
-    bannerWeightage,
-    dateFrom,
-    dateTo,
+    banner_name,
+    banner_type,
+    banner_location,
+    banner_link,
+    banner_content,
+    food_id,
+    banner_weightage,
+    date_from,
+    date_to,
     status,
+    banner_image,
   } = req.body;
 
   try {
     await updateBannerInDB(
       Number(id),
-      bannerName,
-      bannerType,
-      bannerLocation,
-      bannerLink,
-      bannerContent,
-      bannerImage,
-      foodId,
-      bannerWeightage,
-      dateFrom,
-      dateTo,
-      status
+      banner_name,
+      banner_type,
+      banner_location,
+      banner_link,
+      banner_content,
+      food_id,
+      banner_weightage,
+      date_from,
+      date_to,
+      status,
+      banner_image
     );
     res.json(createResponse(200, "Banner updated successfully."));
   } catch (error) {

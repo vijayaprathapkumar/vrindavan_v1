@@ -63,7 +63,7 @@ const getAllSubscriptionsModel = (userId, page, limit, searchTerm) => {
         if (searchQuery) {
             query += ` AND foods.name LIKE ?`;
         }
-        query += ` LIMIT ?, ?`;
+        query += ` ORDER BY user_subscriptions.created_at DESC LIMIT ?, ?`;
         const params = searchQuery ? [userId, searchQuery, offset, limit] : [userId, offset, limit];
         databaseConnection_1.db.query(query, params, (error, results) => {
             if (error) {

@@ -52,12 +52,10 @@ export const getAllDeals = async (
     params.push(`%${searchTerm}%`);
   }
 
-  query += ` LIMIT ? OFFSET ?;`;
+  query += ` ORDER BY d.created_at DESC LIMIT ? OFFSET ?;`;
   params.push(limit, offset);
 
-  const [rows]: [RowDataPacket[], any] = await db
-    .promise()
-    .query(query, params);
+  const [rows]: [RowDataPacket[], any] = await db.promise().query(query, params);
 
   const totalCountQuery = `
     SELECT COUNT(*) AS total 
@@ -96,28 +94,27 @@ export const getAllDeals = async (
 
 // Create a new deal
 export const createDeal = async (dealData: {
-  foodId: string;
+  food_id: string;
   unit: string;
   price: number;
-  offerPrice: number;
+  offer_price: number;
   quantity: number;
   description?: string;
   status: number;
   weightage?: number;
 }) => {
   const {
-    foodId,
+    food_id,
     unit,
     price,
-    offerPrice,
+    offer_price,
     quantity,
     description,
     status,
     weightage,
   } = dealData;
 
-  // Check for required fields
-  if (!foodId || !price || !offerPrice || !quantity) {
+  if (!food_id || !price || !offer_price || !quantity) {
     throw new Error("Missing required fields: foodId, price, offerPrice, or quantity.");
   }
 
@@ -128,10 +125,10 @@ export const createDeal = async (dealData: {
   `;
 
   const values = [
-    foodId,
+    food_id,
     unit,
     price,
-    offerPrice,
+    offer_price,
     quantity,
     description,
     status,
@@ -207,45 +204,52 @@ export const updateDeal = async (id: number, dealData: {
       status,
       weightage,
     } = dealData;
-  
-    const sql = `
-      UPDATE deal_of_the_days 
-      SET 
-        food_id = COALESCE(?, food_id),
-        unit = COALESCE(?, unit),
-        price = COALESCE(?, price),
-        offer_price = COALESCE(?, offer_price),
-        quantity = COALESCE(?, quantity),
-        description = COALESCE(?, description),
-        status = COALESCE(?, status),
-        weightage = COALESCE(?, weightage),
-        updated_at = NOW()
-      WHERE 
-        id = ?;
-    `;
-  
-    const values = [
-      foodId,
-      unit,
-      price,
-      offerPrice,
-      quantity,
-      description,
-      status,
-      weightage,
-      id,
-    ];
-  
-    await db.promise().query(sql, values);
-  };
-  
 
-// Delete a deal by ID
+    let sql = "UPDATE deal_of_the_days SET ";
+    const updates: string[] = [];
+    const params: any[] = [];
+
+    if (foodId) {
+      updates.push("food_id = COALESCE(?, food_id)");
+      params.push(foodId);
+    }
+    if (unit) {
+      updates.push("unit = COALESCE(?, unit)");
+      params.push(unit);
+    }
+    if (price !== undefined) {
+      updates.push("price = COALESCE(?, price)");
+      params.push(price);
+    }
+    if (offerPrice !== undefined) {
+      updates.push("offer_price = COALESCE(?, offer_price)");
+      params.push(offerPrice);
+    }
+    if (quantity !== undefined) {
+      updates.push("quantity = COALESCE(?, quantity)");
+      params.push(quantity);
+    }
+    if (description) {
+      updates.push("description = COALESCE(?, description)");
+      params.push(description);
+    }
+    if (status !== undefined) {
+      updates.push("status = COALESCE(?, status)");
+      params.push(status);
+    }
+    if (weightage !== undefined) {
+      updates.push("weightage = COALESCE(?, weightage)");
+      params.push(weightage);
+    }
+
+    sql += updates.join(", ") + " WHERE id = ?;";
+    params.push(id);
+
+    await db.promise().query(sql, params);
+};
+
+// Delete a deal
 export const deleteDealById = async (id: number) => {
-  const sql = `
-    DELETE FROM deal_of_the_days 
-    WHERE id = ?;
-  `;
-
+  const sql = "DELETE FROM deal_of_the_days WHERE id = ?;";
   await db.promise().query(sql, [id]);
 };

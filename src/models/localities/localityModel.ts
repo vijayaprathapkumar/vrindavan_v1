@@ -1,12 +1,13 @@
 import { db } from "../../config/databaseConnection";
 import { RowDataPacket, OkPacket } from "mysql2";
 
-// Fetch all localities
+// Fetch all localities, ordered by created_at
 export const getAllLocalities = async (): Promise<RowDataPacket[]> => {
   const [rows] = await db.promise().query<RowDataPacket[]>(
     `SELECT localities.*, hubs.name as hub_name 
      FROM localities 
-     LEFT JOIN hubs ON localities.hub_id = hubs.id`
+     LEFT JOIN hubs ON localities.hub_id = hubs.id
+     ORDER BY localities.created_at DESC` 
   );
   return rows;
 };
@@ -25,8 +26,8 @@ export const createLocality = async (
 ): Promise<void> => {
   await db.promise().query<OkPacket>(
     `INSERT INTO localities 
-      (route_id, hub_id, name, address, google_address, latitude, longitude, city, active) 
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      (route_id, hub_id, name, address, google_address, latitude, longitude, city, active, created_at, updated_at) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`, // Set created_at and updated_at to NOW()
     [routeId, hubId, name, address, googleAddress, latitude, longitude, city, active]
   );
 };
@@ -58,8 +59,8 @@ export const updateLocalityById = async (
 ): Promise<void> => {
   await db.promise().query<OkPacket>(
     `UPDATE localities 
-     SET route_id = ?, hub_id = ?, name = ?, address = ?, google_address = ?, latitude = ?, longitude = ?, city = ?, active = ? 
-     WHERE id = ?`,
+     SET route_id = ?, hub_id = ?, name = ?, address = ?, google_address = ?, latitude = ?, longitude = ?, city = ?, active = ?, updated_at = NOW() 
+     WHERE id = ?`, // Update updated_at to NOW() when locality is updated
     [routeId, hubId, name, address, googleAddress, latitude, longitude, city, active, id]
   );
 };
