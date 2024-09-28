@@ -3,9 +3,21 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.deleteTruckRouteById = exports.updateTruckRouteById = exports.getTruckRouteById = exports.createTruckRoute = exports.getAllTruckRoutes = void 0;
 const databaseConnection_1 = require("../../config/databaseConnection");
 // Fetch all truck routes, ordered by created_at
-const getAllTruckRoutes = async () => {
-    const [rows] = await databaseConnection_1.db.promise().query("SELECT * FROM truck_routes ORDER BY created_at DESC");
-    return rows;
+const getAllTruckRoutes = async (page, limit, searchTerm) => {
+    const offset = (page - 1) * limit;
+    const routesQuery = `
+      SELECT * FROM truck_routes 
+      WHERE name LIKE ? 
+      ORDER BY COALESCE(updated_at, created_at) DESC 
+      LIMIT ? OFFSET ?
+  `;
+    const [routes] = await databaseConnection_1.db.promise().query(routesQuery, [`%${searchTerm}%`, limit, offset]);
+    const countQuery = `
+      SELECT COUNT(*) as total FROM truck_routes 
+      WHERE name LIKE ?
+  `;
+    const [[{ total }]] = await databaseConnection_1.db.promise().query(countQuery, [`%${searchTerm}%`]);
+    return { routes, totalRecords: total };
 };
 exports.getAllTruckRoutes = getAllTruckRoutes;
 // Create a new truck route

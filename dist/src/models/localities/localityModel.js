@@ -3,12 +3,42 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.deleteLocalityById = exports.updateLocalityById = exports.getLocalityById = exports.createLocality = exports.getAllLocalities = void 0;
 const databaseConnection_1 = require("../../config/databaseConnection");
 // Fetch all localities, ordered by created_at
-const getAllLocalities = async () => {
-    const [rows] = await databaseConnection_1.db.promise().query(`SELECT localities.*, hubs.name as hub_name 
-     FROM localities 
-     LEFT JOIN hubs ON localities.hub_id = hubs.id
-     ORDER BY localities.created_at DESC`);
-    return rows;
+const getAllLocalities = async (page, limit, searchTerm) => {
+    const offset = (page - 1) * limit;
+    const localitiesQuery = `
+    SELECT localities.*, hubs.name as hub_name 
+    FROM localities 
+    LEFT JOIN hubs ON localities.hub_id = hubs.id 
+    WHERE localities.name LIKE ? 
+       OR localities.city LIKE ? 
+       OR localities.address LIKE ? 
+       OR hubs.name LIKE ? 
+    ORDER BY COALESCE(localities.updated_at, localities.created_at) DESC 
+    LIMIT ? OFFSET ?
+  `;
+    const [localities] = await databaseConnection_1.db.promise().query(localitiesQuery, [
+        `%${searchTerm}%`,
+        `%${searchTerm}%`,
+        `%${searchTerm}%`,
+        `%${searchTerm}%`,
+        limit,
+        offset,
+    ]);
+    const countQuery = `
+    SELECT COUNT(*) as total FROM localities 
+    LEFT JOIN hubs ON localities.hub_id = hubs.id 
+    WHERE localities.name LIKE ? 
+       OR localities.city LIKE ? 
+       OR localities.address LIKE ? 
+       OR hubs.name LIKE ?
+  `;
+    const [[{ total }]] = await databaseConnection_1.db.promise().query(countQuery, [
+        `%${searchTerm}%`,
+        `%${searchTerm}%`,
+        `%${searchTerm}%`,
+        `%${searchTerm}%`,
+    ]);
+    return { localities, totalRecords: total };
 };
 exports.getAllLocalities = getAllLocalities;
 // Create a new locality
