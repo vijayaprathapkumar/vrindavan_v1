@@ -1,14 +1,12 @@
 import express from "express";
-import { requestOTP, verifyOTP } from "../../controllers/authLogin/authLoginController";
-import {
-  requestOTPValidation,
-  verifyOTPValidation,
-  validate,
-} from "../../validation/auth/authValidation";
+import { requestOtp, verifyOtp } from "../../controllers/authLogin/authLoginController";
 
 const router = express.Router();
 
-router.post("/request-otp", requestOTPValidation, validate, requestOTP);
-router.post("/verify-otp", verifyOTPValidation, validate, verifyOTP);
+// Request OTP
+router.post("/request-otp", requestOtp);
+
+// Verify OTP
+router.post("/verify-otp", verifyOtp);
 
 export default router;

@@ -10,13 +10,26 @@ import { createResponse } from '../../utils/responseHandler';
 
 // Fetch all localities
 export const getLocalities = async (req: Request, res: Response): Promise<void> => {
+  const page = Number(req.query.page) || 1;
+  const limit = Number(req.query.limit) || 10;
+  const searchTerm = String(req.query.searchTerm || '');
+
   try {
-    const localities = await getAllLocalities();
-    res.status(200).json(createResponse(200, 'Localities fetched successfully', localities));
+    const { localities, totalRecords } = await getAllLocalities(page, limit, searchTerm);
+    const totalPages = Math.ceil(totalRecords / limit);
+
+    res.status(200).json(createResponse(200, 'Localities fetched successfully', {
+      localities,
+      totalRecords,
+      totalPages,
+      currentPage: page,
+      limit,
+    }));
   } catch (error) {
     res.status(500).json(createResponse(500, 'Error fetching localities', error));
   }
 };
+
 
 // Add a new locality
 export const addLocality = async (req: Request, res: Response): Promise<void> => {

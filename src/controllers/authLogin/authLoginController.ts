@@ -1,59 +1,47 @@
 import { Request, Response } from "express";
-import { generateOTP, sendOTP } from "../../services/authLogin";
 import {
-  findOTPByMobileNumber,
-  insertOTP,
-  updateOTP,
-  verifyOTPFromDb,
-  markOTPAsVerified
+  verifyOTP,
+  saveOTPDetails,
 } from "../../models/authLogin/authLoginModel";
+import { generateOTP, sendOTP } from "../../services/authLogin";
 import { createResponse } from "../../utils/responseHandler";
-import { generateToken, generateDeviceToken } from "../../utils/tokenUtils";
+import { generateDeviceToken } from "../../utils/tokenUtils";
 
-export const requestOTP = async (req: Request, res: Response): Promise<Response<any, Record<string, any>> | void> => {
+// Request OTP
+export const requestOtp = async (req: Request, res: Response) => {
   const { mobile_number } = req.body;
+  const otp = generateOTP();
+  const device_token = generateDeviceToken(); // Function to generate device token
 
-  const otp = generateOTP(); // Ensure this generates a new OTP
-  const device_token = generateDeviceToken(); // Generate device token
-  const token = generateToken(mobile_number); // Generate JWT token
-
-  console.log("Generated OTP:", otp);
-  
   try {
-    const result = await findOTPByMobileNumber(mobile_number);
-    const queryMethod = result.length === 0 ? insertOTP : updateOTP;
+    await sendOTP(mobile_number, otp);
+    await saveOTPDetails(mobile_number, otp, device_token); // Save OTP and device token
 
-    await queryMethod(mobile_number, otp, device_token); // Store the OTP and device token
-    await sendOTP(mobile_number, otp); // Ensure this sends the OTP to the user
-
-    return res.json(createResponse(200, "OTP sent successfully", { token }));
+    res.json(createResponse(200, "OTP sent successfully."));
   } catch (error) {
-    console.error("Error in requestOTP:", error);
-    return res.status(500).json(createResponse(500, "Server error"));
+    console.error("Error requesting OTP:", error);
+    res.status(500).json(createResponse(500, "Failed to send OTP."));
   }
 };
 
-
-export const verifyOTP = async (req: Request, res: Response): Promise<Response<any, Record<string, any>> | void> => {
+// Verify OTP
+export const verifyOtp = async (req: Request, res: Response) => {
   const { mobile_number, otp } = req.body;
 
-  console.log("Verifying OTP for:", { mobile_number, otp });
-
-  console.log("Verifying OTP for:", { mobile_number, otp });
-
   try {
-    const result = await verifyOTPFromDb(mobile_number, otp);
-    console.log("Database verification result:", result);
-
-    if (result.length === 0) {
-      console.log("Verification failed: No matching records found."); 
-      return res.status(400).json(createResponse(400, "Invalid or expired OTP"));
+    const isVerified = await verifyOTP(mobile_number, otp);
+    if (isVerified) {
+      res.json(createResponse(200, "OTP verified successfully."));
+    } else {
+      res.status(400).json(createResponse(400, "Invalid OTP."));
     }
-
-    await markOTPAsVerified(mobile_number);
-    return res.json(createResponse(200, "OTP verified successfully"));
   } catch (error) {
-    console.error("Error in verifyOTP:", error);
-    return res.status(500).json(createResponse(500, "Server error"));
+    // Handle specific error cases
+    if (error.message === "OTP has already been verified.") {
+      res.status(400).json(createResponse(400, "OTP has already been verified."));
+    } else {
+      console.error("Error verifying OTP:", error);
+      res.status(500).json(createResponse(500, "Failed to verify OTP."));
+    }
   }
 };
