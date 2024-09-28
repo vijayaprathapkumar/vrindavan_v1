@@ -3,11 +3,20 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.deleteHub = exports.updateHub = exports.getHub = exports.addHub = exports.getHubs = void 0;
 const hubsModel_1 = require("../../models/localities/hubsModel");
 const responseHandler_1 = require("../../utils/responseHandler");
-// Fetch all hubs
 const getHubs = async (req, res) => {
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 10;
+    const searchTerm = String(req.query.searchTerm || '');
     try {
-        const hubs = await (0, hubsModel_1.getAllHubs)();
-        res.status(200).json((0, responseHandler_1.createResponse)(200, 'Hubs fetched successfully', hubs));
+        const { hubs, totalRecords } = await (0, hubsModel_1.getAllHubs)(page, limit, searchTerm);
+        const totalPages = Math.ceil(totalRecords / limit);
+        res.status(200).json((0, responseHandler_1.createResponse)(200, 'Hubs fetched successfully', {
+            hubs,
+            totalRecords,
+            totalPages,
+            currentPage: page,
+            limit,
+        }));
     }
     catch (error) {
         res.status(500).json((0, responseHandler_1.createResponse)(500, 'Error fetching hubs', error));

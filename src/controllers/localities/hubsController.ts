@@ -8,11 +8,23 @@ import {
 } from '../../models/localities/hubsModel';
 import { createResponse } from '../../utils/responseHandler';
 
-// Fetch all hubs
+
 export const getHubs = async (req: Request, res: Response): Promise<void> => {
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 10;
+    const searchTerm = String(req.query.searchTerm || '');
+
     try {
-        const hubs = await getAllHubs();
-        res.status(200).json(createResponse(200, 'Hubs fetched successfully', hubs));
+        const { hubs, totalRecords } = await getAllHubs(page, limit, searchTerm);
+        const totalPages = Math.ceil(totalRecords / limit);
+
+        res.status(200).json(createResponse(200, 'Hubs fetched successfully', {
+            hubs,
+            totalRecords,
+            totalPages,
+            currentPage: page,
+            limit,
+        }));
     } catch (error) {
         res.status(500).json(createResponse(500, 'Error fetching hubs', error));
     }

@@ -2,12 +2,26 @@ import { db } from '../../config/databaseConnection';
 import { RowDataPacket, OkPacket } from 'mysql2';
 
 // Fetch all truck routes, ordered by created_at
-export const getAllTruckRoutes = async (): Promise<RowDataPacket[]> => {
-  const [rows] = await db.promise().query<RowDataPacket[]>(
-    "SELECT * FROM truck_routes ORDER BY created_at DESC"
-  );
-  return rows;
+export const getAllTruckRoutes = async (page: number, limit: number, searchTerm: string): Promise<{ routes: RowDataPacket[], totalRecords: number }> => {
+  const offset = (page - 1) * limit;
+
+  const routesQuery = `
+      SELECT * FROM truck_routes 
+      WHERE name LIKE ? 
+      ORDER BY COALESCE(updated_at, created_at) DESC 
+      LIMIT ? OFFSET ?
+  `;
+  const [routes]: [RowDataPacket[], any] = await db.promise().query(routesQuery, [`%${searchTerm}%`, limit, offset]);
+
+  const countQuery = `
+      SELECT COUNT(*) as total FROM truck_routes 
+      WHERE name LIKE ?
+  `;
+  const [[{ total }]]: [RowDataPacket[], any] = await db.promise().query(countQuery, [`%${searchTerm}%`]);
+
+  return { routes, totalRecords: total };
 };
+
 
 // Create a new truck route
 export const createTruckRoute = async (name: string, active: number): Promise<void> => {

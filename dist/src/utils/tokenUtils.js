@@ -14,9 +14,18 @@ const generateToken = (mobile_number) => {
 };
 exports.generateToken = generateToken;
 const generateDeviceToken = () => {
-    const randomString = Math.random().toString(36).substring(2);
+    const generateRandomString = (length) => {
+        const characters = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        let result = '';
+        for (let i = 0; i < length; i++) {
+            result += characters.charAt(Math.floor(Math.random() * characters.length));
+        }
+        return result;
+    };
+    const randomString = generateRandomString(99);
     const timestamp = Date.now().toString(36);
     const token = randomString + timestamp;
+    // Ensure the token is 138 characters long
     return token.replace(/[^a-zA-Z0-9]/g, '0').padEnd(138, '0').substring(0, 138);
 };
 exports.generateDeviceToken = generateDeviceToken;

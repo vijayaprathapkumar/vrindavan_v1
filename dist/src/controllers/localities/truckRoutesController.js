@@ -5,16 +5,22 @@ const truckRoutesModel_1 = require("../../models/localities/truckRoutesModel");
 const responseHandler_1 = require("../../utils/responseHandler");
 // Fetch all truck routes
 const getTruckRoutes = async (req, res) => {
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 10;
+    const searchTerm = String(req.query.searchTerm || '');
     try {
-        const truckRoutes = await (0, truckRoutesModel_1.getAllTruckRoutes)();
-        res
-            .status(200)
-            .json((0, responseHandler_1.createResponse)(200, "Truck routes fetched successfully", truckRoutes));
+        const { routes, totalRecords } = await (0, truckRoutesModel_1.getAllTruckRoutes)(page, limit, searchTerm);
+        const totalPages = Math.ceil(totalRecords / limit);
+        res.status(200).json((0, responseHandler_1.createResponse)(200, "Truck routes fetched successfully", {
+            routes,
+            totalRecords,
+            totalPages,
+            currentPage: page,
+            limit,
+        }));
     }
     catch (error) {
-        res
-            .status(500)
-            .json((0, responseHandler_1.createResponse)(500, "Error fetching truck routes", error));
+        res.status(500).json((0, responseHandler_1.createResponse)(500, "Error fetching truck routes", error));
     }
 };
 exports.getTruckRoutes = getTruckRoutes;
