@@ -5,9 +5,19 @@ const localityModel_1 = require("../../models/localities/localityModel");
 const responseHandler_1 = require("../../utils/responseHandler");
 // Fetch all localities
 const getLocalities = async (req, res) => {
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 10;
+    const searchTerm = String(req.query.searchTerm || '');
     try {
-        const localities = await (0, localityModel_1.getAllLocalities)();
-        res.status(200).json((0, responseHandler_1.createResponse)(200, 'Localities fetched successfully', localities));
+        const { localities, totalRecords } = await (0, localityModel_1.getAllLocalities)(page, limit, searchTerm);
+        const totalPages = Math.ceil(totalRecords / limit);
+        res.status(200).json((0, responseHandler_1.createResponse)(200, 'Localities fetched successfully', {
+            localities,
+            totalRecords,
+            totalPages,
+            currentPage: page,
+            limit,
+        }));
     }
     catch (error) {
         res.status(500).json((0, responseHandler_1.createResponse)(500, 'Error fetching localities', error));

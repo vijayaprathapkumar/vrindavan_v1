@@ -1,13 +1,29 @@
-import { db } from "../../config/databaseConnection"; // Adjust the path to your database connection
-import { RowDataPacket, OkPacket } from "mysql2";
+import { db } from "../../config/databaseConnection"; 
+import { RowDataPacket, OkPacket, QueryResult, FieldPacket } from "mysql2";
 
-// Fetch all hubs, ordered by created_at
-export const getAllHubs = async (): Promise<RowDataPacket[]> => {
-  const [rows] = await db.promise().query<RowDataPacket[]>(
-    "SELECT * FROM hubs ORDER BY created_at DESC" // Order by created_at to show recent entries first
-  );
-  return rows;
-};
+// Fetch all hubs
+export const getAllHubs = async (page: number, limit: number, searchTerm: string): Promise<{ hubs: RowDataPacket[], totalRecords: number }> => {
+  const offset = (page - 1) * limit;
+
+  const hubsQuery = `
+      SELECT * FROM hubs 
+      WHERE name LIKE ? 
+      ORDER BY 
+          COALESCE(updated_at, created_at) DESC 
+      LIMIT ? OFFSET ?
+  `;
+  const [hubs]: [RowDataPacket[], FieldPacket[]] = await db.promise().query(hubsQuery, [`%${searchTerm}%`, limit, offset]);
+
+  const countQuery = `
+      SELECT COUNT(*) as total FROM hubs 
+      WHERE name LIKE ?
+  `;
+  const [rows]: [RowDataPacket[], FieldPacket[]] = await db.promise().query(countQuery, [`%${searchTerm}%`]);
+  const total = (rows[0] as { total: number }).total;
+
+  return { hubs, totalRecords: total };
+}
+
 
 // Create a new hub
 export const createHub = async (
@@ -18,7 +34,7 @@ export const createHub = async (
 ): Promise<void> => {
   await db.promise().query<OkPacket>(
     "INSERT INTO hubs (route_id, name, other_details, active, created_at, updated_at) VALUES (?, ?, ?, ?, NOW(), NOW())",
-    [routeId, name, otherDetails, active] // Set created_at and updated_at to NOW()
+    [routeId, name, otherDetails, active] 
   );
 };
 
