@@ -24,6 +24,5 @@ export const generateDeviceToken = (): string => {
   const timestamp = Date.now().toString(36); 
   const token = randomString + timestamp;
 
-  // Ensure the token is 138 characters long
   return token.replace(/[^a-zA-Z0-9]/g, '0').padEnd(138, '0').substring(0, 138);
 };

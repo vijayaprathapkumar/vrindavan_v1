@@ -3,19 +3,19 @@ import {
   verifyOTP,
   saveOTPDetails,
 } from "../../models/authLogin/authLoginModel";
-import { generateOTP, sendOTP } from "../../services/authLogin";
 import { createResponse } from "../../utils/responseHandler";
 import { generateDeviceToken } from "../../utils/tokenUtils";
+import { generateOTP, sendOTP } from "../../services/msg91";
 
 // Request OTP
 export const requestOtp = async (req: Request, res: Response) => {
   const { mobile_number } = req.body;
   const otp = generateOTP();
-  const device_token = generateDeviceToken(); // Function to generate device token
+  const device_token = generateDeviceToken(); 
 
   try {
     await sendOTP(mobile_number, otp);
-    await saveOTPDetails(mobile_number, otp, device_token); // Save OTP and device token
+    await saveOTPDetails(mobile_number, otp, device_token); 
 
     res.json(createResponse(200, "OTP sent successfully."));
   } catch (error) {
