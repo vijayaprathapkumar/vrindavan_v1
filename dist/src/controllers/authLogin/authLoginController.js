@@ -2,17 +2,17 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.verifyOtp = exports.requestOtp = void 0;
 const authLoginModel_1 = require("../../models/authLogin/authLoginModel");
-const authLogin_1 = require("../../services/authLogin");
 const responseHandler_1 = require("../../utils/responseHandler");
 const tokenUtils_1 = require("../../utils/tokenUtils");
+const msg91_1 = require("../../services/msg91");
 // Request OTP
 const requestOtp = async (req, res) => {
     const { mobile_number } = req.body;
-    const otp = (0, authLogin_1.generateOTP)();
-    const device_token = (0, tokenUtils_1.generateDeviceToken)(); // Function to generate device token
+    const otp = (0, msg91_1.generateOTP)();
+    const device_token = (0, tokenUtils_1.generateDeviceToken)();
     try {
-        await (0, authLogin_1.sendOTP)(mobile_number, otp);
-        await (0, authLoginModel_1.saveOTPDetails)(mobile_number, otp, device_token); // Save OTP and device token
+        await (0, msg91_1.sendOTP)(mobile_number, otp);
+        await (0, authLoginModel_1.saveOTPDetails)(mobile_number, otp, device_token);
         res.json((0, responseHandler_1.createResponse)(200, "OTP sent successfully."));
     }
     catch (error) {
