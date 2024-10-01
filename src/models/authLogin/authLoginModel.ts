@@ -1,12 +1,10 @@
 import { db } from "../../config/databaseConnection";
 import { RowDataPacket } from "mysql2";
 
-
 // Save or update OTP details in the database
 export const saveOTPDetails = async (
   mobile_number: string,
-  otp: string,
-  device_token: string
+  otp: string
 ): Promise<void> => {
   const checkSql = `
     SELECT * FROM user_one_time_passwords 
@@ -19,17 +17,17 @@ export const saveOTPDetails = async (
   if (rows.length > 0) {
     const sql = `
       UPDATE user_one_time_passwords 
-      SET otp = ?, device_token = ?, is_verified = 0, updated_at = NOW() 
+      SET otp = ?, is_verified = 0, updated_at = NOW() 
       WHERE mobile = ?;
     `;
-    const values = [otp, device_token, mobile_number];
+    const values = [otp, mobile_number];
     await db.promise().query(sql, values);
   } else {
     const sql = `
-      INSERT INTO user_one_time_passwords (mobile, otp, device_token, created_at, updated_at) 
-      VALUES (?, ?, ?, NOW(), NOW());
+      INSERT INTO user_one_time_passwords (mobile, otp, created_at, updated_at) 
+      VALUES (?, ?, NOW(), NOW());
     `;
-    const values = [mobile_number, otp, device_token];
+    const values = [mobile_number, otp];
     await db.promise().query(sql, values);
   }
 };
@@ -68,4 +66,15 @@ const markOTPAsVerified = async (id: number): Promise<void> => {
     WHERE id = ?;
   `;
   await db.promise().query(sql, [id]);
+};
+
+// Store device token after OTP verification
+export const storeDeviceToken = async (mobile_number: string, device_token: string): Promise<void> => {
+  const sql = `
+    UPDATE user_one_time_passwords 
+    SET device_token = ?, updated_at = NOW() 
+    WHERE mobile = ?;
+  `;
+  const values = [device_token, mobile_number];
+  await db.promise().query(sql, values);
 };

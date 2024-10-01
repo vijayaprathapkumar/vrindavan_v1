@@ -9,10 +9,9 @@ const msg91_1 = require("../../services/msg91");
 const requestOtp = async (req, res) => {
     const { mobile_number } = req.body;
     const otp = (0, msg91_1.generateOTP)();
-    const device_token = (0, tokenUtils_1.generateDeviceToken)();
     try {
         await (0, msg91_1.sendOTP)(mobile_number, otp);
-        await (0, authLoginModel_1.saveOTPDetails)(mobile_number, otp, device_token);
+        await (0, authLoginModel_1.saveOTPDetails)(mobile_number, otp);
         res.json((0, responseHandler_1.createResponse)(200, "OTP sent successfully."));
     }
     catch (error) {
@@ -27,6 +26,8 @@ const verifyOtp = async (req, res) => {
     try {
         const isVerified = await (0, authLoginModel_1.verifyOTP)(mobile_number, otp);
         if (isVerified) {
+            const device_token = (0, tokenUtils_1.generateDeviceToken)();
+            await (0, authLoginModel_1.storeDeviceToken)(mobile_number, device_token);
             res.json((0, responseHandler_1.createResponse)(200, "OTP verified successfully."));
         }
         else {
@@ -34,7 +35,6 @@ const verifyOtp = async (req, res) => {
         }
     }
     catch (error) {
-        // Handle specific error cases
         if (error.message === "OTP has already been verified.") {
             res.status(400).json((0, responseHandler_1.createResponse)(400, "OTP has already been verified."));
         }

@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import {
   verifyOTP,
   saveOTPDetails,
+  storeDeviceToken, 
 } from "../../models/authLogin/authLoginModel";
 import { createResponse } from "../../utils/responseHandler";
 import { generateDeviceToken } from "../../utils/tokenUtils";
@@ -11,11 +12,10 @@ import { generateOTP, sendOTP } from "../../services/msg91";
 export const requestOtp = async (req: Request, res: Response) => {
   const { mobile_number } = req.body;
   const otp = generateOTP();
-  const device_token = generateDeviceToken(); 
 
   try {
     await sendOTP(mobile_number, otp);
-    await saveOTPDetails(mobile_number, otp, device_token); 
+    await saveOTPDetails(mobile_number, otp);
 
     res.json(createResponse(200, "OTP sent successfully."));
   } catch (error) {
@@ -31,12 +31,15 @@ export const verifyOtp = async (req: Request, res: Response) => {
   try {
     const isVerified = await verifyOTP(mobile_number, otp);
     if (isVerified) {
+
+      const device_token = generateDeviceToken();
+      await storeDeviceToken(mobile_number, device_token);
+
       res.json(createResponse(200, "OTP verified successfully."));
     } else {
       res.status(400).json(createResponse(400, "Invalid OTP."));
     }
   } catch (error) {
-    // Handle specific error cases
     if (error.message === "OTP has already been verified.") {
       res.status(400).json(createResponse(400, "OTP has already been verified."));
     } else {
