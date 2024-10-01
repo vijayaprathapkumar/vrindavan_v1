@@ -1,29 +1,30 @@
-import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
+import { Request, Response, NextFunction } from "express";
+import { db } from "../config/databaseConnection";
+import { RowDataPacket } from "mysql2";
 
-const JWT_SECRET = process.env.Token_SECRET || 'your_secret_key';
 
-export interface CustomRequest extends Request {
-    user?: { mobile_number: string; device_token: string }; 
-}
+export const verifyDeviceToken = async (req: Request, res: Response, next: NextFunction) => {
+  const authHeader = req.headers['authorization'];
+  
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ status: 401, message: "Authorization header is required." });
+  }
 
-export const authMiddleware = (req: CustomRequest, res: Response, next: NextFunction) => {
-    const authHeader = req.headers['authorization'];
-    console.log('Authorization Header:', authHeader); 
-    const token = authHeader && authHeader.split(' ')[1];
+  const token = authHeader.split(' ')[1]; 
+  try {
+    const sql = `
+      SELECT * FROM user_one_time_passwords 
+      WHERE device_token = ?;
+    `;
+    const [rows]: [RowDataPacket[], any] = await db.promise().query(sql, [token]);
 
-    if (!token) {
-        console.log('No token provided');
-        return res.sendStatus(401); // Unauthorized
+    if (rows.length === 0) {
+      return res.status(401).json({ status: 401, message: "Invalid device token." });
     }
 
-    jwt.verify(token, JWT_SECRET, (err, user) => {
-        if (err) {
-            console.error('JWT verification error:', err); 
-            return res.sendStatus(403); 
-        }
-        console.log('Decoded User:', user);
-        req.user = user; 
-        next();
-    });
+    next();
+  } catch (error) {
+    console.error("Error verifying device token:", error);
+    res.status(500).json({ status: 500, message: "Internal server error." });
+  }
 };
