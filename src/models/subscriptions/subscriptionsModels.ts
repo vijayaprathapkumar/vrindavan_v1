@@ -47,6 +47,60 @@ export const addSubscriptionModel = (
   });
 };
 
+export const addSubscriptionQuantityChangeModel = (
+  user_subscription_id: number,
+  user_id: number,
+  quantity: string,
+  product_id: number,
+  start_date: string,
+  end_date: string,
+  cancel_subscription: number,
+  pause_subscription: boolean,
+  order_date: Date | null = null,
+  pause_date: Date | null = null,
+  cancel_order_date: Date | null = null,
+  cancel_subscription_date: Date | null = null,
+  cancel_order: string | null = null,
+  today_order: string | null = null,
+  previous_order: string | null = null
+): Promise<OkPacket> => {
+  return new Promise((resolve, reject) => {
+    const changeData = {
+      user_subscription_id,
+      order_type: 2,
+      user_id,
+      product_id,
+      quantity,
+      order_date: order_date || null,
+      start_date: start_date || null,
+      end_date: end_date || null,
+      cancel_subscription: cancel_subscription || null,
+      pause_date: pause_subscription ? pause_date : null, 
+      cancel_order_date: cancel_order_date || null,
+      cancel_subscription_date: cancel_subscription_date || null,
+      cancel_order: cancel_order || null,
+      today_order: today_order || null,
+      previous_order: previous_order || null,
+      pause_subscription: pause_subscription ? "1" : "0",
+      reason: null, 
+      other_reason: null,
+      created_at: new Date(),
+      updated_at: new Date(),
+    };
+
+    db.query<OkPacket>(
+      "INSERT INTO subscription_quantity_changes SET ?",
+      [changeData],
+      (error, results) => {
+        if (error) {
+          return reject(error);
+        }
+        resolve(results);
+      }
+    );
+  });
+};
+
 export const getAllSubscriptionsModel = (
   userId: number,
   page: number,
@@ -98,10 +152,12 @@ export const getAllSubscriptionsModel = (
     if (searchQuery) {
       query += ` AND foods.name LIKE ?`;
     }
-    
+
     query += ` ORDER BY user_subscriptions.created_at DESC LIMIT ?, ?`;
 
-    const params: any[] = searchQuery ? [userId, searchQuery, offset, limit] : [userId, offset, limit];
+    const params: any[] = searchQuery
+      ? [userId, searchQuery, offset, limit]
+      : [userId, offset, limit];
 
     db.query<RowDataPacket[]>(query, params, (error, results) => {
       if (error) {
@@ -111,7 +167,6 @@ export const getAllSubscriptionsModel = (
     });
   });
 };
-
 
 export const getTotalSubscriptionsCountModel = (
   userId: number
@@ -136,7 +191,7 @@ export const updateSubscriptionModel = (
 ): Promise<OkPacket> => {
   const updatedSubscription = {
     ...subscription,
-    updated_at: new Date(), 
+    updated_at: new Date(),
   };
 
   return new Promise((resolve, reject) => {
@@ -172,6 +227,7 @@ export const deleteSubscriptionModel = (id: number): Promise<OkPacket> => {
 // Model to pause a subscription by ID
 export const pauseSubscriptionModel = (id: number): Promise<OkPacket> => {
   return new Promise((resolve, reject) => {
+  
     db.query<OkPacket>(
       "UPDATE user_subscriptions SET is_pause_subscription = 1 WHERE id = ?",
       [id],
@@ -179,7 +235,19 @@ export const pauseSubscriptionModel = (id: number): Promise<OkPacket> => {
         if (error) {
           return reject(error);
         }
-        resolve(results);
+
+      
+        const pauseDate = new Date();
+        db.query<OkPacket>(
+          "UPDATE subscription_quantity_changes SET pause_subscription=1, pause_date = ?, updated_at = NOW() WHERE user_subscription_id = ?",
+          [pauseDate, id], 
+          (err, result) => {
+            if (err) {
+              return reject(err);
+            }
+            resolve(result);
+          }
+        );
       }
     );
   });
@@ -232,7 +300,8 @@ export const getSubscriptionByIdModel = (id: number): Promise<any | null> => {
 
 export const updateCancelSubscriptionModel = (
   id: number,
-  cancel_subscription: number
+  cancel_subscription: number,
+  cancel_subscription_date: Date 
 ): Promise<OkPacket> => {
   return new Promise((resolve, reject) => {
     db.query<OkPacket>(
@@ -242,7 +311,16 @@ export const updateCancelSubscriptionModel = (
         if (error) {
           return reject(error);
         }
-        resolve(results);
+        db.query<OkPacket>(
+          "UPDATE subscription_quantity_changes SET cancel_subscription = ?, cancel_subscription_date = ?, updated_at = NOW() WHERE user_subscription_id = ?",
+          [cancel_subscription, cancel_subscription_date, id],
+          (err, result) => {
+            if (err) {
+              return reject(err);
+            }
+            resolve(result);
+          }
+        );
       }
     );
   });
