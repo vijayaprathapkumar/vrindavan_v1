@@ -28,6 +28,7 @@ const addToCartsRoutes_1 = __importDefault(require("./routes/addToCard/addToCart
 const walletTransationsRoutes_1 = __importDefault(require("./routes/wallet/walletTransationsRoutes"));
 const subscriptionsRoutes_1 = __importDefault(require("./routes/subscriptions/subscriptionsRoutes"));
 const paymentsRoutes_1 = __importDefault(require("./routes/payments/paymentsRoutes"));
+const ordersRoutes_1 = __importDefault(require("./routes/orders-v1/ordersRoutes"));
 const router = express_1.default.Router();
 // Auth Login
 router.use("/auth", authLoginRoute_1.default);
@@ -50,7 +51,7 @@ router.use("/faqs", faqsRoutes_1.default);
 router.use("/delivery_boys", deliveryBoyRoutes_1.default);
 router.use("/commissions", commissionRoutes_1.default);
 // orders
-router.use("/orders", orderRoutes_1.default);
+router.use("/orderss", orderRoutes_1.default); //dummy
 router.use("/route_orders", routeOrdersRoutes_1.default);
 router.use("/hub_orders", hubOrdersRoutes_1.default);
 router.use("/delivery_orders", devliveryBoyOrders_1.default);
@@ -66,4 +67,6 @@ router.use("/wallet", walletTransationsRoutes_1.default);
 router.use("/subscriptions", subscriptionsRoutes_1.default);
 //payments
 router.use('/payments', paymentsRoutes_1.default);
+//order-v1
+router.use("/orders", ordersRoutes_1.default);
 exports.default = router;
