@@ -27,6 +27,7 @@ const dealOfTheDayRoutes_1 = __importDefault(require("./routes/dealOfTheDay/deal
 const addToCartsRoutes_1 = __importDefault(require("./routes/addToCard/addToCartsRoutes"));
 const walletTransationsRoutes_1 = __importDefault(require("./routes/wallet/walletTransationsRoutes"));
 const subscriptionsRoutes_1 = __importDefault(require("./routes/subscriptions/subscriptionsRoutes"));
+const paymentsRoutes_1 = __importDefault(require("./routes/payments/paymentsRoutes"));
 const router = express_1.default.Router();
 // Auth Login
 router.use("/auth", authLoginRoute_1.default);
@@ -63,4 +64,6 @@ router.use("/cart", addToCartsRoutes_1.default);
 router.use("/wallet", walletTransationsRoutes_1.default);
 //subscriptions
 router.use("/subscriptions", subscriptionsRoutes_1.default);
+//payments
+router.use('/payments', paymentsRoutes_1.default);
 exports.default = router;
