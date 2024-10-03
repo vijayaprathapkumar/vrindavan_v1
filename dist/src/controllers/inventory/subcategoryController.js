@@ -11,12 +11,10 @@ const getSubCategoriesWithCategory = async (req, res) => {
         const page = parseInt(req.query.page) || 1;
         const searchTerm = req.query.searchTerm || "";
         const offset = (page - 1) * limit;
-        // Get total count of subcategories matching the search term
         const [totalCountRows] = await databaseConnection_1.db
             .promise()
             .query("SELECT COUNT(*) as total FROM sub_categories WHERE name LIKE ?", [`%${searchTerm}%`]);
         const totalCount = totalCountRows[0]?.total || 0;
-        // Fetch the paginated subcategories
         const subCategories = await (0, subcategoryModel_1.getAllSubCategoriesWithCategory)(limit, offset, searchTerm);
         const response = {
             data: subCategories,
@@ -65,7 +63,7 @@ const getSubCategory = async (req, res) => {
         else {
             res
                 .status(200)
-                .json((0, responseHandler_1.createResponse)(200, "Subcategory fetched successfully", subCategory[0]));
+                .json((0, responseHandler_1.createResponse)(200, "Subcategory fetched successfully", [subCategory[0]]));
         }
     }
     catch (error) {
