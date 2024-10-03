@@ -23,6 +23,7 @@ import addToCartsRoutes from "./routes/addToCard/addToCartsRoutes";
 import walletTransactionRoutes from "./routes/wallet/walletTransationsRoutes"
 import subscriptionsRoutes from "./routes/subscriptions/subscriptionsRoutes";
 import paymentsRoutes from "./routes/payments/paymentsRoutes";
+import ordersRoutes from "./routes/orders-v1/ordersRoutes";
 
 const router = express.Router();
 
@@ -53,7 +54,7 @@ router.use("/delivery_boys", deliveryBoyRoutes);
 router.use("/commissions", commissionRoutes);
 
 // orders
-router.use("/orders", orderRoutes);
+router.use("/orderss", orderRoutes); //dummy
 router.use("/route_orders", routeOrdersRoutes);
 router.use("/hub_orders", hubOrdersRoutes);
 router.use("/delivery_orders", devliveryBoyOrders);
@@ -79,4 +80,6 @@ router.use("/subscriptions", subscriptionsRoutes);
 //payments
 router.use('/payments', paymentsRoutes);
 
+//order-v1
+router.use("/orders", ordersRoutes);
 export default router;
