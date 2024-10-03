@@ -22,6 +22,7 @@ import dealOfTheDayRoutes from "./routes/dealOfTheDay/dealOfTheDayRoutes";
 import addToCartsRoutes from "./routes/addToCard/addToCartsRoutes";
 import walletTransactionRoutes from "./routes/wallet/walletTransationsRoutes"
 import subscriptionsRoutes from "./routes/subscriptions/subscriptionsRoutes";
+import paymentsRoutes from "./routes/payments/paymentsRoutes";
 
 const router = express.Router();
 
@@ -75,6 +76,7 @@ router.use("/wallet", walletTransactionRoutes);
 //subscriptions
 router.use("/subscriptions", subscriptionsRoutes);
 
-
+//payments
+router.use('/payments', paymentsRoutes);
 
 export default router;
