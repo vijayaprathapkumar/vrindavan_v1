@@ -22,7 +22,6 @@ export const getSubCategoriesWithCategory = async (
 
     const offset = (page - 1) * limit;
 
-    // Get total count of subcategories matching the search term
     const [totalCountRows] = await db
       .promise()
       .query<RowDataPacket[]>(
@@ -31,7 +30,6 @@ export const getSubCategoriesWithCategory = async (
       );
     const totalCount = totalCountRows[0]?.total || 0;
 
-    // Fetch the paginated subcategories
     const subCategories = await getAllSubCategoriesWithCategory(
       limit,
       offset,
@@ -113,7 +111,7 @@ export const getSubCategory = async (
           createResponse(
             200,
             "Subcategory fetched successfully",
-            subCategory[0]
+            [subCategory[0]]
           )
         );
     }
