@@ -22,8 +22,9 @@ import dealOfTheDayRoutes from "./routes/dealOfTheDay/dealOfTheDayRoutes";
 import addToCartsRoutes from "./routes/addToCard/addToCartsRoutes";
 import walletTransactionRoutes from "./routes/wallet/walletTransationsRoutes"
 import subscriptionsRoutes from "./routes/subscriptions/subscriptionsRoutes";
-import paymentsRoutes from "./routes/payments/paymentsRoutes";
+import paymentsRoutes from "./routes/placeOrder/placeOrderRoutes";
 import ordersRoutes from "./routes/orders-v1/ordersRoutes";
+import placeOrderRoutes from "./routes/placeOrder/placeOrderRoutes";
 
 const router = express.Router();
 
@@ -77,8 +78,8 @@ router.use("/wallet", walletTransactionRoutes);
 //subscriptions
 router.use("/subscriptions", subscriptionsRoutes);
 
-//payments
-router.use('/payments', paymentsRoutes);
+//placeOrder
+router.use('/placeOrder', placeOrderRoutes);
 
 //order-v1
 router.use("/orders", ordersRoutes);
