@@ -39,7 +39,7 @@ interface CartItem {
     quantity: number; 
     createdAt: Date; 
     updatedAt: Date; 
-    food: FoodDetails; // Updated to include the food object
+    food: FoodDetails; 
 }
 
 // Fetch all cart items for a user
@@ -97,8 +97,8 @@ export const getAllCartItems = async (userId: number): Promise<CartItem[]> => {
       quantity: row.quantity,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
-      food: { // Create a separate food object
-        id: row.food_id, // use row.food_id to populate this
+      food: { 
+        id: row.food_id, 
         name: row.food_name,
         price: row.price,
         discountPrice: row.discount_price,
@@ -144,22 +144,28 @@ export const addCartItem = async (itemData: { foodId: number; userId: number; qu
   
     try {
       const [result]: [OkPacket, any] = await db.promise().query(sql, values);
-      return result; // Return the result to check for affected rows
+      return result; 
     } catch (error) {
-      console.error("SQL Error:", error); // Log SQL error
+      console.error("SQL Error:", error); 
       throw new Error("Failed to add cart item.");
     }
   };
 
 // Update a cart item
-export const updateCartItem = async (id: number, quantity: number) => {
+export const updateCartItem = async (id: number, quantity: number): Promise<void> => {
   const sql = `
-    UPDATE carts 
-    SET quantity = ?, updated_at = NOW() 
+    UPDATE carts
+    SET quantity = ?
     WHERE id = ?;
   `;
-  await db.promise().query(sql, [quantity, id]);
+  
+  const [result]: [OkPacket, any] = await db.promise().query(sql, [quantity, id]);
+
+  if (result.affectedRows === 0) {
+    throw new Error("Failed to update cart item or item not found.");
+  }
 };
+
 
 // Delete a cart item by ID
 export const deleteCartItemById = async (id: number) => {
