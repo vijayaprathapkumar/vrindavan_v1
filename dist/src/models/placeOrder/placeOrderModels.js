@@ -51,8 +51,16 @@ const addPlaceOrder = async (placeOrderData) => {
     const values = [price, defaultDescription, userId, status, method];
     try {
         const [result] = await databaseConnection_1.db.promise().query(sql, values);
-        await (0, exports.deductFromWalletBalance)(userId, price);
-        return result;
+        // Deduct from wallet balance and check if successful
+        const deductionSuccess = await (0, exports.deductFromWalletBalance)(userId, price);
+        if (deductionSuccess) {
+            // Insert into orders table
+            await insertIntoOrders(userId, result.insertId);
+            return result;
+        }
+        else {
+            throw new Error("Failed to deduct from wallet balance.");
+        }
     }
     catch (error) {
         console.error("SQL Error:", error);
@@ -119,6 +127,34 @@ const deletePlaceOrderById = async (id) => {
     }
 };
 exports.deletePlaceOrderById = deletePlaceOrderById;
+const insertIntoOrders = async (userId, paymentId) => {
+    const orderSql = `
+    INSERT INTO orders (
+      user_id, 
+      order_type, 
+      order_date, 
+      order_status_id, 
+      tax, 
+      delivery_fee, 
+      active, 
+      payment_id, 
+      is_wallet_deduct
+    ) VALUES (?, ?, NOW(), ?, ?, ?, ?, ?, ?);
+  `;
+    // Default values
+    const orderType = 2;
+    const orderStatusId = 4;
+    const tax = 0.00;
+    const deliveryFee = 0.00;
+    const isWalletDeduct = 1;
+    try {
+        await databaseConnection_1.db.promise().query(orderSql, [userId, orderType, orderStatusId, tax, deliveryFee, 1, paymentId, isWalletDeduct]);
+    }
+    catch (error) {
+        console.error("Error inserting into orders:", error);
+        throw new Error("Failed to insert order.");
+    }
+};
 // Function to deduct the payment amount from the wallet balance
 const deductFromWalletBalance = async (userId, amount) => {
     const sql = `
@@ -131,10 +167,11 @@ const deductFromWalletBalance = async (userId, amount) => {
         if (result.affectedRows === 0) {
             throw new Error("Wallet balance not found for the user.");
         }
+        return true;
     }
     catch (error) {
         console.error("Error updating wallet balance:", error);
-        throw new Error("Failed to update wallet balance.");
+        return false;
     }
 };
 exports.deductFromWalletBalance = deductFromWalletBalance;
