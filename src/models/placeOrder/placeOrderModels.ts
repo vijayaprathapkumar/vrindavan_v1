@@ -70,16 +70,22 @@ export const addPlaceOrder = async (placeOrderData: { price: number; description
 
   try {
     const [result]: [OkPacket, any] = await db.promise().query(sql, values);
-
-    await deductFromWalletBalance(userId, price);
-
-    return result;
+    
+    // Deduct from wallet balance and check if successful
+    const deductionSuccess = await deductFromWalletBalance(userId, price);
+    
+    if (deductionSuccess) {
+      // Insert into orders table
+      await insertIntoOrders(userId, result.insertId);
+      return result;
+    } else {
+      throw new Error("Failed to deduct from wallet balance.");
+    }
   } catch (error) {
     console.error("SQL Error:", error);
     throw new Error("Failed to add place order.");
   }
 };
-
 export const getPriceForNextOrder = async (userId: number): Promise<number | null> => {
   const sql = `SELECT price FROM payments WHERE user_id = ? ORDER BY created_at DESC LIMIT 1;`;
 
@@ -151,8 +157,38 @@ export const deletePlaceOrderById = async (id: number) => {
   }
 };
 
+const insertIntoOrders = async (userId: number, paymentId: number) => {
+  const orderSql = `
+    INSERT INTO orders (
+      user_id, 
+      order_type, 
+      order_date, 
+      order_status_id, 
+      tax, 
+      delivery_fee, 
+      active, 
+      payment_id, 
+      is_wallet_deduct
+    ) VALUES (?, ?, NOW(), ?, ?, ?, ?, ?, ?);
+  `;
+
+  // Default values
+  const orderType = 2; 
+  const orderStatusId = 4; 
+  const tax = 0.00; 
+  const deliveryFee = 0.00;
+  const isWalletDeduct = 1; 
+
+  try {
+    await db.promise().query(orderSql, [userId, orderType, orderStatusId, tax, deliveryFee, 1, paymentId, isWalletDeduct]);
+  } catch (error) {
+    console.error("Error inserting into orders:", error);
+    throw new Error("Failed to insert order.");
+  }
+};
+
 // Function to deduct the payment amount from the wallet balance
-export const deductFromWalletBalance = async (userId: number, amount: number) => {
+export const deductFromWalletBalance = async (userId: number, amount: number): Promise<boolean> => {
   const sql = `
     UPDATE wallet_balances 
     SET balance = balance - ? 
@@ -165,8 +201,9 @@ export const deductFromWalletBalance = async (userId: number, amount: number) =>
     if (result.affectedRows === 0) {
       throw new Error("Wallet balance not found for the user.");
     }
+    return true; 
   } catch (error) {
     console.error("Error updating wallet balance:", error);
-    throw new Error("Failed to update wallet balance.");
+    return false; 
   }
 };

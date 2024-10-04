@@ -9,7 +9,7 @@ import { createResponse } from "../../utils/responseHandler";
 
 // Fetch all orders for a user
 export const fetchOrders = async (req: Request, res: Response) => {
-  const userId = parseInt(req.params.userId); // Extract userId from URL parameters
+  const userId = parseInt(req.params.userId); 
   const page = parseInt(req.query.page as string) || 1;
   const limit = parseInt(req.query.limit as string) || 10;
 
