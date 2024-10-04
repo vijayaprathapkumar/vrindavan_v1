@@ -56,7 +56,7 @@ const getAllCartItems = async (userId) => {
         createdAt: row.created_at,
         updatedAt: row.updated_at,
         food: {
-            id: row.food_id, // use row.food_id to populate this
+            id: row.food_id,
             name: row.food_name,
             price: row.price,
             discountPrice: row.discount_price,
@@ -98,10 +98,10 @@ const addCartItem = async (itemData) => {
     const values = [foodId, userId, quantity];
     try {
         const [result] = await databaseConnection_1.db.promise().query(sql, values);
-        return result; // Return the result to check for affected rows
+        return result;
     }
     catch (error) {
-        console.error("SQL Error:", error); // Log SQL error
+        console.error("SQL Error:", error);
         throw new Error("Failed to add cart item.");
     }
 };
@@ -109,11 +109,14 @@ exports.addCartItem = addCartItem;
 // Update a cart item
 const updateCartItem = async (id, quantity) => {
     const sql = `
-    UPDATE carts 
-    SET quantity = ?, updated_at = NOW() 
+    UPDATE carts
+    SET quantity = ?
     WHERE id = ?;
   `;
-    await databaseConnection_1.db.promise().query(sql, [quantity, id]);
+    const [result] = await databaseConnection_1.db.promise().query(sql, [quantity, id]);
+    if (result.affectedRows === 0) {
+        throw new Error("Failed to update cart item or item not found.");
+    }
 };
 exports.updateCartItem = updateCartItem;
 // Delete a cart item by ID
