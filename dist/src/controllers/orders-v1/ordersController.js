@@ -5,7 +5,7 @@ const ordersModel_1 = require("../../models/orders-v1/ordersModel");
 const responseHandler_1 = require("../../utils/responseHandler");
 // Fetch all orders for a user
 const fetchOrders = async (req, res) => {
-    const userId = parseInt(req.params.userId); // Extract userId from URL parameters
+    const userId = parseInt(req.params.userId);
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     // Validate the userId
