@@ -1,53 +1,55 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteCartItemById = exports.updateCartItem = exports.addCartItem = exports.getAllCartItems = void 0;
+exports.getCountOfCartItems = exports.updatePaymentByUserId = exports.deleteCartItemById = exports.updateCartItem = exports.addCartItem = exports.getAllCartItems = void 0;
 const databaseConnection_1 = require("../../config/databaseConnection");
-// Fetch all cart items for a user
-const getAllCartItems = async (userId) => {
+// Fetch all cart items for a user with pagination
+const getAllCartItems = async (userId, limit, offset) => {
     const query = `
-      SELECT 
-        c.id AS cart_id, 
-        c.food_id, 
-        c.user_id, 
-        c.quantity, 
-        c.created_at, 
-        c.updated_at,
-        f.id AS food_id,
-        f.name AS food_name,
-        f.price,
-        f.discount_price,
-        f.description,
-        f.perma_link,
-        f.ingredients,
-        f.package_items_count,
-        f.weight,
-        f.unit,
-        f.sku_code,
-        f.barcode,
-        f.cgst,
-        f.sgst,
-        f.track_inventory,
-        f.featured,
-        f.deliverable,
-        f.restaurant_id,
-        f.category_id,
-        f.subcategory_id,
-        f.product_type_id,
-        f.hub_id,
-        f.locality_id,
-        f.product_brand_id,
-        f.weightage,
-        f.status,
-        f.food_locality,
-        f.image
-      FROM 
-        carts c
-      JOIN 
-        foods f ON c.food_id = f.id
-      WHERE 
-        c.user_id = ?;
-    `;
-    const [rows] = await databaseConnection_1.db.promise().query(query, [userId]);
+    SELECT 
+      c.created_at AS created_at,
+      c.id AS cart_id, 
+      c.food_id, 
+      c.user_id, 
+      c.quantity, 
+      c.updated_at,
+      f.id AS food_id,
+      f.name AS food_name,
+      f.price,
+      f.discount_price,
+      f.description,
+      f.perma_link,
+      f.ingredients,
+      f.package_items_count,
+      f.weight,
+      f.unit,
+      f.sku_code,
+      f.barcode,
+      f.cgst,
+      f.sgst,
+      f.track_inventory,
+      f.featured,
+      f.deliverable,
+      f.restaurant_id,
+      f.category_id,
+      f.subcategory_id,
+      f.product_type_id,
+      f.hub_id,
+      f.locality_id,
+      f.product_brand_id,
+      f.weightage,
+      f.status,
+      f.food_locality,
+      f.image
+    FROM 
+      carts c
+    JOIN 
+      foods f ON c.food_id = f.id
+    WHERE 
+      c.user_id = ?
+    ORDER BY c.created_at DESC
+    LIMIT ? OFFSET ?; 
+  `;
+    const [rows] = await databaseConnection_1.db.promise().query(query, [userId, limit, offset]);
     return rows.map(row => ({
         id: row.cart_id,
         food_id: row.food_id,
@@ -92,9 +94,9 @@ exports.getAllCartItems = getAllCartItems;
 const addCartItem = async (itemData) => {
     const { foodId, userId, quantity } = itemData;
     const sql = `
-      INSERT INTO carts (food_id, user_id, quantity, created_at, updated_at) 
-      VALUES (?, ?, ?, NOW(), NOW());
-    `;
+    INSERT INTO carts (food_id, user_id, quantity, created_at, updated_at) 
+    VALUES (?, ?, ?, NOW(), NOW());
+  `;
     const values = [foodId, userId, quantity];
     try {
         const [result] = await databaseConnection_1.db.promise().query(sql, values);
@@ -128,3 +130,44 @@ const deleteCartItemById = async (id) => {
     await databaseConnection_1.db.promise().query(sql, [id]);
 };
 exports.deleteCartItemById = deleteCartItemById;
+const updatePaymentByUserId = async (userId, totalAmount) => {
+    const selectSql = `
+    SELECT * FROM payments 
+    WHERE user_id = ?;
+  `;
+    const insertSql = `
+    INSERT INTO payments (user_id, price, updated_at) 
+    VALUES (?, ?, NOW());
+  `;
+    const updateSql = `
+    UPDATE payments
+    SET price = ?, updated_at = NOW()
+    WHERE user_id = ?;
+  `;
+    const [rows] = await databaseConnection_1.db.promise().query(selectSql, [userId]);
+    try {
+        if (rows.length > 0) {
+            // If the user already has a payment record, update it
+            await databaseConnection_1.db.promise().query(updateSql, [totalAmount, userId]);
+        }
+        else {
+            // If not, insert a new record
+            await databaseConnection_1.db.promise().query(insertSql, [userId, totalAmount]);
+        }
+    }
+    catch (error) {
+        console.error("Error updating or inserting payment:", error);
+        throw new Error("Failed to update or insert payment.");
+    }
+};
+exports.updatePaymentByUserId = updatePaymentByUserId;
+const getCountOfCartItems = async (userId) => {
+    const query = `
+    SELECT COUNT(*) AS total
+    FROM carts
+    WHERE user_id = ?;
+  `;
+    const [rows] = await databaseConnection_1.db.promise().query(query, [userId]);
+    return rows[0].total;
+};
+exports.getCountOfCartItems = getCountOfCartItems;

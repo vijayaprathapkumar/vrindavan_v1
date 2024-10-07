@@ -1,21 +1,29 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.removeCart = exports.updateCart = exports.addCart = exports.updatePaymentByUserId = exports.fetchCartItems = void 0;
+exports.removeCart = exports.updateCart = exports.addCart = exports.fetchCartItems = void 0;
 const addToCartsModels_1 = require("../../models/addToCard/addToCartsModels");
 const responseHandler_1 = require("../../utils/responseHandler");
-const databaseConnection_1 = require("../../config/databaseConnection");
+const addToCartsModels_2 = require("../../models/addToCard/addToCartsModels");
 // Fetch all cart items for a user and update the payments table
 const fetchCartItems = async (req, res) => {
     const userId = parseInt(req.params.userId);
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    // Calculate offset
+    const offset = (page - 1) * limit;
     try {
-        const cartItems = await (0, addToCartsModels_1.getAllCartItems)(userId);
+        const cartItems = await (0, addToCartsModels_1.getAllCartItems)(userId, limit, offset);
         const totalPrice = cartItems.reduce((total, item) => {
-            return total + item.food.price * item.quantity;
+            return total + (item.quantity > 0 ? item.food.price * item.quantity : item.food.price);
         }, 0);
-        await (0, exports.updatePaymentByUserId)(userId, totalPrice);
+        await (0, addToCartsModels_2.updatePaymentByUserId)(userId, totalPrice);
+        const totalCartItems = await (0, addToCartsModels_1.getCountOfCartItems)(userId);
         res.json((0, responseHandler_1.createResponse)(200, "Cart items fetched and payment updated successfully.", {
             cartItems,
             totalPrice,
+            currentPage: page,
+            totalPages: Math.ceil(totalCartItems / limit),
+            totalItems: totalCartItems
         }));
     }
     catch (error) {
@@ -24,39 +32,17 @@ const fetchCartItems = async (req, res) => {
     }
 };
 exports.fetchCartItems = fetchCartItems;
-// Update the payment total for a user in the payments table
-const updatePaymentByUserId = async (userId, totalPrice) => {
-    const updateSql = `
-    UPDATE payments 
-    SET price = ?, updated_at = NOW() 
-    WHERE user_id = ? AND status = 'active';
-  `;
-    const insertSql = `
-    INSERT INTO payments (user_id, price, status, created_at, updated_at) 
-    VALUES (?, ?, 'active', NOW(), NOW());
-  `;
-    try {
-        const [updateResult] = await databaseConnection_1.db.promise().query(updateSql, [totalPrice, userId]);
-        if (updateResult.affectedRows === 0) {
-            await databaseConnection_1.db.promise().query(insertSql, [userId, totalPrice]);
-        }
-    }
-    catch (error) {
-        console.error("Error updating or inserting payment:", error);
-        throw new Error("Failed to update or insert payment.");
-    }
-};
-exports.updatePaymentByUserId = updatePaymentByUserId;
 // Add a new item to the cart and update the total price
 const addCart = async (req, res) => {
     const { userId, foodId, quantity } = req.body;
     try {
         await (0, addToCartsModels_1.addCartItem)({ userId, foodId, quantity });
-        const cartItems = await (0, addToCartsModels_1.getAllCartItems)(userId);
+        const cartItems = await (0, addToCartsModels_1.getAllCartItems)(userId, 10, 0);
+        // Calculate total price considering quantity
         const totalPrice = cartItems.reduce((total, item) => {
-            return total + item.food.price * item.quantity;
+            return total + (item.quantity > 0 ? item.food.price * item.quantity : item.food.price);
         }, 0);
-        await (0, exports.updatePaymentByUserId)(userId, totalPrice);
+        await (0, addToCartsModels_2.updatePaymentByUserId)(userId, totalPrice);
         res.status(201).json((0, responseHandler_1.createResponse)(201, "Item added to cart and payment updated."));
     }
     catch (error) {
@@ -71,12 +57,12 @@ const updateCart = async (req, res) => {
     const { quantity, userId } = req.body;
     try {
         await (0, addToCartsModels_1.updateCartItem)(Number(id), quantity);
-        const cartItems = await (0, addToCartsModels_1.getAllCartItems)(userId);
+        const cartItems = await (0, addToCartsModels_1.getAllCartItems)(userId, 10, 0);
+        // Calculate total price considering quantity
         const totalPrice = cartItems.reduce((total, item) => {
-            return total + item.food.price * item.quantity;
+            return total + (item.quantity > 0 ? item.food.price * item.quantity : item.food.price);
         }, 0);
-        // Update the payment with the new total price
-        await (0, exports.updatePaymentByUserId)(userId, totalPrice);
+        await (0, addToCartsModels_2.updatePaymentByUserId)(userId, totalPrice);
         res.json((0, responseHandler_1.createResponse)(200, "Cart item updated and payment adjusted."));
     }
     catch (error) {
@@ -88,14 +74,15 @@ exports.updateCart = updateCart;
 // Delete a cart item and update the payment total price
 const removeCart = async (req, res) => {
     const { id } = req.params;
-    const { userId } = req.body;
+    const { user_id } = req.body;
     try {
         await (0, addToCartsModels_1.deleteCartItemById)(Number(id));
-        const cartItems = await (0, addToCartsModels_1.getAllCartItems)(userId);
+        const cartItems = await (0, addToCartsModels_1.getAllCartItems)(user_id, 10, 0);
+        // Calculate total price considering quantity
         const totalPrice = cartItems.reduce((total, item) => {
-            return total + item.food.price * item.quantity;
+            return total + (item.quantity > 0 ? item.food.price * item.quantity : item.food.price);
         }, 0);
-        await (0, exports.updatePaymentByUserId)(userId, totalPrice);
+        await (0, addToCartsModels_2.updatePaymentByUserId)(user_id, totalPrice);
         res.json((0, responseHandler_1.createResponse)(200, "Cart item removed and payment updated."));
     }
     catch (error) {
