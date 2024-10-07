@@ -5,8 +5,10 @@ import {
   updatePlaceOrder,
   deletePlaceOrderById,
   getPriceForNextOrder,
+  deleteAllCartItemsByUserId,
 } from "../../models/placeOrder/placeOrderModels";
 import { createResponse } from "../../utils/responseHandler";
+
 
 // Fetch all place orders for a user
 export const fetchPlaceOrders = async (req: Request, res: Response) => {
@@ -32,16 +34,16 @@ export const addPlaceOrderController = async (req: Request, res: Response) => {
   const { userId } = req.body;
 
   try {
-
+    // Get price for the next order
     const price = await getPriceForNextOrder(userId);
-    
     if (!price) {
       return res.status(400).json(createResponse(400, "Price not found for the user."));
     }
 
-    const status = "active"; 
-    const method = "wallet"; 
+    const status = "active";
+    const method = "wallet";
 
+    // Add the new place order
     const result = await addPlaceOrder({
       price,
       userId,
@@ -50,7 +52,10 @@ export const addPlaceOrderController = async (req: Request, res: Response) => {
     });
 
     if (result.affectedRows > 0) {
-      res.status(201).json(createResponse(201, "Place order added successfully and wallet updated."));
+      // Clear the cart after the place order is successfully added
+      await deleteAllCartItemsByUserId(userId);
+      
+      res.status(201).json(createResponse(201, "Place order added successfully, cart cleared, and wallet updated."));
     } else {
       res.status(400).json(createResponse(400, "Failed to add place order."));
     }
@@ -59,6 +64,7 @@ export const addPlaceOrderController = async (req: Request, res: Response) => {
     res.status(500).json(createResponse(500, "Failed to add place order."));
   }
 };
+
 
 
 
