@@ -11,4 +11,5 @@ router.delete('/:id', subscriptionsControllers_1.deleteSubscription);
 router.put('/pause/:id', subscriptionsControllers_1.pauseSubscription);
 router.put('/resume/:id', subscriptionsControllers_1.resumeSubscription);
 router.put('/cancel/:id', subscriptionsControllers_1.cancelSubscription);
+router.put('/pause-info/:id', subscriptionsControllers_1.updateSubscriptionPauseController);
 exports.default = router;

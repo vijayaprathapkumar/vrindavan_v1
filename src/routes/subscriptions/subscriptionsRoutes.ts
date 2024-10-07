@@ -8,6 +8,7 @@ import {
   updateSubscription,
   cancelSubscription,
   getSubscriptionById,
+  updateSubscriptionPauseController,
 } from '../../controllers/subscriptions/subscriptionsControllers';
 
 const router = Router();
@@ -20,5 +21,7 @@ router.delete('/:id', deleteSubscription);
 router.put('/pause/:id', pauseSubscription);
 router.put('/resume/:id', resumeSubscription);
 router.put('/cancel/:id', cancelSubscription);
+router.put('/pause-info/:id', updateSubscriptionPauseController);
+
 
 export default router;
