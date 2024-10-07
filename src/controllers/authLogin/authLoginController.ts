@@ -35,7 +35,7 @@ export const verifyOtp = async (req: Request, res: Response) => {
       const device_token = generateDeviceToken();
       await storeDeviceToken(mobile_number, device_token);
 
-      res.json(createResponse(200, "OTP verified successfully."));
+      res.json(createResponse(200, "OTP verified successfully.",{ device_token }));
     } else {
       res.status(400).json(createResponse(400, "Invalid OTP."));
     }
