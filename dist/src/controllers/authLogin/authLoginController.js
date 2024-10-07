@@ -28,7 +28,7 @@ const verifyOtp = async (req, res) => {
         if (isVerified) {
             const device_token = (0, tokenUtils_1.generateDeviceToken)();
             await (0, authLoginModel_1.storeDeviceToken)(mobile_number, device_token);
-            res.json((0, responseHandler_1.createResponse)(200, "OTP verified successfully."));
+            res.json((0, responseHandler_1.createResponse)(200, "OTP verified successfully.", { device_token }));
         }
         else {
             res.status(400).json((0, responseHandler_1.createResponse)(400, "Invalid OTP."));
