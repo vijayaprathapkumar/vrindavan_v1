@@ -26,12 +26,14 @@ exports.fetchPlaceOrders = fetchPlaceOrders;
 const addPlaceOrderController = async (req, res) => {
     const { userId } = req.body;
     try {
+        // Get price for the next order
         const price = await (0, placeOrderModels_1.getPriceForNextOrder)(userId);
         if (!price) {
             return res.status(400).json((0, responseHandler_1.createResponse)(400, "Price not found for the user."));
         }
         const status = "active";
         const method = "wallet";
+        // Add the new place order
         const result = await (0, placeOrderModels_1.addPlaceOrder)({
             price,
             userId,
@@ -39,7 +41,9 @@ const addPlaceOrderController = async (req, res) => {
             method,
         });
         if (result.affectedRows > 0) {
-            res.status(201).json((0, responseHandler_1.createResponse)(201, "Place order added successfully and wallet updated."));
+            // Clear the cart after the place order is successfully added
+            await (0, placeOrderModels_1.deleteAllCartItemsByUserId)(userId);
+            res.status(201).json((0, responseHandler_1.createResponse)(201, "Place order added successfully, cart cleared, and wallet updated."));
         }
         else {
             res.status(400).json((0, responseHandler_1.createResponse)(400, "Failed to add place order."));

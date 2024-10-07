@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deductFromWalletBalance = exports.deletePlaceOrderById = exports.updatePlaceOrder = exports.getPriceForNextOrder = exports.addPlaceOrder = exports.getAllPlaceOrders = void 0;
+exports.deleteAllCartItemsByUserId = exports.deductFromWalletBalance = exports.deletePlaceOrderById = exports.updatePlaceOrder = exports.getPriceForNextOrder = exports.addPlaceOrder = exports.getAllPlaceOrders = void 0;
 const databaseConnection_1 = require("../../config/databaseConnection");
 // Fetch all place orders for a user
 const getAllPlaceOrders = async (userId, page, limit) => {
@@ -51,10 +51,8 @@ const addPlaceOrder = async (placeOrderData) => {
     const values = [price, defaultDescription, userId, status, method];
     try {
         const [result] = await databaseConnection_1.db.promise().query(sql, values);
-        // Deduct from wallet balance and check if successful
         const deductionSuccess = await (0, exports.deductFromWalletBalance)(userId, price);
         if (deductionSuccess) {
-            // Insert into orders table
             await insertIntoOrders(userId, result.insertId);
             return result;
         }
@@ -155,7 +153,6 @@ const insertIntoOrders = async (userId, paymentId) => {
         throw new Error("Failed to insert order.");
     }
 };
-// Function to deduct the payment amount from the wallet balance
 const deductFromWalletBalance = async (userId, amount) => {
     const sql = `
     UPDATE wallet_balances 
@@ -175,3 +172,18 @@ const deductFromWalletBalance = async (userId, amount) => {
     }
 };
 exports.deductFromWalletBalance = deductFromWalletBalance;
+// The deleteAllCartItemsByUserId function to remove all cart items for the user
+const deleteAllCartItemsByUserId = async (userId) => {
+    const sql = `
+    DELETE FROM carts 
+    WHERE user_id = ?;
+  `;
+    try {
+        await databaseConnection_1.db.promise().query(sql, [userId]);
+    }
+    catch (error) {
+        console.error("Error clearing cart:", error);
+        throw new Error("Failed to clear cart items.");
+    }
+};
+exports.deleteAllCartItemsByUserId = deleteAllCartItemsByUserId;
