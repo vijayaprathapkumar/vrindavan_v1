@@ -71,11 +71,9 @@ export const addPlaceOrder = async (placeOrderData: { price: number; description
   try {
     const [result]: [OkPacket, any] = await db.promise().query(sql, values);
     
-    // Deduct from wallet balance and check if successful
     const deductionSuccess = await deductFromWalletBalance(userId, price);
     
     if (deductionSuccess) {
-      // Insert into orders table
       await insertIntoOrders(userId, result.insertId);
       return result;
     } else {
@@ -187,7 +185,6 @@ const insertIntoOrders = async (userId: number, paymentId: number) => {
   }
 };
 
-// Function to deduct the payment amount from the wallet balance
 export const deductFromWalletBalance = async (userId: number, amount: number): Promise<boolean> => {
   const sql = `
     UPDATE wallet_balances 
@@ -205,5 +202,19 @@ export const deductFromWalletBalance = async (userId: number, amount: number): P
   } catch (error) {
     console.error("Error updating wallet balance:", error);
     return false; 
+  }
+};
+
+// The deleteAllCartItemsByUserId function to remove all cart items for the user
+export const deleteAllCartItemsByUserId = async (userId: number) => {
+  const sql = `
+    DELETE FROM carts 
+    WHERE user_id = ?;
+  `;
+  try {
+    await db.promise().query(sql, [userId]);
+  } catch (error) {
+    console.error("Error clearing cart:", error);
+    throw new Error("Failed to clear cart items.");
   }
 };
