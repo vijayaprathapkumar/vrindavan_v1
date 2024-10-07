@@ -5,12 +5,13 @@ import {
   removeOrder,
   fetchOrderById, 
 } from "../../controllers/orders-v1/ordersController";
+import { verifyDeviceToken } from "../../middlewares/authMiddleware";
 
 const router = express.Router();
 
-router.get("/:userId", fetchOrders);
-router.get("/by/:id", fetchOrderById); // GET fetch an order by ID
-router.put("/:id", updateOrderController); // PUT update an order
-router.delete("/:id", removeOrder); // DELETE an order by ID
+router.get("/:userId",verifyDeviceToken, fetchOrders);
+router.get("/by/:id",verifyDeviceToken, fetchOrderById); 
+router.put("/:id",verifyDeviceToken, updateOrderController);
+router.delete("/:id",verifyDeviceToken, removeOrder); 
 
 export default router;

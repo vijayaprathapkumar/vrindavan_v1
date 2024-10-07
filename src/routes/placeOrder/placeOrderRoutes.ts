@@ -5,12 +5,13 @@ import {
   updatePlaceOrderController,
   removePlaceOrder,
 } from "../../controllers/placeOrder/placeOrderController";
+import { verifyDeviceToken } from "../../middlewares/authMiddleware";
 
 const router = express.Router();
 
-router.get("/:userId", fetchPlaceOrders);
-router.post("/", addPlaceOrderController);
-router.put("/:id", updatePlaceOrderController);
-router.delete("/:id", removePlaceOrder);
+router.get("/:userId",verifyDeviceToken, fetchPlaceOrders);
+router.post("/",verifyDeviceToken, addPlaceOrderController);
+router.put("/:id",verifyDeviceToken, updatePlaceOrderController);
+router.delete("/:id",verifyDeviceToken, removePlaceOrder);
 
 export default router;
