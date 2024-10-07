@@ -344,3 +344,30 @@ export const getSubscriptionGetByIdModel = (
     );
   });
 };
+
+
+export const updateSubscriptionPauseInfo = async (
+  userId: number,
+  pauseUntilComeBack: number,
+  startDate?: string,
+  endDate?: string
+) => {
+  const sql = `
+    UPDATE user_subscriptions 
+    SET 
+      pause_until_i_come_back = ?, 
+      pause_specific_period_startDate = ?, 
+      pause_specific_period_endDate = ? 
+    WHERE user_id = ?;
+  `;
+
+  const values = [pauseUntilComeBack, startDate, endDate, userId];
+
+  try {
+    const [result]: [OkPacket, any] = await db.promise().query(sql, values);
+    return result;
+  } catch (error) {
+    console.error("Error updating subscription pause info:", error);
+    throw new Error("Failed to update subscription pause information.");
+  }
+};

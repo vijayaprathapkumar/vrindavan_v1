@@ -194,10 +194,8 @@ export const updatePaymentByUserId = async (userId: number, totalAmount: number)
 
   try {
     if (rows.length > 0) {
-      // If the user already has a payment record, update it
       await db.promise().query(updateSql, [totalAmount, userId]);
     } else {
-      // If not, insert a new record
       await db.promise().query(insertSql, [userId, totalAmount]);
     }
   } catch (error) {
