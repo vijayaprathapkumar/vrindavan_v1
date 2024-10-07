@@ -147,11 +147,9 @@ const updatePaymentByUserId = async (userId, totalAmount) => {
     const [rows] = await databaseConnection_1.db.promise().query(selectSql, [userId]);
     try {
         if (rows.length > 0) {
-            // If the user already has a payment record, update it
             await databaseConnection_1.db.promise().query(updateSql, [totalAmount, userId]);
         }
         else {
-            // If not, insert a new record
             await databaseConnection_1.db.promise().query(insertSql, [userId, totalAmount]);
         }
     }

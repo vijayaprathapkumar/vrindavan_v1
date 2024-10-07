@@ -1,7 +1,7 @@
 "use strict";
 // src/models/subscriptions/subscriptionsModels.ts
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getSubscriptionGetByIdModel = exports.updateCancelSubscriptionModel = exports.getSubscriptionByIdModel = exports.resumeSubscriptionModel = exports.pauseSubscriptionModel = exports.deleteSubscriptionModel = exports.updateSubscriptionModel = exports.getTotalSubscriptionsCountModel = exports.getAllSubscriptionsModel = exports.addSubscriptionQuantityChangeModel = exports.addSubscriptionModel = void 0;
+exports.updateSubscriptionPauseInfo = exports.getSubscriptionGetByIdModel = exports.updateCancelSubscriptionModel = exports.getSubscriptionByIdModel = exports.resumeSubscriptionModel = exports.pauseSubscriptionModel = exports.deleteSubscriptionModel = exports.updateSubscriptionModel = exports.getTotalSubscriptionsCountModel = exports.getAllSubscriptionsModel = exports.addSubscriptionQuantityChangeModel = exports.addSubscriptionModel = void 0;
 const databaseConnection_1 = require("../../config/databaseConnection");
 const addSubscriptionModel = (subscription) => {
     const newSubscription = {
@@ -231,3 +231,23 @@ const getSubscriptionGetByIdModel = (id) => {
     });
 };
 exports.getSubscriptionGetByIdModel = getSubscriptionGetByIdModel;
+const updateSubscriptionPauseInfo = async (userId, pauseUntilComeBack, startDate, endDate) => {
+    const sql = `
+    UPDATE user_subscriptions 
+    SET 
+      pause_until_i_come_back = ?, 
+      pause_specific_period_startDate = ?, 
+      pause_specific_period_endDate = ? 
+    WHERE user_id = ?;
+  `;
+    const values = [pauseUntilComeBack, startDate, endDate, userId];
+    try {
+        const [result] = await databaseConnection_1.db.promise().query(sql, values);
+        return result;
+    }
+    catch (error) {
+        console.error("Error updating subscription pause info:", error);
+        throw new Error("Failed to update subscription pause information.");
+    }
+};
+exports.updateSubscriptionPauseInfo = updateSubscriptionPauseInfo;
