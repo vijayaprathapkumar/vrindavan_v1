@@ -6,13 +6,14 @@ import {
   updateDealById,
   removeDeal,
 } from "../../controllers/dealOfTheDay/dealOfTheDayController";
+import { verifyDeviceToken } from "../../middlewares/authMiddleware";
 
 const router = express.Router();
 
-router.get("/", fetchDeals);
-router.post("/", addDeal);
-router.get("/:id", fetchDealById);
-router.put("/:id", updateDealById);
-router.delete("/:id", removeDeal);
+router.get("/",verifyDeviceToken, fetchDeals);
+router.post("/",verifyDeviceToken, addDeal);
+router.get("/:id",verifyDeviceToken, fetchDealById);
+router.put("/:id",verifyDeviceToken, updateDealById);
+router.delete("/:id",verifyDeviceToken, removeDeal);
 
 export default router;

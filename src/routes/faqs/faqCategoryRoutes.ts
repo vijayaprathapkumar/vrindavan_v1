@@ -11,20 +11,40 @@ import {
   faqCategoryIdValidation,
   validate,
 } from "../../validation/faqs/faqCategoryValidation";
+import { verifyDeviceToken } from "../../middlewares/authMiddleware";
 
 const router = express.Router();
 
 // Define routes for FAQ categories
-router.get("/", getFaqCategories);
-router.post("/", faqCategoryValidation, validate, addFaqCategory);
-router.get("/:id", faqCategoryIdValidation, validate, getFaqCategory);
+router.get("/", verifyDeviceToken, getFaqCategories);
+router.post(
+  "/",
+  faqCategoryValidation,
+  verifyDeviceToken,
+  validate,
+  addFaqCategory
+);
+router.get(
+  "/:id",
+  faqCategoryIdValidation,
+  verifyDeviceToken,
+  validate,
+  getFaqCategory
+);
 router.put(
   "/:id",
   faqCategoryIdValidation,
   faqCategoryValidation,
   validate,
-  updateFaqCategory
+  updateFaqCategory,
+  verifyDeviceToken
 );
-router.delete("/:id", faqCategoryIdValidation, validate, deleteFaqCategory);
+router.delete(
+  "/:id",
+  verifyDeviceToken,
+  faqCategoryIdValidation,
+  validate,
+  deleteFaqCategory
+);
 
 export default router;

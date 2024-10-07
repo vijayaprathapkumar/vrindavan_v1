@@ -6,13 +6,14 @@ import {
   updateBanner,
   deleteBanner,
 } from "../../controllers/banner/bannerControllers";
+import { verifyDeviceToken } from "../../middlewares/authMiddleware";
 
 const router = Router();
 
-router.get("/", fetchBanners);
-router.post("/", addBanner);
-router.get("/:id", fetchBannerById);
-router.put("/:id", updateBanner);
-router.delete("/:id", deleteBanner);
+router.get("/",verifyDeviceToken, fetchBanners);
+router.post("/",verifyDeviceToken, addBanner);
+router.get("/:id",verifyDeviceToken, fetchBannerById);
+router.put("/:id",verifyDeviceToken, updateBanner);
+router.delete("/:id",verifyDeviceToken, deleteBanner);
 
 export default router;

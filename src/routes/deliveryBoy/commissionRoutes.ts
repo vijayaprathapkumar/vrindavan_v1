@@ -8,12 +8,13 @@ import {
   commissionIdValidation,
   validate,
 } from "../../validation/deliveryBoy/commissionValidation";
+import { verifyDeviceToken } from "../../middlewares/authMiddleware";
 
 const router = express.Router();
 
 // Define routes for commissions
-router.get("/", getDetailedCommissions);
+router.get("/",verifyDeviceToken, getDetailedCommissions);
 
-router.get("/:id", commissionIdValidation, validate, getDetailedCommission);
+router.get("/:id", commissionIdValidation,verifyDeviceToken, validate, getDetailedCommission);
 
 export default router;

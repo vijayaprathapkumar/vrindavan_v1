@@ -11,14 +11,15 @@ import {
   categoryIdValidation,
   validate
 } from '../../validation/inventory/categoryValidation';
+import { verifyDeviceToken } from '../../middlewares/authMiddleware';
 
 const router = express.Router();
 
 // Define routes for categories
-router.get('/', getCategories);
-router.post('/', categoryValidation, validate, addCategory);
-router.get('/:id', categoryIdValidation, validate, getCategory);
-router.put('/:id', categoryIdValidation, categoryValidation, validate, updateCategory);
-router.delete('/:id', categoryIdValidation, validate, deleteCategory);
+router.get('/',verifyDeviceToken, getCategories);
+router.post('/', verifyDeviceToken,categoryValidation, validate, addCategory);
+router.get('/:id',verifyDeviceToken, categoryIdValidation, validate, getCategory);
+router.put('/:id', verifyDeviceToken,categoryIdValidation, categoryValidation, validate, updateCategory);
+router.delete('/:id',verifyDeviceToken, categoryIdValidation, validate, deleteCategory);
 
 export default router;
