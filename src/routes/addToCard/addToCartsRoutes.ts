@@ -5,16 +5,17 @@ import {
   updateCart,
   removeCart,
 } from "../../controllers/addToCard/addToCartsControllers";
+import { verifyDeviceToken } from "../../middlewares/authMiddleware";
 
 const router = express.Router();
 
 
-router.get("/:userId", fetchCartItems);
+router.get("/:userId", verifyDeviceToken,fetchCartItems);
 
-router.post("/", addCart);
+router.post("/",verifyDeviceToken, addCart);
 
-router.put("/:id", updateCart);
+router.put("/:id",verifyDeviceToken, updateCart);
 
-router.delete("/:id", removeCart);
+router.delete("/:id",verifyDeviceToken, removeCart);
 
 export default router;

@@ -11,17 +11,18 @@ import {
   subCategoryIdValidation,
   validate
 } from '../../validation/inventory/subcategoryValidation';
+import { verifyDeviceToken } from '../../middlewares/authMiddleware';
 
 const router = express.Router();
 
-router.get("/", getSubCategoriesWithCategory);
+router.get("/", verifyDeviceToken,getSubCategoriesWithCategory);
 
-router.post("/", subCategoryValidation, validate, addSubCategory);
+router.post("/", verifyDeviceToken,subCategoryValidation, validate, addSubCategory);
 
-router.get("/:id", subCategoryIdValidation, validate, getSubCategory);
+router.get("/:id",verifyDeviceToken, subCategoryIdValidation, validate, getSubCategory);
 
-router.put("/:id", subCategoryIdValidation, subCategoryValidation, validate, updateSubCategory);
+router.put("/:id",verifyDeviceToken, subCategoryIdValidation, subCategoryValidation, validate, updateSubCategory);
 
-router.delete("/:id", subCategoryIdValidation, validate, deleteSubCategory);
+router.delete("/:id",verifyDeviceToken, subCategoryIdValidation, validate, deleteSubCategory);
 
 export default router;

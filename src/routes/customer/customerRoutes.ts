@@ -11,17 +11,18 @@ import {
   customerIdValidation,
   validate
 } from '../../validation/customer/customerValidation';
+import { verifyDeviceToken } from '../../middlewares/authMiddleware';
 
 const router = express.Router();
 
-router.get("/", getCustomers);
+router.get("/",verifyDeviceToken, getCustomers);
 
-router.post("/", customerValidation, validate, addCustomer);
+router.post("/",verifyDeviceToken, customerValidation, validate, addCustomer);
 
-router.get("/:id", customerIdValidation, validate, getCustomer);
+router.get("/:id",verifyDeviceToken, customerIdValidation, validate, getCustomer);
 
-router.put("/:id", customerIdValidation, customerValidation, validate, updateCustomer);
+router.put("/:id",verifyDeviceToken, customerIdValidation, customerValidation, validate, updateCustomer);
 
-router.delete("/:id", customerIdValidation, validate, deleteCustomer);
+router.delete("/:id",verifyDeviceToken, customerIdValidation, validate, deleteCustomer);
 
 export default router;

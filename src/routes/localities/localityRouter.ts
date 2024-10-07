@@ -11,13 +11,14 @@ import {
   localityIdValidation,
   validate,
 } from '../../validation/localities/localityValidation';
+import { verifyDeviceToken } from '../../middlewares/authMiddleware';
 
 const router = express.Router();
 
-router.get('/', getLocalities);
-router.post('/', localityValidation, validate, addLocality);
-router.get('/:id', localityIdValidation, validate, getLocality);
-router.put('/:id', localityIdValidation, localityValidation, validate, updateLocality);
-router.delete('/:id', localityIdValidation, validate, deleteLocality);
+router.get('/',verifyDeviceToken, getLocalities);
+router.post('/',verifyDeviceToken, localityValidation, validate, addLocality);
+router.get('/:id',verifyDeviceToken, localityIdValidation, validate, getLocality);
+router.put('/:id', verifyDeviceToken,localityIdValidation, localityValidation, validate, updateLocality);
+router.delete('/:id',verifyDeviceToken, localityIdValidation, validate, deleteLocality);
 
 export default router;
