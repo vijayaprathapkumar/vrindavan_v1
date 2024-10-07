@@ -11,14 +11,15 @@ import {
   faqIdValidation,
   validate
 } from "../../validation/faqs/faqsValidation";
+import { verifyDeviceToken } from "../../middlewares/authMiddleware";
 
 const router = express.Router();
 
 // Define routes for FAQs
-router.get("/", getFaqs);
-router.post("/", faqValidation, validate, addFaq);
-router.get("/:id", faqIdValidation, validate, getFaq);
-router.put("/:id", faqIdValidation, faqValidation, validate, updateFaq);
-router.delete("/:id", faqIdValidation, validate, deleteFaq);
+router.get("/",verifyDeviceToken, getFaqs);
+router.post("/",verifyDeviceToken, faqValidation, validate, addFaq);
+router.get("/:id",verifyDeviceToken, faqIdValidation, validate, getFaq);
+router.put("/:id",verifyDeviceToken, faqIdValidation, faqValidation, validate, updateFaq);
+router.delete("/:id",verifyDeviceToken, faqIdValidation, validate, deleteFaq);
 
 export default router;
