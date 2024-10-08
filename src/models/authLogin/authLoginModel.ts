@@ -78,3 +78,22 @@ export const storeDeviceToken = async (mobile_number: string, device_token: stri
   const values = [device_token, mobile_number];
   await db.promise().query(sql, values);
 };
+
+
+export const getStoredDeviceToken = async (
+  mobile_number: string
+): Promise<string | null> => {
+  const sql = `
+    SELECT device_token FROM user_one_time_passwords 
+    WHERE mobile = ? AND device_token IS NOT NULL;
+  `;
+  const [rows]: [RowDataPacket[], any] = await db
+    .promise()
+    .query(sql, [mobile_number]);
+
+  if (rows.length > 0) {
+    const { device_token } = rows[0];
+    return device_token;
+  }
+  return null; 
+};

@@ -36,7 +36,8 @@ const verifyOtp = async (req, res) => {
     }
     catch (error) {
         if (error.message === "OTP has already been verified.") {
-            res.status(400).json((0, responseHandler_1.createResponse)(400, "OTP has already been verified."));
+            const existing_device_token = await (0, authLoginModel_1.getStoredDeviceToken)(mobile_number);
+            res.status(400).json((0, responseHandler_1.createResponse)(400, "OTP has already been verified.", { device_token: existing_device_token }));
         }
         else {
             console.error("Error verifying OTP:", error);

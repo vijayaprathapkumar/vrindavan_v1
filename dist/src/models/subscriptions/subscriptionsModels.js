@@ -1,8 +1,12 @@
 "use strict";
 // src/models/subscriptions/subscriptionsModels.ts
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.updateSubscriptionPauseInfo = exports.getSubscriptionGetByIdModel = exports.updateCancelSubscriptionModel = exports.getSubscriptionByIdModel = exports.resumeSubscriptionModel = exports.pauseSubscriptionModel = exports.deleteSubscriptionModel = exports.updateSubscriptionModel = exports.getTotalSubscriptionsCountModel = exports.getAllSubscriptionsModel = exports.addSubscriptionQuantityChangeModel = exports.addSubscriptionModel = void 0;
 const databaseConnection_1 = require("../../config/databaseConnection");
+const node_cron_1 = __importDefault(require("node-cron"));
 const addSubscriptionModel = (subscription) => {
     const newSubscription = {
         ...subscription,
@@ -231,16 +235,25 @@ const getSubscriptionGetByIdModel = (id) => {
     });
 };
 exports.getSubscriptionGetByIdModel = getSubscriptionGetByIdModel;
-const updateSubscriptionPauseInfo = async (userId, pauseUntilComeBack, startDate, endDate) => {
-    const sql = `
+const updateSubscriptionPauseInfo = async (userId, isPauseSubscription, pauseUntilComeBack, startDate, endDate) => {
+    const shouldPause = pauseUntilComeBack === 1 || startDate || endDate;
+    isPauseSubscription = shouldPause ? 1 : 0;
+    let sql = `
     UPDATE user_subscriptions 
     SET 
+      is_pause_subscription = ?,
       pause_until_i_come_back = ?, 
       pause_specific_period_startDate = ?, 
       pause_specific_period_endDate = ? 
     WHERE user_id = ?;
   `;
-    const values = [pauseUntilComeBack, startDate, endDate, userId];
+    const values = [
+        isPauseSubscription,
+        pauseUntilComeBack || 0,
+        startDate || null,
+        endDate || null,
+        userId,
+    ];
     try {
         const [result] = await databaseConnection_1.db.promise().query(sql, values);
         return result;
@@ -251,3 +264,28 @@ const updateSubscriptionPauseInfo = async (userId, pauseUntilComeBack, startDate
     }
 };
 exports.updateSubscriptionPauseInfo = updateSubscriptionPauseInfo;
+node_cron_1.default.schedule('0 0 * * *', async () => {
+    const currentDate = new Date().toISOString();
+    console.log('currentDate', currentDate);
+    const sql = `
+    UPDATE user_subscriptions
+    SET
+      is_pause_subscription = 0,
+      pause_until_i_come_back = 0,
+      pause_specific_period_startDate = NULL,
+      pause_specific_period_endDate = NULL
+    WHERE
+      (is_pause_subscription = 1 OR 
+      pause_until_i_come_back = 1 OR 
+      pause_specific_period_startDate IS NOT NULL OR 
+      pause_specific_period_endDate IS NOT NULL) AND 
+      (pause_specific_period_endDate <= ?);
+  `;
+    try {
+        const [result] = await databaseConnection_1.db.promise().query(sql, [currentDate]);
+        console.log(`Updated ${result.affectedRows} subscriptions that reached their end date`);
+    }
+    catch (error) {
+        console.error("Error updating subscriptions:", error);
+    }
+});

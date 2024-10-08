@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.storeDeviceToken = exports.verifyOTP = exports.saveOTPDetails = void 0;
+exports.getStoredDeviceToken = exports.storeDeviceToken = exports.verifyOTP = exports.saveOTPDetails = void 0;
 const databaseConnection_1 = require("../../config/databaseConnection");
 // Save or update OTP details in the database
 const saveOTPDetails = async (mobile_number, otp) => {
@@ -70,3 +70,18 @@ const storeDeviceToken = async (mobile_number, device_token) => {
     await databaseConnection_1.db.promise().query(sql, values);
 };
 exports.storeDeviceToken = storeDeviceToken;
+const getStoredDeviceToken = async (mobile_number) => {
+    const sql = `
+    SELECT device_token FROM user_one_time_passwords 
+    WHERE mobile = ? AND device_token IS NOT NULL;
+  `;
+    const [rows] = await databaseConnection_1.db
+        .promise()
+        .query(sql, [mobile_number]);
+    if (rows.length > 0) {
+        const { device_token } = rows[0];
+        return device_token;
+    }
+    return null;
+};
+exports.getStoredDeviceToken = getStoredDeviceToken;
