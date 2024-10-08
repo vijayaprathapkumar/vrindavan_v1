@@ -2,7 +2,8 @@ import { Request, Response } from "express";
 import {
   verifyOTP,
   saveOTPDetails,
-  storeDeviceToken, 
+  storeDeviceToken,
+  getStoredDeviceToken, 
 } from "../../models/authLogin/authLoginModel";
 import { createResponse } from "../../utils/responseHandler";
 import { generateDeviceToken } from "../../utils/tokenUtils";
@@ -41,7 +42,8 @@ export const verifyOtp = async (req: Request, res: Response) => {
     }
   } catch (error) {
     if (error.message === "OTP has already been verified.") {
-      res.status(400).json(createResponse(400, "OTP has already been verified."));
+      const existing_device_token = await getStoredDeviceToken(mobile_number);
+      res.status(400).json(createResponse(400, "OTP has already been verified.",{ device_token: existing_device_token }));
     } else {
       console.error("Error verifying OTP:", error);
       res.status(500).json(createResponse(500, "Failed to verify OTP."));
