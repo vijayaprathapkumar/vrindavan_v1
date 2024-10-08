@@ -2,6 +2,7 @@
 
 import { db } from "../../config/databaseConnection";
 import { RowDataPacket, OkPacket } from "mysql2";
+import cron from 'node-cron';
 export interface Subscription {
   id?: number;
   user_id: number;
@@ -348,20 +349,32 @@ export const getSubscriptionGetByIdModel = (
 
 export const updateSubscriptionPauseInfo = async (
   userId: number,
-  pauseUntilComeBack: number,
+  isPauseSubscription: number,
+  pauseUntilComeBack?: number,
   startDate?: string,
   endDate?: string
 ) => {
-  const sql = `
+
+  const shouldPause = pauseUntilComeBack === 1 || startDate || endDate;
+  isPauseSubscription = shouldPause ? 1 : 0;
+
+  let sql = `
     UPDATE user_subscriptions 
     SET 
+      is_pause_subscription = ?,
       pause_until_i_come_back = ?, 
       pause_specific_period_startDate = ?, 
       pause_specific_period_endDate = ? 
     WHERE user_id = ?;
   `;
 
-  const values = [pauseUntilComeBack, startDate, endDate, userId];
+  const values = [
+    isPauseSubscription,
+    pauseUntilComeBack || 0,  
+    startDate || null,
+    endDate || null,
+    userId,
+  ];
 
   try {
     const [result]: [OkPacket, any] = await db.promise().query(sql, values);
@@ -371,3 +384,31 @@ export const updateSubscriptionPauseInfo = async (
     throw new Error("Failed to update subscription pause information.");
   }
 };
+
+cron.schedule('0 0 * * *', async () => {
+  const currentDate = new Date().toISOString();
+  console.log('currentDate', currentDate);
+
+  const sql = `
+    UPDATE user_subscriptions
+    SET
+      is_pause_subscription = 0,
+      pause_until_i_come_back = 0,
+      pause_specific_period_startDate = NULL,
+      pause_specific_period_endDate = NULL
+    WHERE
+      (is_pause_subscription = 1 OR 
+      pause_until_i_come_back = 1 OR 
+      pause_specific_period_startDate IS NOT NULL OR 
+      pause_specific_period_endDate IS NOT NULL) AND 
+      (pause_specific_period_endDate <= ?);
+  `;
+
+  try {
+    const [result]: [OkPacket, any] = await db.promise().query(sql, [currentDate]);
+    console.log(`Updated ${result.affectedRows} subscriptions that reached their end date`);
+  } catch (error) {
+    console.error("Error updating subscriptions:", error);
+  }
+});
+
