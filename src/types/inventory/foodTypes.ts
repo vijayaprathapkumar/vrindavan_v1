@@ -22,3 +22,24 @@ export interface Food {
   status: boolean;
   restaurant_id: number;
 }
+
+export interface Media {
+  id: bigint;
+  model_type: string;
+  model_id: bigint;
+  uuid: string;
+  collection_name: string;
+  name: string;
+  file_name: string;
+  mime_type: string;
+  disk: string;
+  conversions_disk: string;
+  size: bigint;
+  manipulations: object;
+  custom_properties: object; 
+  generated_conversions: object; 
+  responsive_images: object; 
+  order_column: number;
+  created_at: string; 
+  updated_at: string; 
+}
