@@ -25,7 +25,7 @@ const getAllFoods = async (filters, limit, offset) => {
            m.updated_at AS media_updated_at,
            CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name) AS original_url
     FROM foods f
-    LEFT JOIN media m ON f.id = m.model_id
+    LEFT JOIN media m ON f.id = m.model_id AND m.model_type = 'App\\\\Models\\\\Food'
   `;
     const conditions = [];
     const values = [];
@@ -48,6 +48,7 @@ const getAllFoods = async (filters, limit, offset) => {
     if (conditions.length > 0) {
         query += " WHERE " + conditions.join(" AND ");
     }
+    query += " ORDER BY f.created_at DESC";
     const countQuery = `
     SELECT COUNT(*) as count 
     FROM foods f
@@ -112,18 +113,19 @@ const getFoodById = async (id) => {
              m.created_at AS media_created_at,
              m.updated_at AS media_updated_at
       FROM foods f
-      LEFT JOIN media m ON f.id = m.model_id
+      LEFT JOIN media m ON f.id = m.model_id AND m.model_type = 'App\\\\Models\\\\Food'
       WHERE f.id = ?`, [id]);
     const food = rows.length > 0 ? rows[0] : null;
-    const media = rows.map(row => ({
-        id: row.media_id,
+    const media = rows
+        .map(row => ({
+        Media_id: row.media_id,
         model_type: row.model_type,
         model_id: row.model_id,
         uuid: row.uuid,
         collection_name: row.collection_name,
         name: row.media_name,
         file_name: row.media_file_name,
-        mime_type: row.media_mime_type,
+        mime_type: row.mime_type,
         disk: row.disk,
         conversions_disk: row.conversions_disk,
         size: row.size,
@@ -135,7 +137,11 @@ const getFoodById = async (id) => {
         created_at: row.media_created_at,
         updated_at: row.media_updated_at,
         original_url: `https://vrindavanmilk.com/storage/app/public/${row.media_id}/${row.media_file_name}`,
-    })).filter(m => m.id);
+    }))
+        .filter(m => m.Media_id)
+        .sort((a, b) => {
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
     return { food, media };
 };
 exports.getFoodById = getFoodById;

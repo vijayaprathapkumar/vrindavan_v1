@@ -1,7 +1,6 @@
 import { db } from "../../config/databaseConnection";
 import { RowDataPacket, OkPacket } from "mysql2";
 
-// Fetch all subcategories with category relationship
 export const getAllSubCategoriesWithCategory = async (
   limit: number,
   offset: number,
@@ -10,25 +9,44 @@ export const getAllSubCategoriesWithCategory = async (
   const query = `
     SELECT 
       sub_categories.*, 
-      categories.name as category_name, 
-      categories.description as category_description
+      categories.name AS category_name, 
+      categories.description AS category_description, 
+      m.id AS media_id,
+      m.model_type,
+      m.model_id,
+      m.uuid,
+      m.collection_name,
+      m.name AS media_name,
+      m.file_name,
+      m.mime_type,
+      m.disk,
+      m.conversions_disk,
+      m.size,
+      m.created_at AS media_created_at,
+      m.updated_at AS media_updated_at,
+      CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name) AS original_url
     FROM 
       sub_categories
     LEFT JOIN 
-      categories 
-    ON 
-      sub_categories.category_id = categories.id
+      categories ON sub_categories.category_id = categories.id
+    LEFT JOIN 
+      media m ON sub_categories.category_id = m.model_id AND m.model_type = 'App\\\\Models\\\\Category'
     WHERE 
       sub_categories.name LIKE ? OR 
       categories.name LIKE ? OR 
       sub_categories.weightage LIKE ?
+    ORDER BY 
+      sub_categories.created_at DESC  
     LIMIT ? 
     OFFSET ?;
   `;
+  
   const searchWildcard = `%${searchTerm}%`;
   const [rows] = await db.promise().query<RowDataPacket[]>(query, [searchWildcard, searchWildcard, searchWildcard, limit, offset]);
   return rows;
 };
+
+
 
 
 // Create a new subcategory
@@ -52,15 +70,40 @@ export const createSubCategory = async (
 export const getSubCategoryById = async (id: number): Promise<RowDataPacket[]> => {
   const [rows] = await db
     .promise()
-    .query<RowDataPacket[]>(
-      `SELECT sub_categories.*, categories.name as category_name 
-       FROM sub_categories 
-       LEFT JOIN categories ON sub_categories.category_id = categories.id 
-       WHERE sub_categories.id = ?`,
-      [id]
-    );
+    .query<RowDataPacket[]>(`
+        SELECT 
+          sub_categories.*, 
+          categories.name AS category_name, 
+          categories.description AS category_description, 
+          m.id AS media_id,
+          m.model_type,
+          m.model_id,
+          m.uuid,
+          m.collection_name,
+          m.name AS media_name,
+          m.file_name,
+          m.mime_type,
+          m.disk,
+          m.conversions_disk,
+          m.size,
+          m.created_at AS media_created_at,
+          m.updated_at AS media_updated_at,
+          CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name) AS original_url
+        FROM 
+          sub_categories
+        LEFT JOIN 
+          categories ON sub_categories.category_id = categories.id
+        LEFT JOIN 
+          media m ON sub_categories.category_id = m.model_id AND m.model_type = 'App\\\\Models\\\\Category'
+        WHERE 
+          sub_categories.id = ?  
+        ORDER BY 
+          sub_categories.created_at DESC;
+    `, 
+    [id]);  
   return rows;
 };
+
 
 // Update subcategory by ID
 export const updateSubCategoryById = async (
