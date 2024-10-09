@@ -9,19 +9,19 @@ import {
 } from "../../models/inventory/categoryModel";
 import { createResponse } from "../../utils/responseHandler";
 
-
 // Fetch all categories with pagination and search
-export const getCategories = async (req: Request, res: Response): Promise<void> => {
+export const getCategories = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
   const limit = parseInt(req.query.limit as string) || 10;
-  const page = parseInt(req.query.page as string) || 1; 
-  const searchTerm = req.query.searchTerm as string || ''; // Get search term
-  const offset = (page - 1) * limit; 
+  const page = parseInt(req.query.page as string) || 1;
+  const searchTerm = (req.query.searchTerm as string) || "";
+  const offset = (page - 1) * limit;
 
   try {
-    // Fetch total count of categories that match the search term
     const totalCount = await getCategoriesCount(searchTerm);
-    
-    // Fetch limited categories that match the search term
+
     const categories = await getAllCategories(limit, offset, searchTerm);
 
     res.status(200).json({
@@ -31,7 +31,7 @@ export const getCategories = async (req: Request, res: Response): Promise<void> 
         totalEntries: totalCount,
         limit,
         page,
-        totalPages: Math.ceil(totalCount / limit), 
+        totalPages: Math.ceil(totalCount / limit),
         showing: {
           start: offset + 1,
           end: Math.min(offset + limit, totalCount),
@@ -39,14 +39,17 @@ export const getCategories = async (req: Request, res: Response): Promise<void> 
       },
     });
   } catch (error) {
-    res.status(500).json(createResponse(500, "Error fetching categories", error));
+    res
+      .status(500)
+      .json(createResponse(500, "Error fetching categories", error));
   }
 };
 
-
-
 // Add a new category (POST)
-export const addCategory = async (req: Request, res: Response): Promise<void> => {
+export const addCategory = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
   const { name, description, weightage, image } = req.body;
   try {
     await createCategory(name, description, weightage, image);
@@ -56,23 +59,65 @@ export const addCategory = async (req: Request, res: Response): Promise<void> =>
   }
 };
 
-// Get category by ID
-export const getCategory = async (req: Request, res: Response): Promise<void> => {
+export const getCategory = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
   const { id } = req.params;
   try {
-    const category = await getCategoryById(parseInt(id));
-    if (category.length === 0) {
-      res.status(404).json(createResponse(404, "Category not found"));
-    } else {
-      res.status(200).json(createResponse(200, "Category fetched successfully", category));
+    const rows = await getCategoryById(parseInt(id)); // Fetch rows from the database
+
+    if (rows.length === 0) {
+      // Handle case where no category is found
+      throw new Error("Category not found");
     }
+
+    const category = {
+      category_id: rows[0].category_id,
+      category_name: rows[0].category_name,
+      description: rows[0].description,
+      weightage: rows[0].weightage,
+      category_created_at: rows[0].category_created_at,
+    };
+
+    const media = rows
+      .map((row) => ({
+        media_id: row.media_id,
+        file_name: row.file_name,
+        mime_type: row.mime_type,
+        disk: row.disk,
+        conversions_disk: row.conversions_disk,
+        size: row.size,
+        manipulations: row.manipulations,
+        custom_properties: row.custom_properties,
+        generated_conversions: row.generated_conversions,
+        responsive_images: row.responsive_images,
+        order_column: row.order_column,
+        created_at: row.media_created_at,
+        updated_at: row.media_updated_at,
+        original_url: row.original_url,
+      }))
+      .filter((mediaItem) => mediaItem.media_id !== null);
+
+    // Send response
+    res
+      .status(200)
+      .json(
+        createResponse(200, "Category fetched successfully", {
+          category,
+          media,
+        })
+      );
   } catch (error) {
-    res.status(500).json(createResponse(500, "Error fetching category", error));
+    const statusCode = error.message === "Category not found" ? 404 : 500;
+    res.status(statusCode).json(createResponse(statusCode, error.message));
   }
 };
-
 // Update category by ID (PUT)
-export const updateCategory = async (req: Request, res: Response): Promise<void> => {
+export const updateCategory = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
   const { id } = req.params;
   const { name, description, weightage, image } = req.body;
 
@@ -85,7 +130,10 @@ export const updateCategory = async (req: Request, res: Response): Promise<void>
 };
 
 // Delete category by ID
-export const deleteCategory = async (req: Request, res: Response): Promise<void> => {
+export const deleteCategory = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
   const { id } = req.params;
   try {
     await deleteCategoryById(parseInt(id));

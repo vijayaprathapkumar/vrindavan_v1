@@ -99,11 +99,11 @@ export const getSubCategory = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-  const { id } = req.params;
+  const { id } = req.params; 
   try {
-    const subCategory = await getSubCategoryById(parseInt(id));
+    const subCategory = await getSubCategoryById(parseInt(id)); 
     if (subCategory.length === 0) {
-      res.status(404).json(createResponse(404, "Subcategory not found"));
+      res.status(404).json(createResponse(404, "Subcategory not found")); 
     } else {
       res
         .status(200)
@@ -111,14 +111,14 @@ export const getSubCategory = async (
           createResponse(
             200,
             "Subcategory fetched successfully",
-            [subCategory[0]]
+            [subCategory[0]] 
           )
         );
     }
   } catch (error) {
     res
       .status(500)
-      .json(createResponse(500, "Error fetching subcategory", error));
+      .json(createResponse(500, "Error fetching subcategory", error)); 
   }
 };
 

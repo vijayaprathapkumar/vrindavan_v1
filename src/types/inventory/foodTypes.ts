@@ -24,7 +24,7 @@ export interface Food {
 }
 
 export interface Media {
-  id: bigint;
+  // id: bigint;
   model_type: string;
   model_id: bigint;
   uuid: string;
