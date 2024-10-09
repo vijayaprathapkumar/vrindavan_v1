@@ -7,12 +7,10 @@ const responseHandler_1 = require("../../utils/responseHandler");
 const getCategories = async (req, res) => {
     const limit = parseInt(req.query.limit) || 10;
     const page = parseInt(req.query.page) || 1;
-    const searchTerm = req.query.searchTerm || ''; // Get search term
+    const searchTerm = req.query.searchTerm || "";
     const offset = (page - 1) * limit;
     try {
-        // Fetch total count of categories that match the search term
         const totalCount = await (0, categoryModel_1.getCategoriesCount)(searchTerm);
-        // Fetch limited categories that match the search term
         const categories = await (0, categoryModel_1.getAllCategories)(limit, offset, searchTerm);
         res.status(200).json({
             message: "Categories fetched successfully",
@@ -30,7 +28,9 @@ const getCategories = async (req, res) => {
         });
     }
     catch (error) {
-        res.status(500).json((0, responseHandler_1.createResponse)(500, "Error fetching categories", error));
+        res
+            .status(500)
+            .json((0, responseHandler_1.createResponse)(500, "Error fetching categories", error));
     }
 };
 exports.getCategories = getCategories;
@@ -46,20 +46,50 @@ const addCategory = async (req, res) => {
     }
 };
 exports.addCategory = addCategory;
-// Get category by ID
 const getCategory = async (req, res) => {
     const { id } = req.params;
     try {
-        const category = await (0, categoryModel_1.getCategoryById)(parseInt(id));
-        if (category.length === 0) {
-            res.status(404).json((0, responseHandler_1.createResponse)(404, "Category not found"));
+        const rows = await (0, categoryModel_1.getCategoryById)(parseInt(id)); // Fetch rows from the database
+        if (rows.length === 0) {
+            // Handle case where no category is found
+            throw new Error("Category not found");
         }
-        else {
-            res.status(200).json((0, responseHandler_1.createResponse)(200, "Category fetched successfully", category));
-        }
+        const category = {
+            category_id: rows[0].category_id,
+            category_name: rows[0].category_name,
+            description: rows[0].description,
+            weightage: rows[0].weightage,
+            category_created_at: rows[0].category_created_at,
+        };
+        const media = rows
+            .map((row) => ({
+            media_id: row.media_id,
+            file_name: row.file_name,
+            mime_type: row.mime_type,
+            disk: row.disk,
+            conversions_disk: row.conversions_disk,
+            size: row.size,
+            manipulations: row.manipulations,
+            custom_properties: row.custom_properties,
+            generated_conversions: row.generated_conversions,
+            responsive_images: row.responsive_images,
+            order_column: row.order_column,
+            created_at: row.media_created_at,
+            updated_at: row.media_updated_at,
+            original_url: row.original_url,
+        }))
+            .filter((mediaItem) => mediaItem.media_id !== null);
+        // Send response
+        res
+            .status(200)
+            .json((0, responseHandler_1.createResponse)(200, "Category fetched successfully", {
+            category,
+            media,
+        }));
     }
     catch (error) {
-        res.status(500).json((0, responseHandler_1.createResponse)(500, "Error fetching category", error));
+        const statusCode = error.message === "Category not found" ? 404 : 500;
+        res.status(statusCode).json((0, responseHandler_1.createResponse)(statusCode, error.message));
     }
 };
 exports.getCategory = getCategory;
