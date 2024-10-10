@@ -1,26 +1,32 @@
 export interface Food {
+  food_locality: null;
   id?: number;
   name: string;
   price: number;
   discount_price?: number | null;
   description?: string | null;
-  product_type_id: number;
-  product_brand_id: number;
-  locality_id?: string | null;
-  weightage: string;
-  image?: string | null;
-  unit_size: string;
+  perma_link?: string | null;
+  ingredients?: string | null;
+  package_items_count?: number | null;
+  weight?: number | null;
+  unit?: string | null;
   sku_code?: string | null;
   barcode?: string | null;
   cgst?: number | null;
   sgst?: number | null;
+  subscription_type?: string | null;
+  track_inventory: boolean;
+  featured: boolean;
+  deliverable: boolean;
+  restaurant_id: number;
   category_id: number;
   subcategory_id?: number | null;
-  featured: boolean;
-  subscription: boolean;
-  track_inventory: boolean;
+  product_type_id: number;
+  hub_id?: number | null;
+  locality_id?: number | null;
+  product_brand_id: number;
+  weightage?: number | null;
   status: boolean;
-  restaurant_id: number;
 }
 
 export interface Media {
