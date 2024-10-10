@@ -30,7 +30,6 @@ interface FoodDetails {
   weightage: number;
   status: string;
   foodLocality: number;
-  image: string;
 }
 
 interface CartItem {
@@ -79,8 +78,7 @@ export const getAllCartItems = async (userId: number, limit: number, offset: num
       f.product_brand_id,
       f.weightage,
       f.status,
-      f.food_locality,
-      f.image
+      f.food_locality
     FROM 
       carts c
     JOIN 
@@ -126,8 +124,7 @@ export const getAllCartItems = async (userId: number, limit: number, offset: num
       productBrandId: row.product_brand_id,
       weightage: row.weightage,
       status: row.status,
-      foodLocality: row.food_locality,
-      image: row.image,
+      foodLocality: row.food_locality
     }
   }));
 };
