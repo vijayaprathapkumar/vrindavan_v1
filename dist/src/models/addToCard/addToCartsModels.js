@@ -38,8 +38,7 @@ const getAllCartItems = async (userId, limit, offset) => {
       f.product_brand_id,
       f.weightage,
       f.status,
-      f.food_locality,
-      f.image
+      f.food_locality
     FROM 
       carts c
     JOIN 
@@ -84,8 +83,7 @@ const getAllCartItems = async (userId, limit, offset) => {
             productBrandId: row.product_brand_id,
             weightage: row.weightage,
             status: row.status,
-            foodLocality: row.food_locality,
-            image: row.image,
+            foodLocality: row.food_locality
         }
     }));
 };
