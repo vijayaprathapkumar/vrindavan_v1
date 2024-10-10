@@ -26,6 +26,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.deleteFood = exports.updateFood = exports.createFood = exports.getFoodById = exports.getAllFoods = void 0;
 const foodModel = __importStar(require("../../models/inventory/foodModel"));
 const responseHandler_1 = require("../../utils/responseHandler");
+// Fetch all foods with pagination and filters
 const getAllFoods = async (req, res) => {
     try {
         const { status, categoryId, subcategoryId, searchTerm, page = "1", limit = "10", } = req.query;
@@ -56,6 +57,7 @@ const getAllFoods = async (req, res) => {
     }
 };
 exports.getAllFoods = getAllFoods;
+// Fetch a single food by ID
 const getFoodById = async (req, res) => {
     try {
         const { id } = req.params;
@@ -74,19 +76,26 @@ const getFoodById = async (req, res) => {
     }
 };
 exports.getFoodById = getFoodById;
+// Create a new food item
 const createFood = async (req, res) => {
     try {
         const foodData = req.body;
+        // Ensure foodData has all required fields
+        if (!foodData.name || !foodData.price || !foodData.restaurant_id || !foodData.category_id) {
+            return res.status(400).json((0, responseHandler_1.createResponse)(400, "Missing required fields"));
+        }
         const newFood = await foodModel.createFood(foodData);
         res
             .status(201)
             .json((0, responseHandler_1.createResponse)(201, "Food created successfully", newFood));
     }
     catch (error) {
-        res.status(500).json((0, responseHandler_1.createResponse)(500, "Error creating food", error));
+        console.error("Error creating food:", error); // Log the error for debugging
+        res.status(500).json((0, responseHandler_1.createResponse)(500, "Error creating food", error.message));
     }
 };
 exports.createFood = createFood;
+// Update an existing food item by ID
 const updateFood = async (req, res) => {
     try {
         const { id } = req.params;
@@ -106,6 +115,7 @@ const updateFood = async (req, res) => {
     }
 };
 exports.updateFood = updateFood;
+// Delete a food item by ID
 const deleteFood = async (req, res) => {
     try {
         const { id } = req.params;
