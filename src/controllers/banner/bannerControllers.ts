@@ -12,20 +12,8 @@ import { createResponse } from "../../utils/responseHandler";
 // Fetch all banners
 export const fetchBanners = async (req: Request, res: Response) => {
   const page = parseInt(req.query.page as string) || 1;
-  const limit = parseInt(req.query.limit as string) || 10; 
-  const searchTerm = req.query.searchTerm as string || ''; 
-
-  const validLimits = [10, 25, 50, 100];
-  if (!validLimits.includes(limit)) {
-    return res
-      .status(400)
-      .json(
-        createResponse(
-          400,
-          "Invalid limit value. Please choose from 10, 25, 50, or 100."
-        )
-      );
-  }
+  const limit = parseInt(req.query.limit as string) || 10;
+  const searchTerm = req.query.searchTerm as string || '';
 
   try {
     const { banners, total } = await getAllBanners(page, limit, searchTerm);
@@ -45,17 +33,16 @@ export const fetchBanners = async (req: Request, res: Response) => {
 // Create a new banner
 export const addBanner = async (req: Request, res: Response) => {
   const {
-    banner_name, 
-    banner_type, 
+    banner_name,
+    banner_type,
     banner_location,
-    banner_link, 
+    banner_link,
     banner_content,
     food_id,
-    banner_weightage, 
-    date_from, 
-    date_to, 
-    status, 
-    banner_image, 
+    banner_weightage,
+    date_from,
+    date_to,
+    status,
   } = req.body;
 
   try {
@@ -70,7 +57,7 @@ export const addBanner = async (req: Request, res: Response) => {
       date_from,
       date_to,
       status,
-      banner_image,
+      
     });
     res.status(201).json(createResponse(201, "Banner created successfully."));
   } catch (error) {
@@ -107,7 +94,6 @@ export const updateBanner = async (req: Request, res: Response) => {
     date_from,
     date_to,
     status,
-    banner_image,
   } = req.body;
 
   try {
@@ -122,8 +108,7 @@ export const updateBanner = async (req: Request, res: Response) => {
       banner_weightage,
       date_from,
       date_to,
-      status,
-      banner_image
+      status
     );
     res.json(createResponse(200, "Banner updated successfully."));
   } catch (error) {

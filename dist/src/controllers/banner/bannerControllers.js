@@ -8,12 +8,6 @@ const fetchBanners = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const searchTerm = req.query.searchTerm || '';
-    const validLimits = [10, 25, 50, 100];
-    if (!validLimits.includes(limit)) {
-        return res
-            .status(400)
-            .json((0, responseHandler_1.createResponse)(400, "Invalid limit value. Please choose from 10, 25, 50, or 100."));
-    }
     try {
         const { banners, total } = await (0, bannerModel_1.getAllBanners)(page, limit, searchTerm);
         res.json((0, responseHandler_1.createResponse)(200, "Banners fetched successfully.", {
@@ -30,7 +24,7 @@ const fetchBanners = async (req, res) => {
 exports.fetchBanners = fetchBanners;
 // Create a new banner
 const addBanner = async (req, res) => {
-    const { banner_name, banner_type, banner_location, banner_link, banner_content, food_id, banner_weightage, date_from, date_to, status, banner_image, } = req.body;
+    const { banner_name, banner_type, banner_location, banner_link, banner_content, food_id, banner_weightage, date_from, date_to, status, } = req.body;
     try {
         await (0, bannerModel_1.createBanner)({
             banner_name,
@@ -43,7 +37,6 @@ const addBanner = async (req, res) => {
             date_from,
             date_to,
             status,
-            banner_image,
         });
         res.status(201).json((0, responseHandler_1.createResponse)(201, "Banner created successfully."));
     }
@@ -70,9 +63,9 @@ exports.fetchBannerById = fetchBannerById;
 // Update a banner by ID
 const updateBanner = async (req, res) => {
     const { id } = req.params;
-    const { banner_name, banner_type, banner_location, banner_link, banner_content, food_id, banner_weightage, date_from, date_to, status, banner_image, } = req.body;
+    const { banner_name, banner_type, banner_location, banner_link, banner_content, food_id, banner_weightage, date_from, date_to, status, } = req.body;
     try {
-        await (0, bannerModel_1.updateBanner)(Number(id), banner_name, banner_type, banner_location, banner_link, banner_content, food_id, banner_weightage, date_from, date_to, status, banner_image);
+        await (0, bannerModel_1.updateBanner)(Number(id), banner_name, banner_type, banner_location, banner_link, banner_content, food_id, banner_weightage, date_from, date_to, status);
         res.json((0, responseHandler_1.createResponse)(200, "Banner updated successfully."));
     }
     catch (error) {
