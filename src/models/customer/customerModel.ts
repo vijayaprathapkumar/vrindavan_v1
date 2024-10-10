@@ -198,6 +198,7 @@ export const getAllCustomers = async (
 };
 
 // Create a new customer
+// Create a new customer
 export const createCustomer = async (
   localityId: number,
   name: string,
@@ -205,7 +206,8 @@ export const createCustomer = async (
   mobile: string,
   houseNo: string,
   completeAddress: string,
-  status?: string
+  status?: string,
+  password: string = 'defaultPassword' // Set a default password if not provided
 ): Promise<void> => {
   try {
     const existingUserQuery = `
@@ -220,16 +222,16 @@ export const createCustomer = async (
     }
 
     const insertUserQuery = `
-      INSERT INTO users (name, email, phone, status, created_at, updated_at) 
-      VALUES (?, ?, ?, ?, NOW(), NOW());
+      INSERT INTO users (name, email, phone, password, status, created_at, updated_at) 
+      VALUES (?, ?, ?, ?, ?, NOW(), NOW());
     `;
     const [userResult] = await db
       .promise()
-      .query<OkPacket>(insertUserQuery, [name, email, mobile, status]);
+      .query<OkPacket>(insertUserQuery, [name, email, mobile, password, status]);
 
     const insertAddressQuery = `
-     INSERT INTO delivery_addresses (user_id, locality_id, house_no, complete_address, created_at, updated_at) 
-  VALUES (?, ?, ?, ?, NOW(), NOW());
+      INSERT INTO delivery_addresses (user_id, locality_id, house_no, complete_address, created_at, updated_at) 
+      VALUES (?, ?, ?, ?, NOW(), NOW());
     `;
 
     const addressValues = [
@@ -247,6 +249,8 @@ export const createCustomer = async (
     );
   }
 };
+
+
 
 // Fetch customer by ID
 export const getCustomerById = async (id: number): Promise<any | null> => {
