@@ -62,7 +62,6 @@ router.use("/delivery_orders", devliveryBoyOrders);
 
 
 //Banners
-
 router.use("/banners", bannerRoutes);
 
 //deal of the day
