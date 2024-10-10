@@ -1,5 +1,3 @@
-// src/models/subscriptions/subscriptionsModels.ts
-
 import { db } from "../../config/databaseConnection";
 import { RowDataPacket, OkPacket } from "mysql2";
 import cron from 'node-cron';
@@ -143,8 +141,7 @@ export const getAllSubscriptionsModel = (
               foods.status, 
               foods.created_at, 
               foods.updated_at, 
-              foods.food_locality, 
-              foods.image
+              foods.food_locality
       FROM user_subscriptions 
       LEFT JOIN foods ON user_subscriptions.product_id = foods.id 
       WHERE user_subscriptions.user_id = ? 
@@ -284,7 +281,7 @@ export const getSubscriptionByIdModel = (id: number): Promise<any | null> => {
               foods.product_type_id, foods.hub_id, foods.locality_id, 
               foods.product_brand_id, foods.weightage, foods.status, 
               foods.created_at as food_created_at, foods.updated_at as food_updated_at, 
-              foods.food_locality, foods.image
+              foods.food_locality
       FROM user_subscriptions
       JOIN foods ON user_subscriptions.product_id = foods.id
       WHERE user_subscriptions.id = ?`,
