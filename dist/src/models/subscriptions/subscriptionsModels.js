@@ -1,5 +1,4 @@
 "use strict";
-// src/models/subscriptions/subscriptionsModels.ts
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -91,8 +90,7 @@ const getAllSubscriptionsModel = (userId, page, limit, searchTerm) => {
               foods.status, 
               foods.created_at, 
               foods.updated_at, 
-              foods.food_locality, 
-              foods.image
+              foods.food_locality
       FROM user_subscriptions 
       LEFT JOIN foods ON user_subscriptions.product_id = foods.id 
       WHERE user_subscriptions.user_id = ? 
@@ -194,7 +192,7 @@ const getSubscriptionByIdModel = (id) => {
               foods.product_type_id, foods.hub_id, foods.locality_id, 
               foods.product_brand_id, foods.weightage, foods.status, 
               foods.created_at as food_created_at, foods.updated_at as food_updated_at, 
-              foods.food_locality, foods.image
+              foods.food_locality
       FROM user_subscriptions
       JOIN foods ON user_subscriptions.product_id = foods.id
       WHERE user_subscriptions.id = ?`, [id], (error, results) => {
