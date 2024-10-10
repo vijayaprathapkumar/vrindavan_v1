@@ -210,8 +210,8 @@ const values = [
     foodData.track_inventory ?? null,
     foodData.featured ? 1 : 0,
     foodData.deliverable ? 1 : 0,
-    foodData.restaurant_id,  // Required field
-    foodData.category_id,     // Required field
+    foodData.restaurant_id, 
+    foodData.category_id,    
     foodData.subcategory_id ?? null,
     foodData.product_type_id ?? null,
     foodData.hub_id ?? null,
@@ -219,18 +219,17 @@ const values = [
     foodData.product_brand_id ?? null,
     foodData.weightage ?? null,
     foodData.status ?? null,
-    new Date(), // created_at
-    new Date(), // updated_at
-    foodData.food_locality ?? null // Optional field
+    new Date(), 
+    new Date(), 
+    foodData.food_locality ?? null 
 ];
 
 
 
   try {
     const [result] = await db.promise().execute<ResultSetHeader>(query, values);
-    return { id: result.insertId, ...foodData }; // Return the new food item with its ID
+    return { id: result.insertId, ...foodData }; 
   } catch (error) {
-    // Handle errors accordingly (you can log the error or throw it)
     console.error("Error inserting food:", error);
     throw new Error("Database insert failed");
   }
@@ -249,8 +248,6 @@ export const updateFood = async (id: number, foodData: Food): Promise<Food | nul
     hub_id = ?, locality_id = ?, product_brand_id = ?, weightage = ?, 
     status = ?, updated_at = NOW() WHERE id = ?
   `;
-
-  // Map foodData from camelCase to snake_case
   const values = [
     foodData.name,
     foodData.price,
