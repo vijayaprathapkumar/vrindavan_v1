@@ -176,7 +176,9 @@ const getAllCustomers = async (page, limit, locality, status, searchTerm, isAppr
 };
 exports.getAllCustomers = getAllCustomers;
 // Create a new customer
-const createCustomer = async (localityId, name, email, mobile, houseNo, completeAddress, status) => {
+// Create a new customer
+const createCustomer = async (localityId, name, email, mobile, houseNo, completeAddress, status, password = 'defaultPassword' // Set a default password if not provided
+) => {
     try {
         const existingUserQuery = `
       SELECT id FROM users WHERE email = ?;
@@ -188,15 +190,15 @@ const createCustomer = async (localityId, name, email, mobile, houseNo, complete
             throw new Error(`User with email ${email} already exists`);
         }
         const insertUserQuery = `
-      INSERT INTO users (name, email, phone, status, created_at, updated_at) 
-      VALUES (?, ?, ?, ?, NOW(), NOW());
+      INSERT INTO users (name, email, phone, password, status, created_at, updated_at) 
+      VALUES (?, ?, ?, ?, ?, NOW(), NOW());
     `;
         const [userResult] = await databaseConnection_1.db
             .promise()
-            .query(insertUserQuery, [name, email, mobile, status]);
+            .query(insertUserQuery, [name, email, mobile, password, status]);
         const insertAddressQuery = `
-     INSERT INTO delivery_addresses (user_id, locality_id, house_no, complete_address, created_at, updated_at) 
-  VALUES (?, ?, ?, ?, NOW(), NOW());
+      INSERT INTO delivery_addresses (user_id, locality_id, house_no, complete_address, created_at, updated_at) 
+      VALUES (?, ?, ?, ?, NOW(), NOW());
     `;
         const addressValues = [
             userResult.insertId,
