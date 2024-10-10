@@ -148,67 +148,97 @@ exports.getFoodById = getFoodById;
 const defaultRestaurant_id = 1;
 const createFood = async (foodData) => {
     const query = `
-        INSERT INTO foods (name, price, discount_price, description, product_type_id, 
-        product_brand_id, locality_id, weightage, image, unit, sku_code, barcode, 
-        cgst, sgst, category_id, subcategory_id, featured, track_inventory, restaurant_id, status)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `;
+    INSERT INTO foods (
+      name, price, discount_price, description, 
+      perma_link, ingredients, package_items_count, weight,
+      unit, sku_code, barcode, cgst, sgst, 
+      subscription_type, track_inventory, featured, 
+      deliverable, restaurant_id, category_id, 
+      subcategory_id, product_type_id, hub_id, locality_id,
+      product_brand_id, weightage, status, created_at, 
+      updated_at, food_locality
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+`;
     const values = [
         foodData.name,
         foodData.price,
         foodData.discount_price ?? null,
         foodData.description ?? null,
-        foodData.product_type_id,
-        foodData.product_brand_id,
-        foodData.locality_id ?? null,
-        foodData.weightage,
-        foodData.image ?? null,
-        foodData.unit_size ?? null,
+        foodData.perma_link ?? null,
+        foodData.ingredients ?? null,
+        foodData.package_items_count ?? null,
+        foodData.weight ?? null,
+        foodData.unit ?? null,
         foodData.sku_code ?? null,
         foodData.barcode ?? null,
         foodData.cgst ?? null,
         foodData.sgst ?? null,
-        foodData.category_id,
-        foodData.subcategory_id ?? null,
+        foodData.subscription_type ?? null,
+        foodData.track_inventory ?? null,
         foodData.featured ? 1 : 0,
-        foodData.track_inventory ? 1 : 0,
-        defaultRestaurant_id,
-        foodData.status ? 1 : 0,
+        foodData.deliverable ? 1 : 0,
+        foodData.restaurant_id, // Required field
+        foodData.category_id, // Required field
+        foodData.subcategory_id ?? null,
+        foodData.product_type_id ?? null,
+        foodData.hub_id ?? null,
+        foodData.locality_id ?? null,
+        foodData.product_brand_id ?? null,
+        foodData.weightage ?? null,
+        foodData.status ?? null,
+        new Date(), // created_at
+        new Date(), // updated_at
+        foodData.food_locality ?? null // Optional field
     ];
-    const [result] = await databaseConnection_1.db.promise().execute(query, values);
-    return { id: result.insertId, ...foodData };
+    try {
+        const [result] = await databaseConnection_1.db.promise().execute(query, values);
+        return { id: result.insertId, ...foodData }; // Return the new food item with its ID
+    }
+    catch (error) {
+        // Handle errors accordingly (you can log the error or throw it)
+        console.error("Error inserting food:", error);
+        throw new Error("Database insert failed");
+    }
 };
 exports.createFood = createFood;
 const updateFood = async (id, foodData) => {
     const query = `
-        UPDATE foods SET name = ?, price = ?, discount_price = ?, description = ?, 
-        product_type_id = ?, product_brand_id = ?, locality_id = ?, weightage = ?, 
-        image = ?, unit = ?, sku_code = ?, barcode = ?, cgst = ?, sgst = ?, 
-        category_id = ?, subcategory_id = ?, featured = ?, subscription_type = ?, 
-        track_inventory = ?, restaurant_id = ?, status = ? WHERE id = ?
-    `;
+    UPDATE foods SET name = ?, price = ?, discount_price = ?, description = ?, 
+    perma_link = ?, ingredients = ?, package_items_count = ?, weight = ?, 
+    unit = ?, sku_code = ?, barcode = ?, cgst = ?, sgst = ?, 
+    subscription_type = ?, track_inventory = ?, featured = ?, deliverable = ?, 
+    restaurant_id = ?, category_id = ?, subcategory_id = ?, product_type_id = ?, 
+    hub_id = ?, locality_id = ?, product_brand_id = ?, weightage = ?, 
+    status = ?, updated_at = NOW() WHERE id = ?
+  `;
+    // Map foodData from camelCase to snake_case
     const values = [
         foodData.name,
         foodData.price,
         foodData.discount_price ?? null,
         foodData.description ?? null,
-        foodData.product_type_id,
-        foodData.product_brand_id,
-        foodData.locality_id ?? null,
-        foodData.weightage,
-        foodData.image ?? null,
-        foodData.unit_size ?? null,
+        foodData.perma_link ?? null,
+        foodData.ingredients ?? null,
+        foodData.package_items_count ?? null,
+        foodData.weight ?? null,
+        foodData.unit ?? null,
         foodData.sku_code ?? null,
         foodData.barcode ?? null,
         foodData.cgst ?? null,
         foodData.sgst ?? null,
-        foodData.category_id,
-        foodData.subcategory_id,
-        foodData.featured ?? false,
-        foodData.subscription ?? false,
+        foodData.subscription_type ?? null,
         foodData.track_inventory ?? false,
-        defaultRestaurant_id,
-        foodData.status ?? false,
+        foodData.featured ?? false,
+        foodData.deliverable ?? false,
+        foodData.restaurant_id ?? null,
+        foodData.category_id ?? null,
+        foodData.subcategory_id ?? null,
+        foodData.product_type_id ?? null,
+        foodData.hub_id ?? null,
+        foodData.locality_id ?? null,
+        foodData.product_brand_id ?? null,
+        foodData.weightage ?? null,
+        foodData.status ?? null,
         id,
     ];
     const [result] = await databaseConnection_1.db.promise().execute(query, values);

@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import * as foodModel from "../../models/inventory/foodModel";
 import { createResponse } from "../../utils/responseHandler";
 
+// Fetch all foods with pagination and filters
 export const getAllFoods = async (req: Request, res: Response) => {
   try {
     const {
@@ -49,6 +50,7 @@ export const getAllFoods = async (req: Request, res: Response) => {
   }
 };
 
+// Fetch a single food by ID
 export const getFoodById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
@@ -65,18 +67,27 @@ export const getFoodById = async (req: Request, res: Response) => {
   }
 };
 
+// Create a new food item
 export const createFood = async (req: Request, res: Response) => {
   try {
     const foodData = req.body;
+
+    // Ensure foodData has all required fields
+    if (!foodData.name || !foodData.price || !foodData.restaurant_id || !foodData.category_id) {
+      return res.status(400).json(createResponse(400, "Missing required fields"));
+    }
+
     const newFood = await foodModel.createFood(foodData);
     res
       .status(201)
       .json(createResponse(201, "Food created successfully", newFood));
   } catch (error) {
-    res.status(500).json(createResponse(500, "Error creating food", error));
+    console.error("Error creating food:", error); // Log the error for debugging
+    res.status(500).json(createResponse(500, "Error creating food", error.message));
   }
 };
 
+// Update an existing food item by ID
 export const updateFood = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
@@ -94,6 +105,7 @@ export const updateFood = async (req: Request, res: Response) => {
   }
 };
 
+// Delete a food item by ID
 export const deleteFood = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
