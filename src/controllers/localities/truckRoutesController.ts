@@ -10,11 +10,11 @@ import { createResponse } from "../../utils/responseHandler";
 
 // Fetch all truck routes with pagination and filters
 export const getTruckRoutes = async (req: Request, res: Response): Promise<void> => {
-  const { page = 1, limit = 10, searchTerm } = req.query;
+  const { page = 1, limit = 10, searchTerm = "" } = req.query; // Default searchTerm to empty string
   const validLimit = Number(limit) > 0 ? Number(limit) : 10;
 
   try {
-    const { routes, totalRecords } = await getAllTruckRoutes(Number(page), validLimit, searchTerm?.toString());
+    const { routes, totalRecords } = await getAllTruckRoutes(Number(page), validLimit, searchTerm.toString());
     const totalPages = Math.ceil(totalRecords / validLimit);
 
     res.status(200).json({
@@ -29,6 +29,7 @@ export const getTruckRoutes = async (req: Request, res: Response): Promise<void>
       },
     });
   } catch (error) {
+    console.error("Error fetching truck routes:", error); 
     res.status(500).json(createResponse(500, "Error fetching truck routes", error.message));
   }
 };
@@ -44,7 +45,7 @@ export const addTruckRoute = async (req: Request, res: Response): Promise<void> 
       statusCode: 201,
       message: "Truck route created successfully",
       data: {
-        truckRoute: null, // Or return the created truck route details if needed
+        truckRoute: null, 
       },
     });
   } catch (error) {
@@ -52,7 +53,7 @@ export const addTruckRoute = async (req: Request, res: Response): Promise<void> 
   }
 };
 
-// Get truck route by ID
+
 // Get truck route by ID
 export const getTruckRoute = async (req: Request, res: Response): Promise<void> => {
   const { id } = req.params;
@@ -89,7 +90,7 @@ export const updateTruckRoute = async (req: Request, res: Response): Promise<voi
   const { name, active } = req.body;
 
   try {
-    await updateTruckRouteById(parseInt(id), name, parseInt(active, 10)); // Ensure active is 0 or 1
+    await updateTruckRouteById(parseInt(id), name, parseInt(active, 10)); 
 
     res.status(200).json({
       statusCode: 200,
