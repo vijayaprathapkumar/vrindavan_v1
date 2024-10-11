@@ -80,7 +80,7 @@ const fetchBrandById = async (req, res) => {
             return res.status(200).json({
                 statusCode: 200,
                 message: "Product brand fetched successfully",
-                data: [brandResponse],
+                data: { brands: [brandResponse] },
             });
         }
         else {

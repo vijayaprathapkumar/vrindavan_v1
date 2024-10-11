@@ -7,7 +7,7 @@ const responseHandler_1 = require("../../utils/responseHandler");
 const fetchBanners = async (req, res) => {
     const page = Number(req.query.page) || 1;
     const limit = Number(req.query.limit) || 10;
-    const searchTerm = req.query.searchTerm || '';
+    const searchTerm = req.query.searchTerm || "";
     try {
         const { banners, total } = await (0, bannerModel_1.getAllBanners)(page, limit, searchTerm);
         if (!banners || banners.length === 0 || total === 0) {
@@ -24,7 +24,9 @@ const fetchBanners = async (req, res) => {
     }
     catch (error) {
         console.error("Error fetching banners:", error);
-        return res.status(500).json((0, responseHandler_1.createResponse)(500, "Error fetching banners.", error.message));
+        return res
+            .status(500)
+            .json((0, responseHandler_1.createResponse)(500, "Error fetching banners.", error.message));
     }
 };
 exports.fetchBanners = fetchBanners;
@@ -44,11 +46,15 @@ const addBanner = async (req, res) => {
             date_to,
             status,
         });
-        return res.status(201).json((0, responseHandler_1.createResponse)(201, "Banner created successfully."));
+        return res
+            .status(201)
+            .json((0, responseHandler_1.createResponse)(201, "Banner created successfully."));
     }
     catch (error) {
         console.error("Error creating banner:", error);
-        return res.status(500).json((0, responseHandler_1.createResponse)(500, "Error creating banner.", error.message));
+        return res
+            .status(500)
+            .json((0, responseHandler_1.createResponse)(500, "Error creating banner.", error.message));
     }
 };
 exports.addBanner = addBanner;
@@ -63,11 +69,16 @@ const fetchBannerById = async (req, res) => {
         if (!banner) {
             return res.status(404).json((0, responseHandler_1.createResponse)(404, "Banner not found."));
         }
-        return res.status(200).json((0, responseHandler_1.createResponse)(200, "Banner fetched successfully.", banner));
+        const responce = { banners: [banner] };
+        return res
+            .status(200)
+            .json((0, responseHandler_1.createResponse)(200, "Banner fetched successfully.", responce));
     }
     catch (error) {
         console.error("Error fetching banner:", error);
-        return res.status(500).json((0, responseHandler_1.createResponse)(500, "Error fetching banner.", error.message));
+        return res
+            .status(500)
+            .json((0, responseHandler_1.createResponse)(500, "Error fetching banner.", error.message));
     }
 };
 exports.fetchBannerById = fetchBannerById;
@@ -81,7 +92,9 @@ const updateBanner = async (req, res) => {
     try {
         const result = await (0, bannerModel_1.updateBanner)(bannerId, banner_name, banner_type, banner_location, banner_link, banner_content, food_id, banner_weightage, date_from, date_to, status);
         if (result.affectedRows > 0) {
-            return res.status(200).json((0, responseHandler_1.createResponse)(200, "Banner updated successfully."));
+            return res
+                .status(200)
+                .json((0, responseHandler_1.createResponse)(200, "Banner updated successfully."));
         }
         else {
             return res.status(404).json((0, responseHandler_1.createResponse)(404, "Banner not found."));
@@ -89,7 +102,9 @@ const updateBanner = async (req, res) => {
     }
     catch (error) {
         console.error("Error updating banner:", error);
-        return res.status(500).json((0, responseHandler_1.createResponse)(500, "Error updating banner.", error.message));
+        return res
+            .status(500)
+            .json((0, responseHandler_1.createResponse)(500, "Error updating banner.", error.message));
     }
 };
 exports.updateBanner = updateBanner;
@@ -102,7 +117,9 @@ const deleteBanner = async (req, res) => {
     try {
         const result = await (0, bannerModel_1.deleteBannerById)(bannerId);
         if (result.affectedRows > 0) {
-            return res.status(200).json((0, responseHandler_1.createResponse)(200, "Banner deleted successfully."));
+            return res
+                .status(200)
+                .json((0, responseHandler_1.createResponse)(200, "Banner deleted successfully."));
         }
         else {
             return res.status(404).json((0, responseHandler_1.createResponse)(404, "Banner not found."));
@@ -110,7 +127,9 @@ const deleteBanner = async (req, res) => {
     }
     catch (error) {
         console.error("Error deleting banner:", error);
-        return res.status(500).json((0, responseHandler_1.createResponse)(500, "Error deleting banner.", error.message));
+        return res
+            .status(500)
+            .json((0, responseHandler_1.createResponse)(500, "Error deleting banner.", error.message));
     }
 };
 exports.deleteBanner = deleteBanner;

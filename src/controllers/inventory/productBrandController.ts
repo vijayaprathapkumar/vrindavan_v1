@@ -102,7 +102,7 @@ export const fetchBrandById = async (
       return res.status(200).json({
         statusCode: 200,
         message: "Product brand fetched successfully",
-        data: [brandResponse],
+        data: {brands:[brandResponse]},
       });
     } else {
       return res.status(404).json(createResponse(404, "Product brand not found"));
