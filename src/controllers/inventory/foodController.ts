@@ -119,7 +119,7 @@ export const fetchFoodById = async (
         statusCode: 200,
         message: "Food fetched successfully",
         data: {
-          food: foodResponse,
+          foods: [foodResponse],
         },
       });
     } else {
