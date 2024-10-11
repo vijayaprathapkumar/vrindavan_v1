@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteDealById = exports.updateDeal = exports.getDealById = exports.createDeal = exports.getAllDeals = void 0;
+exports.deleteDealById = exports.updateDeals = exports.getDealById = exports.createDeal = exports.getAllDeals = void 0;
 const databaseConnection_1 = require("../../config/databaseConnection");
 // Fetch all deals
 const getAllDeals = async (page, limit, searchTerm) => {
@@ -135,7 +135,7 @@ const getDealById = async (id) => {
 };
 exports.getDealById = getDealById;
 // Update a deal
-const updateDeal = async (id, dealData) => {
+const updateDeals = async (id, dealData) => {
     const { foodId, unit, price, offerPrice, quantity, description, status, weightage, } = dealData;
     let sql = "UPDATE deal_of_the_days SET ";
     const updates = [];
@@ -174,12 +174,14 @@ const updateDeal = async (id, dealData) => {
     }
     sql += updates.join(", ") + " WHERE id = ?;";
     params.push(id);
-    await databaseConnection_1.db.promise().query(sql, params);
+    const [result] = await databaseConnection_1.db.promise().query(sql, params);
+    return result;
 };
-exports.updateDeal = updateDeal;
+exports.updateDeals = updateDeals;
 // Delete a deal
 const deleteDealById = async (id) => {
     const sql = "DELETE FROM deal_of_the_days WHERE id = ?;";
-    await databaseConnection_1.db.promise().query(sql, [id]);
+    const [result] = await databaseConnection_1.db.promise().query(sql, [id]);
+    return result;
 };
 exports.deleteDealById = deleteDealById;

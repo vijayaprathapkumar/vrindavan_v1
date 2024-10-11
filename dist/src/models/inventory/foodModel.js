@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.deleteFood = exports.updateFood = exports.createFood = exports.getFoodById = exports.getAllFoods = void 0;
 const databaseConnection_1 = require("../../config/databaseConnection");
+// Fetch all foods with filters, pagination, and total items count
 const getAllFoods = async (filters, limit, offset) => {
     let query = `
     SELECT f.*, 
@@ -55,15 +56,32 @@ const getAllFoods = async (filters, limit, offset) => {
     ${conditions.length > 0 ? "WHERE " + conditions.join(" AND ") : ""}
   `;
     const [countResult] = await databaseConnection_1.db.promise().execute(countQuery, values);
-    const totalItems = countResult[0].count;
+    const totalCount = countResult[0].count;
     query += ` LIMIT ${limit} OFFSET ${offset}`;
     const [rows] = await databaseConnection_1.db.promise().execute(query, values);
-    const foods = [];
-    const media = [];
+    // Create a mapping of foods to their media
+    const foodMap = {};
     rows.forEach(row => {
-        foods.push(row);
+        const foodId = row.id;
+        if (!foodMap[foodId]) {
+            foodMap[foodId] = {
+                id: row.id,
+                name: row.name,
+                description: row.description,
+                weightage: row.weightage,
+                status: row.status,
+                category_id: row.category_id,
+                price: row.price, // Include the price
+                restaurant_id: row.restaurant_id,
+                subcategory_id: row.subcategory_id,
+                created_at: row.created_at,
+                updated_at: row.updated_at,
+                media: [], // Initialize an empty media array
+            };
+        }
+        // If media_id is present, add the media to the corresponding food
         if (row.media_id) {
-            media.push({
+            foodMap[foodId].media.push({
                 id: row.media_id,
                 model_type: row.model_type,
                 model_id: row.model_id,
@@ -86,9 +104,12 @@ const getAllFoods = async (filters, limit, offset) => {
             });
         }
     });
-    return { foods, media, totalItems };
+    // Convert the foodMap object back to an array
+    const foods = Object.values(foodMap);
+    return { foods, totalCount };
 };
 exports.getAllFoods = getAllFoods;
+// Fetch a single food by ID
 const getFoodById = async (id) => {
     const [rows] = await databaseConnection_1.db
         .promise()
@@ -118,7 +139,7 @@ const getFoodById = async (id) => {
     const food = rows.length > 0 ? rows[0] : null;
     const media = rows
         .map(row => ({
-        Media_id: row.media_id,
+        id: row.media_id,
         model_type: row.model_type,
         model_id: row.model_id,
         uuid: row.uuid,
@@ -138,14 +159,14 @@ const getFoodById = async (id) => {
         updated_at: row.media_updated_at,
         original_url: `https://vrindavanmilk.com/storage/app/public/${row.media_id}/${row.media_file_name}`,
     }))
-        .filter(m => m.Media_id)
+        .filter(m => m.id)
         .sort((a, b) => {
         return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     });
     return { food, media };
 };
 exports.getFoodById = getFoodById;
-const defaultRestaurant_id = 1;
+// Create a new food item
 const createFood = async (foodData) => {
     const query = `
     INSERT INTO foods (
@@ -200,6 +221,7 @@ const createFood = async (foodData) => {
     }
 };
 exports.createFood = createFood;
+// Update an existing food item by ID
 const updateFood = async (id, foodData) => {
     const query = `
     UPDATE foods SET name = ?, price = ?, discount_price = ?, description = ?, 
@@ -225,11 +247,11 @@ const updateFood = async (id, foodData) => {
         foodData.cgst ?? null,
         foodData.sgst ?? null,
         foodData.subscription_type ?? null,
-        foodData.track_inventory ?? false,
-        foodData.featured ?? false,
-        foodData.deliverable ?? false,
-        foodData.restaurant_id ?? null,
-        foodData.category_id ?? null,
+        foodData.track_inventory ?? null,
+        foodData.featured ? 1 : 0,
+        foodData.deliverable ? 1 : 0,
+        foodData.restaurant_id,
+        foodData.category_id,
         foodData.subcategory_id ?? null,
         foodData.product_type_id ?? null,
         foodData.hub_id ?? null,
@@ -237,16 +259,22 @@ const updateFood = async (id, foodData) => {
         foodData.product_brand_id ?? null,
         foodData.weightage ?? null,
         foodData.status ?? null,
-        id,
+        id
     ];
-    const [result] = await databaseConnection_1.db.promise().execute(query, values);
-    return result.affectedRows > 0 ? { id, ...foodData } : null;
+    try {
+        const [result] = await databaseConnection_1.db.promise().execute(query, values);
+        return result.affectedRows > 0 ? { id, ...foodData } : null;
+    }
+    catch (error) {
+        console.error("Error updating food:", error);
+        throw new Error("Database update failed");
+    }
 };
 exports.updateFood = updateFood;
+// Delete a food item by ID
 const deleteFood = async (id) => {
-    const [result] = await databaseConnection_1.db
-        .promise()
-        .execute("DELETE FROM foods WHERE id = ?", [id]);
+    const query = `DELETE FROM foods WHERE id = ?`;
+    const [result] = await databaseConnection_1.db.promise().execute(query, [id]);
     return result.affectedRows > 0;
 };
 exports.deleteFood = deleteFood;

@@ -6,17 +6,17 @@ const databaseConnection_1 = require("../../config/databaseConnection");
 const getAllHubs = async (page, limit, searchTerm) => {
     const offset = (page - 1) * limit;
     const hubsQuery = `
-      SELECT * FROM hubs 
-      WHERE name LIKE ? 
-      ORDER BY 
-          COALESCE(updated_at, created_at) DESC 
-      LIMIT ? OFFSET ?
-  `;
+        SELECT * FROM hubs 
+        WHERE name LIKE ? 
+        ORDER BY 
+            COALESCE(updated_at, created_at) DESC 
+        LIMIT ? OFFSET ?
+    `;
     const [hubs] = await databaseConnection_1.db.promise().query(hubsQuery, [`%${searchTerm}%`, limit, offset]);
     const countQuery = `
-      SELECT COUNT(*) as total FROM hubs 
-      WHERE name LIKE ?
-  `;
+        SELECT COUNT(*) as total FROM hubs 
+        WHERE name LIKE ?
+    `;
     const [rows] = await databaseConnection_1.db.promise().query(countQuery, [`%${searchTerm}%`]);
     const total = rows[0].total;
     return { hubs, totalRecords: total };

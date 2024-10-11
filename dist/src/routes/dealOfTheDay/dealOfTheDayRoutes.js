@@ -10,6 +10,6 @@ const router = express_1.default.Router();
 router.get("/", authMiddleware_1.verifyDeviceToken, dealOfTheDayController_1.fetchDeals);
 router.post("/", authMiddleware_1.verifyDeviceToken, dealOfTheDayController_1.addDeal);
 router.get("/:id", authMiddleware_1.verifyDeviceToken, dealOfTheDayController_1.fetchDealById);
-router.put("/:id", authMiddleware_1.verifyDeviceToken, dealOfTheDayController_1.updateDealById);
+router.put("/:id", authMiddleware_1.verifyDeviceToken, dealOfTheDayController_1.updateDeal);
 router.delete("/:id", authMiddleware_1.verifyDeviceToken, dealOfTheDayController_1.removeDeal);
 exports.default = router;

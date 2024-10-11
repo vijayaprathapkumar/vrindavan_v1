@@ -40,12 +40,14 @@ const createBrand = async (name, active = true) => {
 exports.createBrand = createBrand;
 // Update product brand by ID
 const updateBrandById = async (id, name, active) => {
-    await databaseConnection_1.db.promise().query("UPDATE product_brands SET name = ?, active = ? WHERE id = ?", [name, active, id]);
+    const [result] = await databaseConnection_1.db.promise().query("UPDATE product_brands SET name = ?, active = ? WHERE id = ?", [name, active, id]);
+    return result;
 };
 exports.updateBrandById = updateBrandById;
 // Delete product brand by ID
 const deleteBrandById = async (id) => {
-    await databaseConnection_1.db.promise().query("DELETE FROM product_brands WHERE id = ?", [id]);
+    const [result] = await databaseConnection_1.db.promise().query("DELETE FROM product_brands WHERE id = ?", [id]);
+    return result;
 };
 exports.deleteBrandById = deleteBrandById;
 // Fetch product brand by ID

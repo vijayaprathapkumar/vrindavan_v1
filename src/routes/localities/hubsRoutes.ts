@@ -6,19 +6,14 @@ import {
     updateHub,
     deleteHub
 } from '../../controllers/localities/hubsController';
-import {
-    hubValidation,
-    hubIdValidation,
-    validate
-} from '../../validation/localities/hubValidation';
 import { verifyDeviceToken } from '../../middlewares/authMiddleware';
 
 const router = express.Router();
 
-router.get('/',verifyDeviceToken, getHubs);
-router.post('/',verifyDeviceToken, hubValidation, validate, addHub);
-router.get('/:id',verifyDeviceToken, hubIdValidation, validate, getHub);
-router.put('/:id',verifyDeviceToken, hubIdValidation, hubValidation, validate, updateHub);
-router.delete('/:id',verifyDeviceToken, hubIdValidation, validate, deleteHub);
+router.get('/', verifyDeviceToken, getHubs);
+router.post('/', verifyDeviceToken, addHub);
+router.get('/:id', verifyDeviceToken, getHub);
+router.put('/:id', verifyDeviceToken, updateHub);
+router.delete('/:id', verifyDeviceToken, deleteHub);
 
 export default router;

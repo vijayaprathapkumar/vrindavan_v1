@@ -22,13 +22,14 @@ const getAllTruckRoutes = async (page, limit, searchTerm) => {
 exports.getAllTruckRoutes = getAllTruckRoutes;
 // Create a new truck route
 const createTruckRoute = async (name, active) => {
-    await databaseConnection_1.db.promise().query("INSERT INTO truck_routes (name, active, created_at, updated_at) VALUES (?, ?, NOW(), NOW())", [name, active]);
+    await databaseConnection_1.db.promise().query("INSERT INTO truck_routes (name, active, created_at, updated_at) VALUES (?, ?, NOW(), NOW())", [name, active] // active should be 0 or 1
+    );
 };
 exports.createTruckRoute = createTruckRoute;
 // Fetch truck route by ID
 const getTruckRouteById = async (id) => {
     const [rows] = await databaseConnection_1.db.promise().query("SELECT * FROM truck_routes WHERE id = ?", [id]);
-    return rows;
+    return rows.length > 0 ? rows[0] : null;
 };
 exports.getTruckRouteById = getTruckRouteById;
 // Update truck route by ID
