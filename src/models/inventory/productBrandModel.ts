@@ -48,16 +48,22 @@ export const createBrand = async (name: string, active: boolean = true): Promise
 };
 
 // Update product brand by ID
-export const updateBrandById = async (id: number, name: string, active: boolean): Promise<void> => {
-  await db.promise().query<OkPacket>(
+export const updateBrandById = async (id: number, name: string, active: boolean): Promise<OkPacket> => {
+  const [result] = await db.promise().query<OkPacket>(
     "UPDATE product_brands SET name = ?, active = ? WHERE id = ?",
     [name, active, id]
   );
+  return result; 
 };
 
+
 // Delete product brand by ID
-export const deleteBrandById = async (id: number): Promise<void> => {
-  await db.promise().query<OkPacket>("DELETE FROM product_brands WHERE id = ?", [id]);
+export const deleteBrandById = async (id: number): Promise<OkPacket> => {
+  const [result] = await db.promise().query<OkPacket>(
+    "DELETE FROM product_brands WHERE id = ?",
+    [id]
+  );
+  return result;
 };
 
 // Fetch product brand by ID

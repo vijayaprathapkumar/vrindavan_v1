@@ -31,9 +31,9 @@ const foodController = __importStar(require("../../controllers/inventory/foodCon
 const foodValidation_1 = require("../../validation/inventory/foodValidation");
 const authMiddleware_1 = require("../../middlewares/authMiddleware");
 const router = express_1.default.Router();
-router.get("/", authMiddleware_1.verifyDeviceToken, foodController.getAllFoods);
-router.get("/:id", authMiddleware_1.verifyDeviceToken, foodController.getFoodById);
-router.post("/", authMiddleware_1.verifyDeviceToken, foodValidation_1.validateFood, foodController.createFood);
-router.put("/:id", authMiddleware_1.verifyDeviceToken, foodValidation_1.validateFood, foodController.updateFood);
-router.delete("/:id", authMiddleware_1.verifyDeviceToken, foodController.deleteFood);
+router.get("/", authMiddleware_1.verifyDeviceToken, foodController.fetchAllFoods);
+router.get("/:id", authMiddleware_1.verifyDeviceToken, foodController.fetchFoodById);
+router.post("/", authMiddleware_1.verifyDeviceToken, foodValidation_1.validateFood, foodController.addFood);
+router.put("/:id", authMiddleware_1.verifyDeviceToken, foodValidation_1.validateFood, foodController.modifyFood);
+router.delete("/:id", authMiddleware_1.verifyDeviceToken, foodController.removeFood);
 exports.default = router;

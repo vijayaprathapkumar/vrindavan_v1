@@ -3,45 +3,45 @@ import {
   getAllDeals,
   createDeal,
   getDealById,
-  updateDeal,
   deleteDealById,
-  DealOfTheDay,
+  updateDeals,
 } from "../../models/dealOfTheDay/dealOfTheDayModel";
 import { createResponse } from "../../utils/responseHandler";
 
 // Fetch all deals
-export const fetchDeals = async (req: Request, res: Response) => {
-  const page = parseInt(req.query.page as string) || 1;
-  const limit = parseInt(req.query.limit as string) || 10;
-  const searchTerm = req.query.searchTerm as string || '';
+export const fetchDeals = async (req: Request, res: Response): Promise<Response> => {
+  const page = Number(req.query.page) || 1;
+  const limit = Number(req.query.limit) || 10;
+  const searchTerm = (req.query.searchTerm as string) || '';
 
   const validLimits = [10, 25, 50, 100];
   if (!validLimits.includes(limit)) {
-    return res.status(400).json(
-      createResponse(
-        400,
-        "Invalid limit value. Please choose from 10, 25, 50, or 100."
-      )
-    );
+    return res.status(400).json(createResponse(400, "Invalid limit value. Please choose from 10, 25, 50, or 100."));
   }
 
   try {
     const { deals, total } = await getAllDeals(page, limit, searchTerm);
-    res.json(
-      createResponse(200, "Deals fetched successfully.", {
-        deals,
-        total,
-        page,
-        limit,
-      })
-    );
+
+    if (!deals || deals.length === 0 || total === 0) {
+      return res.status(404).json(createResponse(404, "No deals found."));
+    }
+
+    const totalPages = Math.ceil(total / limit);
+    return res.status(200).json(createResponse(200, "Deals fetched successfully.", {
+      deals,
+      totalCount: total,
+      totalPages,
+      currentPage: page,
+      limit,
+    }));
   } catch (error) {
-    res.status(500).json(createResponse(500, "Failed to fetch deals."));
+    console.error("Error fetching deals:", error);
+    return res.status(500).json(createResponse(500, "Error fetching deals.", error.message));
   }
 };
 
 // Create a new deal
-export const addDeal = async (req: Request, res: Response) => {
+export const addDeal = async (req: Request, res: Response): Promise<Response> => {
   const {
     food_id,
     unit,
@@ -53,7 +53,6 @@ export const addDeal = async (req: Request, res: Response) => {
     weightage,
   } = req.body;
 
-  // Validate required fields
   if (!food_id || !price || !offer_price || !quantity) {
     return res.status(400).json(createResponse(400, "Missing required fields."));
   }
@@ -69,48 +68,77 @@ export const addDeal = async (req: Request, res: Response) => {
       status,
       weightage,
     });
-    res.status(201).json(createResponse(201, "Deal created successfully."));
+    return res.status(201).json(createResponse(201, "Deal created successfully."));
   } catch (error) {
-    res.status(500).json(createResponse(500, "Failed to create deal."));
+    console.error("Error creating deal:", error);
+    return res.status(500).json(createResponse(500, "Error creating deal.", error.message));
   }
 };
 
 // Get a deal by ID
-export const fetchDealById = async (req: Request, res: Response) => {
-  const { id } = req.params;
+export const fetchDealById = async (req: Request, res: Response): Promise<Response> => {
+  const dealId = Number(req.params.id);
+
+  if (isNaN(dealId)) {
+    return res.status(400).json(createResponse(400, "Invalid deal ID."));
+  }
 
   try {
-    const deal: DealOfTheDay | null = await getDealById(Number(id));
+    const deal = await getDealById(dealId);
+    
     if (!deal) {
       return res.status(404).json(createResponse(404, "Deal not found."));
     }
-    res.json(createResponse(200, "Deal fetched successfully.", deal));
+
+    const response = { deals: [deal] };
+    return res.status(200).json(createResponse(200, "Deal fetched successfully.",response));
   } catch (error) {
-    res.status(500).json(createResponse(500, "Failed to fetch deal."));
+    console.error("Error fetching deal:", error);
+    return res.status(500).json(createResponse(500, "Error fetching deal.", error.message));
   }
 };
 
 // Update a deal by ID
-export const updateDealById = async (req: Request, res: Response) => {
-  const { id } = req.params;
-  const dealData = req.body; // assuming dealData matches the structure needed
+export const updateDeal = async (req: Request, res: Response): Promise<Response> => {
+  const dealId = Number(req.params.id);
+  const dealData = req.body; 
+
+  if (isNaN(dealId)) {
+    return res.status(400).json(createResponse(400, "Invalid deal ID."));
+  }
 
   try {
-    await updateDeal(Number(id), dealData);
-    res.json(createResponse(200, "Deal updated successfully."));
+    const result = await updateDeals(dealId, dealData);
+
+    if (result.affectedRows > 0) {
+      return res.status(200).json(createResponse(200, "Deal updated successfully."));
+    } else {
+      return res.status(404).json(createResponse(404, "Deal not found."));
+    }
   } catch (error) {
-    res.status(500).json(createResponse(500, "Failed to update deal."));
+    console.error("Error updating deal:", error);
+    return res.status(500).json(createResponse(500, "Error updating deal.", error.message));
   }
 };
 
 // Delete a deal by ID
-export const removeDeal = async (req: Request, res: Response) => {
-  const { id } = req.params;
+export const removeDeal = async (req: Request, res: Response): Promise<Response> => {
+  const dealId = Number(req.params.id);
+
+  if (isNaN(dealId)) {
+    return res.status(400).json(createResponse(400, "Invalid deal ID."));
+  }
 
   try {
-    await deleteDealById(Number(id));
-    res.json(createResponse(200, "Deal deleted successfully."));
+    const result = await deleteDealById(dealId);
+
+    if (result.affectedRows > 0) { 
+      return res.status(200).json(createResponse(200, "Deal deleted successfully."));
+    } else {
+      return res.status(404).json(createResponse(404, "Deal not found."));
+    }
   } catch (error) {
-    res.status(500).json(createResponse(500, "Failed to delete deal."));
+    console.error("Error deleting deal:", error);
+    return res.status(500).json(createResponse(500, "Error deleting deal.", error.message));
   }
 };

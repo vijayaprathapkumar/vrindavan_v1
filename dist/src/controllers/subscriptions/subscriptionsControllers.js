@@ -13,11 +13,10 @@ const validSubscriptionTypes = [
 // Add Subscription
 const addSubscription = async (req, res) => {
     const subscription = req.body;
-    // Validate subscription type
     if (!validSubscriptionTypes.includes(subscription.subscription_type)) {
         return res
             .status(400)
-            .json((0, responseHandler_1.createResponse)(400, "Invalid subscription type provided."));
+            .json((0, responseHandler_1.createResponse)(400, "Invalid subscription type."));
     }
     try {
         const result = await (0, subscriptionsModels_1.addSubscriptionModel)(subscription);
@@ -47,22 +46,19 @@ const getSubscriptions = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const searchTerm = req.query.searchTerm || "";
-    // Validate user ID
     if (isNaN(userId)) {
         return res.status(400).json((0, responseHandler_1.createResponse)(400, "Invalid user ID."));
     }
     try {
-        const totalRecords = await (0, subscriptionsModels_1.getTotalSubscriptionsCountModel)(userId);
-        const totalPages = Math.ceil(totalRecords / limit);
+        const totalCount = await (0, subscriptionsModels_1.getTotalSubscriptionsCountModel)(userId);
+        const totalPages = Math.ceil(totalCount / limit);
         const subscriptions = await (0, subscriptionsModels_1.getAllSubscriptionsModel)(userId, page, limit, searchTerm);
         res.status(200).json((0, responseHandler_1.createResponse)(200, "Subscriptions fetched successfully.", {
             subscriptions,
-            pagination: {
-                totalRecords,
-                currentPage: page,
-                limit,
-                totalPages,
-            },
+            totalCount,
+            currentPage: page,
+            limit,
+            totalPages,
         }));
     }
     catch (error) {
@@ -85,7 +81,7 @@ const updateSubscription = async (req, res) => {
     if (!validSubscriptionTypes.includes(subscription.subscription_type)) {
         return res
             .status(400)
-            .json((0, responseHandler_1.createResponse)(400, "Invalid subscription type provided."));
+            .json((0, responseHandler_1.createResponse)(400, "Invalid subscription type."));
     }
     try {
         const result = await (0, subscriptionsModels_1.updateSubscriptionModel)(id, subscription);
@@ -227,9 +223,10 @@ const getSubscriptionById = async (req, res) => {
                 .status(404)
                 .json((0, responseHandler_1.createResponse)(404, "Subscription not found."));
         }
+        const responce = { subscription: [subscription] };
         res
             .status(200)
-            .json((0, responseHandler_1.createResponse)(200, "Subscription fetched successfully.", subscription));
+            .json((0, responseHandler_1.createResponse)(200, "Subscription fetched successfully.", responce));
     }
     catch (error) {
         console.error("Error fetching subscription:", error);

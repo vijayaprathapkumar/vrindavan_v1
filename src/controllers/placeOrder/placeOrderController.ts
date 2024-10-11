@@ -6,71 +6,86 @@ import {
   deletePlaceOrderById,
   getPriceForNextOrder,
   deleteAllCartItemsByUserId,
+  getPlaceOrderById,
 } from "../../models/placeOrder/placeOrderModels";
 import { createResponse } from "../../utils/responseHandler";
 
-
 // Fetch all place orders for a user
-export const fetchPlaceOrders = async (req: Request, res: Response) => {
+export const fetchPlaceOrders = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
   const userId = parseInt(req.params.userId);
   const page = parseInt(req.query.page as string) || 1;
   const limit = parseInt(req.query.limit as string) || 10;
 
   try {
     const { total, placeOrders } = await getAllPlaceOrders(userId, page, limit);
-    res.json(createResponse(200, "Place orders fetched successfully.", {
-      placeOrders,
-      totalRecords: total,
-      page,
-      limit,
-    }));
+    return res.json(
+      createResponse(200, "Place orders fetched successfully.", {
+        placeOrders,
+        currentPage: page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+        totalRecords: total,
+      })
+    );
   } catch (error) {
     console.error("Error fetching place orders:", error);
-    res.status(500).json(createResponse(500, "Failed to fetch place orders."));
+    return res
+      .status(500)
+      .json(createResponse(500, "Failed to fetch place orders."));
   }
 };
 
-export const addPlaceOrderController = async (req: Request, res: Response) => {
+// Add a place order and clear the cart
+export const addPlaceOrderController = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
   const { userId } = req.body;
 
   try {
-    // Get price for the next order
     const price = await getPriceForNextOrder(userId);
     if (!price) {
-      return res.status(400).json(createResponse(400, "Price not found for the user."));
+      return res
+        .status(400)
+        .json(createResponse(400, "Price not found for the user."));
     }
 
     const status = "active";
     const method = "wallet";
 
-    // Add the new place order
-    const result = await addPlaceOrder({
-      price,
-      userId,
-      status,
-      method,
-    });
-
+    const result = await addPlaceOrder({ price, userId, status, method });
     if (result.affectedRows > 0) {
-      // Clear the cart after the place order is successfully added
       await deleteAllCartItemsByUserId(userId);
-      
-      res.status(201).json(createResponse(201, "Place order added successfully, cart cleared, and wallet updated."));
+      return res
+        .status(201)
+        .json(
+          createResponse(
+            201,
+            "Place order added successfully, cart cleared, and wallet updated.",
+            null
+          )
+        );
     } else {
-      res.status(400).json(createResponse(400, "Failed to add place order."));
+      return res
+        .status(400)
+        .json(createResponse(400, "Failed to add place order."));
     }
   } catch (error) {
     console.error("Error adding place order:", error);
-    res.status(500).json(createResponse(500, "Failed to add place order."));
+    return res
+      .status(500)
+      .json(createResponse(500, "Failed to add place order."));
   }
 };
 
-
-
-
-
-// Update a place order and wallet balance
-export const updatePlaceOrderController = async (req: Request, res: Response) => {
+// Update a place order
+export const updatePlaceOrderController = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
   const { id } = req.params;
   const { price, description } = req.body;
 
@@ -79,22 +94,61 @@ export const updatePlaceOrderController = async (req: Request, res: Response) =>
 
   try {
     await updatePlaceOrder(Number(id), { price, description, status, method });
-    res.json(createResponse(200, "Place order updated and wallet balance adjusted."));
+    return res.json(
+      createResponse(200, "Place order updated successfully.", null)
+    );
   } catch (error) {
     console.error("Error updating place order:", error);
-    res.status(500).json(createResponse(500, "Failed to update place order."));
+    return res
+      .status(500)
+      .json(createResponse(500, "Failed to update place order."));
   }
 };
 
 // Delete a place order by ID
-export const removePlaceOrder = async (req: Request, res: Response) => {
+export const removePlaceOrder = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
   const { id } = req.params;
 
   try {
     await deletePlaceOrderById(Number(id));
-    res.json(createResponse(200, "Place order deleted successfully."));
+    return res.json(
+      createResponse(200, "Place order deleted successfully.", null)
+    );
   } catch (error) {
     console.error("Error deleting place order:", error);
-    res.status(500).json(createResponse(500, "Failed to delete place order."));
+    return res
+      .status(500)
+      .json(createResponse(500, "Failed to delete place order."));
+  }
+};
+
+// Fetch a place order by ID
+export const fetchPlaceOrderById = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  const { id } = req.params;
+
+  try {
+    const placeOrder = await getPlaceOrderById(Number(id));
+
+    if (!placeOrder) {
+      return res
+        .status(404)
+        .json(createResponse(404, "Place order not found."));
+    }
+
+    const responce = { placeOrder: [placeOrder] };
+    return res.json(
+      createResponse(200, "Place order fetched successfully.", responce)
+    );
+  } catch (error) {
+    console.error("Error fetching place order:", error);
+    return res
+      .status(500)
+      .json(createResponse(500, "Failed to fetch place order."));
   }
 };
