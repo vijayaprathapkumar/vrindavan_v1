@@ -101,7 +101,7 @@ const fetchFoodById = async (req, res) => {
                 statusCode: 200,
                 message: "Food fetched successfully",
                 data: {
-                    food: foodResponse,
+                    foods: [foodResponse],
                 },
             });
         }
