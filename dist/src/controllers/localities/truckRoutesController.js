@@ -5,10 +5,10 @@ const truckRoutesModel_1 = require("../../models/localities/truckRoutesModel");
 const responseHandler_1 = require("../../utils/responseHandler");
 // Fetch all truck routes with pagination and filters
 const getTruckRoutes = async (req, res) => {
-    const { page = 1, limit = 10, searchTerm } = req.query;
+    const { page = 1, limit = 10, searchTerm = "" } = req.query; // Default searchTerm to empty string
     const validLimit = Number(limit) > 0 ? Number(limit) : 10;
     try {
-        const { routes, totalRecords } = await (0, truckRoutesModel_1.getAllTruckRoutes)(Number(page), validLimit, searchTerm?.toString());
+        const { routes, totalRecords } = await (0, truckRoutesModel_1.getAllTruckRoutes)(Number(page), validLimit, searchTerm.toString());
         const totalPages = Math.ceil(totalRecords / validLimit);
         res.status(200).json({
             statusCode: 200,
@@ -23,6 +23,7 @@ const getTruckRoutes = async (req, res) => {
         });
     }
     catch (error) {
+        console.error("Error fetching truck routes:", error);
         res.status(500).json((0, responseHandler_1.createResponse)(500, "Error fetching truck routes", error.message));
     }
 };
@@ -37,7 +38,7 @@ const addTruckRoute = async (req, res) => {
             statusCode: 201,
             message: "Truck route created successfully",
             data: {
-                truckRoute: null, // Or return the created truck route details if needed
+                truckRoute: null,
             },
         });
     }
@@ -46,7 +47,6 @@ const addTruckRoute = async (req, res) => {
     }
 };
 exports.addTruckRoute = addTruckRoute;
-// Get truck route by ID
 // Get truck route by ID
 const getTruckRoute = async (req, res) => {
     const { id } = req.params;
@@ -83,7 +83,7 @@ const updateTruckRoute = async (req, res) => {
     const { id } = req.params;
     const { name, active } = req.body;
     try {
-        await (0, truckRoutesModel_1.updateTruckRouteById)(parseInt(id), name, parseInt(active, 10)); // Ensure active is 0 or 1
+        await (0, truckRoutesModel_1.updateTruckRouteById)(parseInt(id), name, parseInt(active, 10));
         res.status(200).json({
             statusCode: 200,
             message: "Truck route updated successfully",
