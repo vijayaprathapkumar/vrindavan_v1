@@ -168,7 +168,8 @@ const updateBanner = async (id, banner_name, banner_type, banner_location, banne
         status,
         id,
     ];
-    await databaseConnection_1.db.promise().query(updateBannerQuery, values);
+    const [result] = await databaseConnection_1.db.promise().query(updateBannerQuery, values);
+    return { affectedRows: result.affectedRows };
 };
 exports.updateBanner = updateBanner;
 // Delete a banner by ID
@@ -177,6 +178,7 @@ const deleteBannerById = async (id) => {
     DELETE FROM banners 
     WHERE id = ?;
   `;
-    await databaseConnection_1.db.promise().query(query, [id]);
+    const [result] = await databaseConnection_1.db.promise().query(query, [id]);
+    return { affectedRows: result.affectedRows };
 };
 exports.deleteBannerById = deleteBannerById;

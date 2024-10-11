@@ -78,18 +78,20 @@ export const updateProductTypeById = async (
   name: string,
   weightage: number,
   active: number
-): Promise<void> => {
-  await db
+): Promise<OkPacket> => {
+  const [result] = await db
     .promise()
     .query<OkPacket>(
       "UPDATE product_types SET Name = ?, Weightage = ?, Active = ? WHERE id = ?",
       [name, weightage, active, id]
     );
+  return result;
 };
 
 // Delete product type by ID
-export const deleteProductTypeById = async (id: number): Promise<void> => {
-  await db
+export const deleteProductTypeById = async (id: number): Promise<OkPacket> => {
+  const [result] = await db
     .promise()
     .query<OkPacket>("DELETE FROM product_types WHERE id = ?", [id]);
+  return result;
 };

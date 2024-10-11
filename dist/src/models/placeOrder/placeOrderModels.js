@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteAllCartItemsByUserId = exports.deductFromWalletBalance = exports.deletePlaceOrderById = exports.updatePlaceOrder = exports.getPriceForNextOrder = exports.addPlaceOrder = exports.getAllPlaceOrders = void 0;
+exports.getPlaceOrderById = exports.deleteAllCartItemsByUserId = exports.deductFromWalletBalance = exports.deletePlaceOrderById = exports.updatePlaceOrder = exports.getPriceForNextOrder = exports.addPlaceOrder = exports.getAllPlaceOrders = void 0;
 const databaseConnection_1 = require("../../config/databaseConnection");
 // Fetch all place orders for a user
 const getAllPlaceOrders = async (userId, page, limit) => {
@@ -187,3 +187,29 @@ const deleteAllCartItemsByUserId = async (userId) => {
     }
 };
 exports.deleteAllCartItemsByUserId = deleteAllCartItemsByUserId;
+// Fetch a place order by ID
+const getPlaceOrderById = async (id) => {
+    const sql = `SELECT * FROM payments WHERE id = ?;`;
+    try {
+        const [rows] = await databaseConnection_1.db.promise().query(sql, [id]);
+        if (rows.length === 0) {
+            return null; // No order found
+        }
+        const row = rows[0];
+        return {
+            id: row.id,
+            price: row.price,
+            description: row.description,
+            user_id: row.user_id,
+            status: row.status,
+            method: row.method,
+            createdAt: row.created_at,
+            updatedAt: row.updated_at,
+        };
+    }
+    catch (error) {
+        console.error("SQL Error:", error);
+        throw new Error("Failed to fetch place order by ID.");
+    }
+};
+exports.getPlaceOrderById = getPlaceOrderById;

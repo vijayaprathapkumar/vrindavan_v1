@@ -4,20 +4,21 @@ import {
   createCustomer,
   getCustomerById,
   updateCustomerById,
-  deleteCustomerById
-} from '../../models/customer/customerModel';
-import { createResponse } from '../../utils/responseHandler';
+  deleteCustomerById,
+} from "../../models/customer/customerModel";
+import { createResponse } from "../../utils/responseHandler";
 
 // Fetch all customers with pagination and filters
-// Fetch all customers with pagination and filters
-export const getCustomers = async (req: Request, res: Response): Promise<void> => {
+export const getCustomers = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
   const { page = 1, limit = 10, locality, status, searchTerm } = req.query;
 
-  // Allow any positive integer for limit, defaulting to 10 if not specified
   const validLimit = Number(limit) > 0 ? Number(limit) : 10;
 
   try {
-    const { customers, total, statusCount } = await getAllCustomers(
+    const { customers, total } = await getAllCustomers(
       Number(page),
       validLimit,
       locality?.toString(),
@@ -26,44 +27,81 @@ export const getCustomers = async (req: Request, res: Response): Promise<void> =
     );
 
     const totalPages = Math.ceil(total / validLimit);
-
-    res.status(200).json(createResponse(200, "Customers fetched successfully", {
-      customers,
-      total,
-      totalPages,
-      currentPage: Number(page),
-      limit: validLimit,
-      locality: locality || 'All',
-      statusCount,
-    }));
+    res.status(200).json({
+      statusCode: 200,
+      message: "Customers fetched successfully",
+      data: {
+        customer: customers,
+        totalCount: total,
+        currentPage: Number(page),
+        limit: validLimit,
+        totalPage: totalPages,
+      },
+    });
   } catch (error) {
-    res.status(500).json(createResponse(500, "Error fetching customers", error));
+    res
+      .status(500)
+      .json(createResponse(500, "Error fetching customers", error));
   }
 };
 
-
-
 // Add a new customer
-export const addCustomer = async (req: Request, res: Response): Promise<void> => {
-  const { localityId, name, email, mobile, houseNo, completeAddress, status } = req.body;
+export const addCustomer = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  const { localityId, name, email, mobile, houseNo, completeAddress, status } =
+    req.body;
+
   try {
-    await createCustomer(localityId, name, email, mobile, houseNo, completeAddress, status);
-    res.status(201).json(createResponse(201, "Customer created successfully"));
+    await createCustomer(
+      localityId,
+      name,
+      email,
+      mobile,
+      houseNo,
+      completeAddress,
+      status
+    );
+
+    res.status(201).json({
+      statusCode: 201,
+      message: "Customer created successfully",
+      data: {
+        customer: null,
+      },
+    });
   } catch (error) {
-    console.error("Error in addCustomer:", error); 
-    res.status(500).json(createResponse(500, "Error creating customer", error.message));
+    res
+      .status(500)
+      .json(createResponse(500, "Error creating customer", error.message));
   }
 };
 
 // Get customer by ID
-export const getCustomer = async (req: Request, res: Response): Promise<void> => {
+export const getCustomer = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
   const { id } = req.params;
   try {
     const customer = await getCustomerById(parseInt(id));
     if (!customer) {
-      res.status(404).json(createResponse(404, "Customer not found"));
+      res.status(404).json({
+        statusCode: 404,
+        message: "Customer not found",
+        data: {
+          customer: null,
+        },
+      });
     } else {
-      res.status(200).json(createResponse(200, "Customer fetched successfully", customer));
+      res.status(200).json({
+        statusCode: 200,
+        message: "Customer fetched successfully",
+        data: {
+          customer: [customer],
+        },
+      });
     }
   } catch (error) {
     res.status(500).json(createResponse(500, "Error fetching customer", error));
@@ -71,9 +109,13 @@ export const getCustomer = async (req: Request, res: Response): Promise<void> =>
 };
 
 // Update customer by ID
-export const updateCustomer = async (req: Request, res: Response): Promise<void> => {
+export const updateCustomer = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
   const { id } = req.params;
-  const { localityId, name, email, mobile, houseNo, completeAddress, status } = req.body;
+  const { localityId, name, email, mobile, houseNo, completeAddress, status } =
+    req.body;
 
   try {
     await updateCustomerById(
@@ -86,19 +128,40 @@ export const updateCustomer = async (req: Request, res: Response): Promise<void>
       completeAddress,
       status
     );
-    res.status(200).json({ message: "Customer updated successfully" });
+
+    res.status(200).json({
+      statusCode: 200,
+      message: "Customer updated successfully",
+      data: {
+        customer: {
+          id: parseInt(id),
+        },
+      },
+    });
   } catch (error) {
-    console.error("Error updating customer:", error);
-    res.status(400).json({ message: error.message });
+    res
+      .status(400)
+      .json(createResponse(400, error.message, { customer: null }));
   }
 };
 
 // Delete customer by ID
-export const deleteCustomer = async (req: Request, res: Response): Promise<void> => {
+export const deleteCustomer = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
   const { id } = req.params;
   try {
     await deleteCustomerById(parseInt(id));
-    res.status(200).json(createResponse(200, "Customer deleted successfully"));
+    res.status(200).json({
+      statusCode: 200,
+      message: "Customer deleted successfully",
+      data: {
+        customer: {
+          id: parseInt(id),
+        },
+      },
+    });
   } catch (error) {
     res.status(500).json(createResponse(500, "Error deleting customer", error));
   }

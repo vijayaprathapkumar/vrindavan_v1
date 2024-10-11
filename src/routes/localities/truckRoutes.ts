@@ -6,25 +6,15 @@ import {
   updateTruckRoute,
   deleteTruckRoute,
 } from "../../controllers/localities/truckRoutesController";
-import {
-  truckRouteValidation,
-  truckRouteIdValidation,
-  validate,
-} from "../../validation/localities/truckRoutesValidator";
+
 import { verifyDeviceToken } from "../../middlewares/authMiddleware";
 
 const router = express.Router();
 
-router.get("/",verifyDeviceToken, getTruckRoutes);
-router.post("/",verifyDeviceToken, truckRouteValidation, validate, addTruckRoute);
-router.get("/:id",verifyDeviceToken, truckRouteIdValidation, validate, getTruckRoute);
-router.put(
-  "/:id",
-  truckRouteIdValidation,
-  truckRouteValidation,
-  validate,
-  updateTruckRoute,verifyDeviceToken,
-);
-router.delete("/:id",verifyDeviceToken, truckRouteIdValidation, validate, deleteTruckRoute);
+router.get("/", verifyDeviceToken, getTruckRoutes);
+router.post("/", verifyDeviceToken, addTruckRoute);
+router.get("/:id", verifyDeviceToken, getTruckRoute);
+router.put("/:id", updateTruckRoute, verifyDeviceToken);
+router.delete("/:id", verifyDeviceToken, deleteTruckRoute);
 
 export default router;

@@ -11,11 +11,12 @@ const getWalletBalance = async (req, res) => {
             return res.status(404).json((0, responseHandler_1.createResponse)(404, "User not found"));
         }
         const balance = walletBalance.balance;
-        return res.status(200).json((0, responseHandler_1.createResponse)(200, "Wallet balance retrieved successfully", { walletBalance: { ...walletBalance, balance } }));
+        const response = { walletBalance: [{ ...walletBalance, balance }] };
+        return res.status(200).json((0, responseHandler_1.createResponse)(200, "Wallet balance retrieved successfully", response));
     }
     catch (error) {
         console.error("Error retrieving wallet balance:", error);
-        return res.status(500).json((0, responseHandler_1.createResponse)(500, "Error retrieving wallet balance"));
+        return res.status(500).json((0, responseHandler_1.createResponse)(500, "Error retrieving wallet balance", error.message));
     }
 };
 exports.getWalletBalance = getWalletBalance;

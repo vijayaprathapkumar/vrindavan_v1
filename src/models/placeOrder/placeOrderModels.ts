@@ -218,3 +218,32 @@ export const deleteAllCartItemsByUserId = async (userId: number) => {
     throw new Error("Failed to clear cart items.");
   }
 };
+
+
+// Fetch a place order by ID
+export const getPlaceOrderById = async (id: number): Promise<PlaceOrder | null> => {
+  const sql = `SELECT * FROM payments WHERE id = ?;`;
+
+  try {
+    const [rows]: [RowDataPacket[], any] = await db.promise().query(sql, [id]);
+
+    if (rows.length === 0) {
+      return null; // No order found
+    }
+
+    const row = rows[0];
+    return {
+      id: row.id,
+      price: row.price,
+      description: row.description,
+      user_id: row.user_id,
+      status: row.status,
+      method: row.method,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    };
+  } catch (error) {
+    console.error("SQL Error:", error);
+    throw new Error("Failed to fetch place order by ID.");
+  }
+};

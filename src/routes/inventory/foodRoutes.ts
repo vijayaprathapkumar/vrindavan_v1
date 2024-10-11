@@ -5,10 +5,10 @@ import { verifyDeviceToken } from "../../middlewares/authMiddleware";
 
 const router = express.Router();
 
-router.get("/", verifyDeviceToken, foodController.getAllFoods); 
-router.get("/:id", verifyDeviceToken, foodController.getFoodById); 
-router.post("/", verifyDeviceToken, validateFood, foodController.createFood);
-router.put("/:id", verifyDeviceToken, validateFood, foodController.updateFood); 
-router.delete("/:id", verifyDeviceToken, foodController.deleteFood); 
+router.get("/", verifyDeviceToken, foodController.fetchAllFoods);
+router.get("/:id", verifyDeviceToken, foodController.fetchFoodById);
+router.post("/", verifyDeviceToken, validateFood, foodController.addFood);
+router.put("/:id", verifyDeviceToken, validateFood, foodController.modifyFood);
+router.delete("/:id", verifyDeviceToken, foodController.removeFood);
 
 export default router;

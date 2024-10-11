@@ -10,76 +10,173 @@ import {
 import { createResponse } from "../../utils/responseHandler";
 
 // Fetch all product brands
-export const getProductBrands = async (req: Request, res: Response): Promise<void> => {
-  const { searchTerm, limit = 10, page = 1 } = req.query;
-  const parsedLimit = Number(limit);
-  const parsedPage = Number(page);
-  const offset = (parsedPage - 1) * parsedLimit;
-
+export const fetchAllBrands = async (
+  req: Request,
+  res: Response
+): Promise<Response<any, Record<string, any>> | void> => {
   try {
-    const brands = await getAllBrands(searchTerm as string, parsedLimit, offset);
+    const { searchTerm } = req.query;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const page = parseInt(req.query.page as string) || 1;
+    const offset = (page - 1) * limit;
+
+    const brands = await getAllBrands(searchTerm as string, limit, offset);
     const totalCount = await getBrandsCount(searchTerm as string);
 
-    res.status(200).json(createResponse(200, "Product brands fetched successfully", {
-      brands,
-      pagination: {
-        total: totalCount,
-        limit: parsedLimit,
-        page: parsedPage,
-        totalPages: Math.ceil(totalCount / parsedLimit),
-      }
+    if (!brands || brands.length === 0 || totalCount === 0) {
+      return res.status(404).json(createResponse(404, "No product brands found"));
+    }
+
+    const brandsResponse = brands.map((brand: any) => ({
+      brand_id: brand.id,
+      brand_name: brand.name,
+      active: brand.active,
+      created_at: brand.created_at,
+      updated_at: brand.updated_at,
     }));
+
+    return res.status(200).json({
+      statusCode: 200,
+      message: "Product brands fetched successfully",
+      data: {
+        brands: brandsResponse,
+        totalCount,
+        limit,
+        totalPages: Math.ceil(totalCount / limit),
+        currentPage: page,
+      },
+    });
   } catch (error) {
-    res.status(500).json(createResponse(500, "Error fetching product brands", error));
+    console.error("Error fetching product brands:", error);
+    return res
+      .status(500)
+      .json(createResponse(500, "Error fetching product brands", error.message));
   }
 };
 
-
 // Add a new product brand (POST)
-export const addProductBrand = async (req: Request, res: Response): Promise<void> => {
-  const { name, active = true } = req.body;
+export const addBrand = async (
+  req: Request,
+  res: Response
+): Promise<Response<any, Record<string, any>> | void> => {
   try {
-    await createBrand(name, active);
-    res.status(201).json(createResponse(201, "Product brand created successfully"));
+    const { name, active = true } = req.body;
+     await createBrand(name, active);
+
+
+
+    return res.status(201).json({
+      statusCode: 201,
+      message: "Product brand created successfully",
+      data: null,
+    });
   } catch (error) {
-    res.status(500).json(createResponse(500, "Error creating product brand", error));
+    console.error("Error creating product brand:", error);
+    return res
+      .status(500)
+      .json(createResponse(500, "Error creating product brand", error.message));
   }
 };
 
 // Get product brand by ID
-export const getProductBrandById = async (req: Request, res: Response): Promise<void> => {
-  const { id } = req.params;
+export const fetchBrandById = async (
+  req: Request,
+  res: Response
+): Promise<Response<any, Record<string, any>> | void> => {
+  const brandId = parseInt(req.params.id);
+  if (isNaN(brandId)) {
+    return res.status(400).json(createResponse(400, "Invalid product brand ID"));
+  }
+
   try {
-    const brand = await getBrandById(parseInt(id));
-    if (brand.length === 0) {
-      res.status(404).json(createResponse(404, "Product brand not found"));
+    const [brand] = await getBrandById(brandId);
+    if (brand) {
+      const brandResponse = {
+        brand_id: brand.id,
+        brand_name: brand.name,
+        active: brand.active,
+        created_at: brand.created_at,
+        updated_at: brand.updated_at,
+      };
+
+      return res.status(200).json({
+        statusCode: 200,
+        message: "Product brand fetched successfully",
+        data: [brandResponse],
+      });
     } else {
-      res.status(200).json(createResponse(200, "Product brand fetched successfully", brand));
+      return res.status(404).json(createResponse(404, "Product brand not found"));
     }
   } catch (error) {
-    res.status(500).json(createResponse(500, "Error fetching product brand", error));
+    console.error("Error fetching product brand:", error);
+    return res
+      .status(500)
+      .json(createResponse(500, "Error fetching product brand", error.message));
   }
 };
 
 // Update product brand by ID (PUT)
-export const updateProductBrand = async (req: Request, res: Response): Promise<void> => {
-  const { id } = req.params;
-  const { name, active } = req.body;
+export const UpdateBrand = async (
+  req: Request,
+  res: Response
+): Promise<Response<any, Record<string, any>> | void> => {
+  const brandId = parseInt(req.params.id);
+  if (isNaN(brandId)) {
+    return res.status(400).json(createResponse(400, "Invalid product brand ID"));
+  }
+
   try {
-    await updateBrandById(parseInt(id), name, active);
-    res.status(200).json(createResponse(200, "Product brand updated successfully"));
+    const { name, active } = req.body;
+    const updatedBrand = await updateBrandById(brandId, name, active);
+
+    if (updatedBrand.affectedRows > 0) {
+      return res.status(200).json({
+        statusCode: 200,
+        message: "Product brand updated successfully",
+        data: {
+          brand_id: brandId,
+        },
+      });
+    } else {
+      return res.status(404).json(createResponse(404, "Product brand not found"));
+    }
   } catch (error) {
-    res.status(500).json(createResponse(500, "Error updating product brand", error));
+    console.error("Error updating product brand:", error);
+    return res
+      .status(500)
+      .json(createResponse(500, "Error updating product brand", error.message));
   }
 };
 
-// Delete product brand by ID
-export const deleteProductBrand = async (req: Request, res: Response): Promise<void> => {
-  const { id } = req.params;
+
+// Delete product brand by ID (DELETE)
+export const removeBrand = async (
+  req: Request,
+  res: Response
+): Promise<Response<any, Record<string, any>> | void> => {
+  const brandId = parseInt(req.params.id);
+  if (isNaN(brandId)) {
+    return res.status(400).json(createResponse(400, "Invalid product brand ID"));
+  }
+
   try {
-    await deleteBrandById(parseInt(id));
-    res.status(200).json(createResponse(200, "Product brand deleted successfully"));
+    const deleted = await deleteBrandById(brandId);
+
+    if (deleted.affectedRows > 0) {
+      return res.status(200).json({
+        statusCode: 200,
+        message: "Product brand deleted successfully",
+        data: {
+          brand_id: brandId,
+        },
+      });
+    } else {
+      return res.status(404).json(createResponse(404, "Product brand not found"));
+    }
   } catch (error) {
-    res.status(500).json(createResponse(500, "Error deleting product brand", error));
+    console.error("Error deleting product brand:", error);
+    return res
+      .status(500)
+      .json(createResponse(500, "Error deleting product brand", error.message));
   }
 };

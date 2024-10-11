@@ -2,7 +2,7 @@ import { db } from "../../config/databaseConnection";
 import { Food, Media } from "../../types/inventory/foodTypes";
 import { RowDataPacket, ResultSetHeader } from "mysql2";
 
-
+// Fetch all foods with filters, pagination, and total items count
 export const getAllFoods = async (
   filters: {
     status?: boolean;
@@ -12,7 +12,7 @@ export const getAllFoods = async (
   },
   limit: number,
   offset: number
-): Promise<{ foods: Food[]; media: Media[]; totalItems: number }> => {
+): Promise<{ foods: Food[]; totalCount: number }> => {
   let query = `
     SELECT f.*, 
            m.id AS media_id,
@@ -74,20 +74,38 @@ export const getAllFoods = async (
   `;
 
   const [countResult] = await db.promise().execute<RowDataPacket[]>(countQuery, values);
-  const totalItems = countResult[0].count;
+  const totalCount = countResult[0].count;
 
   query += ` LIMIT ${limit} OFFSET ${offset}`;
 
   const [rows] = await db.promise().execute<RowDataPacket[]>(query, values);
 
-  const foods: Food[] = [];
-  const media: Media[] = [];
+  // Create a mapping of foods to their media
+  const foodMap: { [key: number]: Food & { media: Media[] } } = {};
 
   rows.forEach(row => {
-    foods.push(row as Food);
+    const foodId = row.id;
 
+    if (!foodMap[foodId]) {
+      foodMap[foodId] = {
+        id: row.id,
+        name: row.name,
+        description: row.description,
+        weightage: row.weightage,
+        status: row.status,
+        category_id: row.category_id,
+        price: row.price, // Include the price
+        restaurant_id: row.restaurant_id,
+        subcategory_id: row.subcategory_id,
+        created_at: row.created_at,
+        updated_at: row.updated_at,
+        media: [], // Initialize an empty media array
+      };
+    }
+
+    // If media_id is present, add the media to the corresponding food
     if (row.media_id) {
-      media.push({
+      foodMap[foodId].media.push({
         id: row.media_id,
         model_type: row.model_type,
         model_id: row.model_id,
@@ -110,10 +128,15 @@ export const getAllFoods = async (
       } as Media);
     }
   });
+  
+  // Convert the foodMap object back to an array
+  const foods: Food[] = Object.values(foodMap);
 
-  return { foods, media, totalItems };
+  return { foods, totalCount };
 };
 
+
+// Fetch a single food by ID
 export const getFoodById = async (id: number): Promise<{ food: Food | null; media: Media[] }> => {
   const [rows] = await db
     .promise()
@@ -145,10 +168,9 @@ export const getFoodById = async (id: number): Promise<{ food: Food | null; medi
 
   const food = rows.length > 0 ? (rows[0] as Food) : null;
 
-
   const media: Media[] = rows
     .map(row => ({
-      Media_id: row.media_id,
+      id: row.media_id,
       model_type: row.model_type,
       model_id: row.model_id,
       uuid: row.uuid,
@@ -168,7 +190,7 @@ export const getFoodById = async (id: number): Promise<{ food: Food | null; medi
       updated_at: row.media_updated_at,
       original_url: `https://vrindavanmilk.com/storage/app/public/${row.media_id}/${row.media_file_name}`,
     }))
-    .filter(m => m.Media_id) 
+    .filter(m => m.id)
     .sort((a, b) => {
       return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     });
@@ -176,8 +198,7 @@ export const getFoodById = async (id: number): Promise<{ food: Food | null; medi
   return { food, media };
 };
 
-
-const defaultRestaurant_id = 1;
+// Create a new food item
 export const createFood = async (foodData: Food): Promise<Food> => {
   const query = `
     INSERT INTO foods (
@@ -192,7 +213,7 @@ export const createFood = async (foodData: Food): Promise<Food> => {
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 `;
 
-const values = [
+  const values = [
     foodData.name,
     foodData.price,
     foodData.discount_price ?? null,
@@ -222,9 +243,7 @@ const values = [
     new Date(), 
     new Date(), 
     foodData.food_locality ?? null 
-];
-
-
+  ];
 
   try {
     const [result] = await db.promise().execute<ResultSetHeader>(query, values);
@@ -235,9 +254,7 @@ const values = [
   }
 };
 
-
-
-
+// Update an existing food item by ID
 export const updateFood = async (id: number, foodData: Food): Promise<Food | null> => {
   const query = `
     UPDATE foods SET name = ?, price = ?, discount_price = ?, description = ?, 
@@ -248,6 +265,7 @@ export const updateFood = async (id: number, foodData: Food): Promise<Food | nul
     hub_id = ?, locality_id = ?, product_brand_id = ?, weightage = ?, 
     status = ?, updated_at = NOW() WHERE id = ?
   `;
+
   const values = [
     foodData.name,
     foodData.price,
@@ -263,11 +281,11 @@ export const updateFood = async (id: number, foodData: Food): Promise<Food | nul
     foodData.cgst ?? null,
     foodData.sgst ?? null,
     foodData.subscription_type ?? null,
-    foodData.track_inventory ?? false,
-    foodData.featured ?? false,
-    foodData.deliverable ?? false,
-    foodData.restaurant_id ?? null,
-    foodData.category_id ?? null,
+    foodData.track_inventory ?? null,
+    foodData.featured ? 1 : 0,
+    foodData.deliverable ? 1 : 0,
+    foodData.restaurant_id, 
+    foodData.category_id,    
     foodData.subcategory_id ?? null,
     foodData.product_type_id ?? null,
     foodData.hub_id ?? null,
@@ -275,18 +293,21 @@ export const updateFood = async (id: number, foodData: Food): Promise<Food | nul
     foodData.product_brand_id ?? null,
     foodData.weightage ?? null,
     foodData.status ?? null,
-    id,
+    id
   ];
 
-  const [result] = await db.promise().execute<ResultSetHeader>(query, values);
-  return result.affectedRows > 0 ? { id, ...foodData } : null;
+  try {
+    const [result] = await db.promise().execute<ResultSetHeader>(query, values);
+    return result.affectedRows > 0 ? { id, ...foodData } : null;
+  } catch (error) {
+    console.error("Error updating food:", error);
+    throw new Error("Database update failed");
+  }
 };
 
-
-
+// Delete a food item by ID
 export const deleteFood = async (id: number): Promise<boolean> => {
-  const [result] = await db
-    .promise()
-    .execute<ResultSetHeader>("DELETE FROM foods WHERE id = ?", [id]);
+  const query = `DELETE FROM foods WHERE id = ?`;
+  const [result] = await db.promise().execute<ResultSetHeader>(query, [id]);
   return result.affectedRows > 0;
 };
