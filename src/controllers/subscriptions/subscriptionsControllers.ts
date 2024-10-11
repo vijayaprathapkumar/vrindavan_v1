@@ -12,7 +12,7 @@ import {
   getSubscriptionGetByIdModel,
   addSubscriptionQuantityChangeModel,
   updateSubscriptionPauseInfo,
-} from "../../models/subscriptions/subscriptionsModels"; 
+} from "../../models/subscriptions/subscriptionsModels";
 import { createResponse } from "../../utils/responseHandler";
 
 const validSubscriptionTypes = [
@@ -25,18 +25,17 @@ const validSubscriptionTypes = [
 
 // Add Subscription
 export const addSubscription = async (req: Request, res: Response) => {
-  const subscription: Subscription = req.body; 
+  const subscription: Subscription = req.body;
 
-  // Validate subscription type
   if (!validSubscriptionTypes.includes(subscription.subscription_type)) {
     return res
       .status(400)
-      .json(createResponse(400, "Invalid subscription type provided."));
+      .json(createResponse(400, "Invalid subscription type."));
   }
 
   try {
     const result = await addSubscriptionModel(subscription);
-    const user_subscription_id = result.insertId; 
+    const user_subscription_id = result.insertId;
 
     const cancel_subscription = subscription.cancel_subscription || 0;
     const pause_subscription = subscription.is_pause_subscription || false;
@@ -58,6 +57,7 @@ export const addSubscription = async (req: Request, res: Response) => {
       null,
       cancel_subscription_date
     );
+
     res
       .status(201)
       .json(
@@ -66,55 +66,53 @@ export const addSubscription = async (req: Request, res: Response) => {
         })
       );
   } catch (error) {
-    console.error("Error adding subscription:", error); 
+    console.error("Error adding subscription:", error);
     res
       .status(500)
       .json(
         createResponse(500, "Failed to create subscription.", error.message)
-      ); 
+      );
   }
 };
 
 // Fetch Subscriptions
 export const getSubscriptions = async (req: Request, res: Response) => {
-  const userId = parseInt(req.params.userId); 
-  const page = parseInt(req.query.page as string) || 1; 
-  const limit = parseInt(req.query.limit as string) || 10; 
-  const searchTerm = (req.query.searchTerm as string) || ""; 
+  const userId = parseInt(req.params.userId);
+  const page = parseInt(req.query.page as string) || 1;
+  const limit = parseInt(req.query.limit as string) || 10;
+  const searchTerm = (req.query.searchTerm as string) || "";
 
-  // Validate user ID
   if (isNaN(userId)) {
     return res.status(400).json(createResponse(400, "Invalid user ID."));
   }
 
   try {
-    const totalRecords = await getTotalSubscriptionsCountModel(userId);
-    const totalPages = Math.ceil(totalRecords / limit); 
+    const totalCount = await getTotalSubscriptionsCountModel(userId);
+    const totalPages = Math.ceil(totalCount / limit);
 
     const subscriptions = await getAllSubscriptionsModel(
       userId,
       page,
       limit,
       searchTerm
-    ); 
+    );
+
     res.status(200).json(
       createResponse(200, "Subscriptions fetched successfully.", {
         subscriptions,
-        pagination: {
-          totalRecords,
-          currentPage: page,
-          limit,
-          totalPages,
-        },
+        totalCount,
+        currentPage: page,
+        limit,
+        totalPages,
       })
     );
   } catch (error) {
-    console.error("Error fetching subscriptions:", error); 
+    console.error("Error fetching subscriptions:", error);
     res
       .status(500)
       .json(
         createResponse(500, "Failed to fetch subscriptions.", error.message)
-      ); 
+      );
   }
 };
 
@@ -128,11 +126,10 @@ export const updateSubscription = async (req: Request, res: Response) => {
   }
   const subscription: Subscription = req.body;
 
-  
   if (!validSubscriptionTypes.includes(subscription.subscription_type)) {
     return res
       .status(400)
-      .json(createResponse(400, "Invalid subscription type provided."));
+      .json(createResponse(400, "Invalid subscription type."));
   }
 
   try {
@@ -140,7 +137,7 @@ export const updateSubscription = async (req: Request, res: Response) => {
     if (result.affectedRows === 0) {
       return res
         .status(404)
-        .json(createResponse(404, "Subscription not found.")); 
+        .json(createResponse(404, "Subscription not found."));
     }
 
     if (
@@ -176,13 +173,13 @@ export const updateSubscription = async (req: Request, res: Response) => {
       .status(500)
       .json(
         createResponse(500, "Failed to update subscription.", error.message)
-      ); 
+      );
   }
 };
 
 // Delete Subscription
 export const deleteSubscription = async (req: Request, res: Response) => {
-  const id = parseInt(req.params.id); 
+  const id = parseInt(req.params.id);
 
   if (isNaN(id)) {
     return res
@@ -192,11 +189,10 @@ export const deleteSubscription = async (req: Request, res: Response) => {
 
   try {
     const result = await deleteSubscriptionModel(id);
-
     if (result.affectedRows === 0) {
       return res
         .status(404)
-        .json(createResponse(404, "Subscription not found.")); 
+        .json(createResponse(404, "Subscription not found."));
     }
 
     res
@@ -208,13 +204,13 @@ export const deleteSubscription = async (req: Request, res: Response) => {
       .status(500)
       .json(
         createResponse(500, "Failed to delete subscription.", error.message)
-      ); 
+      );
   }
 };
 
 // Pause Subscription
 export const pauseSubscription = async (req: Request, res: Response) => {
-  const id = parseInt(req.params.id); 
+  const id = parseInt(req.params.id);
   if (isNaN(id)) {
     return res
       .status(400)
@@ -222,17 +218,17 @@ export const pauseSubscription = async (req: Request, res: Response) => {
   }
 
   try {
-    await pauseSubscriptionModel(id); 
+    await pauseSubscriptionModel(id);
     res
       .status(200)
-      .json(createResponse(200, "Subscription paused successfully.", { id })); 
+      .json(createResponse(200, "Subscription paused successfully.", { id }));
   } catch (error) {
     console.error("Error pausing subscription:", error);
     res
       .status(500)
       .json(
         createResponse(500, "Failed to pause subscription.", error.message)
-      ); 
+      );
   }
 };
 
@@ -249,14 +245,14 @@ export const resumeSubscription = async (req: Request, res: Response) => {
     await resumeSubscriptionModel(id);
     res
       .status(200)
-      .json(createResponse(200, "Subscription resumed successfully.", { id })); 
+      .json(createResponse(200, "Subscription resumed successfully.", { id }));
   } catch (error) {
-    console.error("Error resuming subscription:", error); 
+    console.error("Error resuming subscription:", error);
     res
       .status(500)
       .json(
         createResponse(500, "Failed to resume subscription.", error.message)
-      ); 
+      );
   }
 };
 
@@ -272,18 +268,19 @@ export const cancelSubscription = async (req: Request, res: Response) => {
 
   try {
     const cancel_subscription = 1;
-    const cancel_subscription_date = new Date(); 
+    const cancel_subscription_date = new Date();
 
     const result = await updateCancelSubscriptionModel(
       id,
       cancel_subscription,
       cancel_subscription_date
-    ); 
+    );
     if (result.affectedRows === 0) {
       return res
         .status(404)
-        .json(createResponse(404, "Subscription not found.")); 
+        .json(createResponse(404, "Subscription not found."));
     }
+
     res
       .status(200)
       .json(createResponse(200, "Subscription canceled successfully.", { id }));
@@ -313,10 +310,12 @@ export const getSubscriptionById = async (req: Request, res: Response) => {
         .status(404)
         .json(createResponse(404, "Subscription not found."));
     }
+
+    const responce ={subscription:[subscription]}
     res
       .status(200)
       .json(
-        createResponse(200, "Subscription fetched successfully.", subscription)
+        createResponse(200, "Subscription fetched successfully.", responce)
       );
   } catch (error) {
     console.error("Error fetching subscription:", error);
@@ -324,7 +323,7 @@ export const getSubscriptionById = async (req: Request, res: Response) => {
       .status(500)
       .json(
         createResponse(500, "Failed to fetch subscription.", error.message)
-      ); 
+      );
   }
 };
 
@@ -355,7 +354,9 @@ export const updateSubscriptionPauseController = async (
     );
     res
       .status(200)
-      .json(createResponse(200, "Subscription pause info updated successfully."));
+      .json(
+        createResponse(200, "Subscription pause info updated successfully.")
+      );
   } catch (error) {
     console.error("Error updating subscription pause info:", error);
     res

@@ -3,9 +3,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.createResponse = void 0;
 const createResponse = (statusCode, message, data = null) => {
     return {
-        statusCode,
+        statusCode: statusCode,
         message,
-        data,
+        data
     };
 };
 exports.createResponse = createResponse;

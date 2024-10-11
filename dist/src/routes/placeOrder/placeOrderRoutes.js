@@ -8,6 +8,7 @@ const placeOrderController_1 = require("../../controllers/placeOrder/placeOrderC
 const authMiddleware_1 = require("../../middlewares/authMiddleware");
 const router = express_1.default.Router();
 router.get("/:userId", authMiddleware_1.verifyDeviceToken, placeOrderController_1.fetchPlaceOrders);
+router.get("/byId/:id", authMiddleware_1.verifyDeviceToken, placeOrderController_1.fetchPlaceOrderById);
 router.post("/", authMiddleware_1.verifyDeviceToken, placeOrderController_1.addPlaceOrderController);
 router.put("/:id", authMiddleware_1.verifyDeviceToken, placeOrderController_1.updatePlaceOrderController);
 router.delete("/:id", authMiddleware_1.verifyDeviceToken, placeOrderController_1.removePlaceOrder);

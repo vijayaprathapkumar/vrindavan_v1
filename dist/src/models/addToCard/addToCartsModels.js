@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getCountOfCartItems = exports.updatePaymentByUserId = exports.deleteCartItemById = exports.updateCartItem = exports.addCartItem = exports.getAllCartItems = void 0;
+exports.getCountOfCartItems = exports.updatePaymentByUserId = exports.deleteCartItemById = exports.updateCartItem = exports.getCartItemById = exports.addCartItem = exports.getAllCartItems = void 0;
 const databaseConnection_1 = require("../../config/databaseConnection");
 // Fetch all cart items for a user with pagination
 const getAllCartItems = async (userId, limit, offset) => {
@@ -106,6 +106,94 @@ const addCartItem = async (itemData) => {
     }
 };
 exports.addCartItem = addCartItem;
+// Fetch a cart item by ID
+const getCartItemById = async (id) => {
+    const query = `
+    SELECT 
+      c.created_at AS created_at,
+      c.id AS cart_id, 
+      c.food_id, 
+      c.user_id, 
+      c.quantity, 
+      c.updated_at,
+      f.id AS food_id,
+      f.name AS food_name,
+      f.price,
+      f.discount_price,
+      f.description,
+      f.perma_link,
+      f.ingredients,
+      f.package_items_count,
+      f.weight,
+      f.unit,
+      f.sku_code,
+      f.barcode,
+      f.cgst,
+      f.sgst,
+      f.track_inventory,
+      f.featured,
+      f.deliverable,
+      f.restaurant_id,
+      f.category_id,
+      f.subcategory_id,
+      f.product_type_id,
+      f.hub_id,
+      f.locality_id,
+      f.product_brand_id,
+      f.weightage,
+      f.status,
+      f.food_locality
+    FROM 
+      carts c
+    JOIN 
+      foods f ON c.food_id = f.id
+    WHERE 
+      c.id = ?;
+  `;
+    const [rows] = await databaseConnection_1.db.promise().query(query, [id]);
+    if (rows.length === 0) {
+        return null; // No item found
+    }
+    const row = rows[0];
+    return {
+        id: row.cart_id,
+        food_id: row.food_id,
+        user_id: row.user_id,
+        quantity: row.quantity,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+        food: {
+            id: row.food_id,
+            name: row.food_name,
+            price: row.price,
+            discountPrice: row.discount_price,
+            description: row.description,
+            permaLink: row.perma_link,
+            ingredients: row.ingredients,
+            packageItemsCount: row.package_items_count,
+            weight: row.weight,
+            unit: row.unit,
+            skuCode: row.sku_code,
+            barcode: row.barcode,
+            cgst: row.cgst,
+            sgst: row.sgst,
+            trackInventory: row.track_inventory,
+            featured: row.featured,
+            deliverable: row.deliverable,
+            restaurantId: row.restaurant_id,
+            categoryId: row.category_id,
+            subcategoryId: row.subcategory_id,
+            productTypeId: row.product_type_id,
+            hubId: row.hub_id,
+            localityId: row.locality_id,
+            productBrandId: row.product_brand_id,
+            weightage: row.weightage,
+            status: row.status,
+            foodLocality: row.food_locality
+        }
+    };
+};
+exports.getCartItemById = getCartItemById;
 // Update a cart item
 const updateCartItem = async (id, quantity) => {
     const sql = `

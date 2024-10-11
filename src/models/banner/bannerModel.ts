@@ -192,7 +192,6 @@ export const getBannerById = async (id: number): Promise<Banner | null> => {
   };
 };
 
-
 // Update banner by ID
 export const updateBanner = async (
   id: number,
@@ -206,7 +205,7 @@ export const updateBanner = async (
   date_from?: string,
   date_to?: string,
   status?: number
-): Promise<void> => {
+): Promise<{ affectedRows: number }> => {
   const updateBannerQuery = `
     UPDATE banners 
     SET 
@@ -239,15 +238,17 @@ export const updateBanner = async (
     id,
   ];
 
-  await db.promise().query(updateBannerQuery, values);
+  const [result]: [OkPacket, any] = await db.promise().query(updateBannerQuery, values);
+  return { affectedRows: result.affectedRows }; 
 };
 
 // Delete a banner by ID
-export const deleteBannerById = async (id: number): Promise<void> => {
+export const deleteBannerById = async (id: number): Promise<{ affectedRows: number }> => {
   const query = `
     DELETE FROM banners 
     WHERE id = ?;
   `;
 
-  await db.promise().query(query, [id]);
+  const [result]: [OkPacket, any] = await db.promise().query(query, [id]);
+  return { affectedRows: result.affectedRows };
 };

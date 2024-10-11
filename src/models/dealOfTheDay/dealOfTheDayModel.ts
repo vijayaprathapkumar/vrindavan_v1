@@ -1,5 +1,5 @@
 import { db } from "../../config/databaseConnection";
-import { RowDataPacket, OkPacket } from "mysql2";
+import { RowDataPacket, OkPacket, ResultSetHeader } from "mysql2";
 
 export interface DealOfTheDay {
   id: number;
@@ -184,72 +184,75 @@ export const getDealById = async (id: number): Promise<DealOfTheDay | null> => {
 };
 
 // Update a deal
-export const updateDeal = async (id: number, dealData: {
-    foodId?: string;
-    unit?: string;
-    price?: number;
-    offerPrice?: number;
-    quantity?: number;
-    description?: string;
-    status?: number;
-    weightage?: number;
-  }) => {
-    const {
-      foodId,
-      unit,
-      price,
-      offerPrice,
-      quantity,
-      description,
-      status,
-      weightage,
-    } = dealData;
+export const updateDeals = async (id: number, dealData: {
+  foodId?: string;
+  unit?: string;
+  price?: number;
+  offerPrice?: number;
+  quantity?: number;
+  description?: string;
+  status?: number;
+  weightage?: number;
+}): Promise<ResultSetHeader> => {
+  const {
+    foodId,
+    unit,
+    price,
+    offerPrice,
+    quantity,
+    description,
+    status,
+    weightage,
+  } = dealData;
 
-    let sql = "UPDATE deal_of_the_days SET ";
-    const updates: string[] = [];
-    const params: any[] = [];
+  let sql = "UPDATE deal_of_the_days SET ";
+  const updates: string[] = [];
+  const params: any[] = [];
 
-    if (foodId) {
-      updates.push("food_id = COALESCE(?, food_id)");
-      params.push(foodId);
-    }
-    if (unit) {
-      updates.push("unit = COALESCE(?, unit)");
-      params.push(unit);
-    }
-    if (price !== undefined) {
-      updates.push("price = COALESCE(?, price)");
-      params.push(price);
-    }
-    if (offerPrice !== undefined) {
-      updates.push("offer_price = COALESCE(?, offer_price)");
-      params.push(offerPrice);
-    }
-    if (quantity !== undefined) {
-      updates.push("quantity = COALESCE(?, quantity)");
-      params.push(quantity);
-    }
-    if (description) {
-      updates.push("description = COALESCE(?, description)");
-      params.push(description);
-    }
-    if (status !== undefined) {
-      updates.push("status = COALESCE(?, status)");
-      params.push(status);
-    }
-    if (weightage !== undefined) {
-      updates.push("weightage = COALESCE(?, weightage)");
-      params.push(weightage);
-    }
+  if (foodId) {
+    updates.push("food_id = COALESCE(?, food_id)");
+    params.push(foodId);
+  }
+  if (unit) {
+    updates.push("unit = COALESCE(?, unit)");
+    params.push(unit);
+  }
+  if (price !== undefined) {
+    updates.push("price = COALESCE(?, price)");
+    params.push(price);
+  }
+  if (offerPrice !== undefined) {
+    updates.push("offer_price = COALESCE(?, offer_price)");
+    params.push(offerPrice);
+  }
+  if (quantity !== undefined) {
+    updates.push("quantity = COALESCE(?, quantity)");
+    params.push(quantity);
+  }
+  if (description) {
+    updates.push("description = COALESCE(?, description)");
+    params.push(description);
+  }
+  if (status !== undefined) {
+    updates.push("status = COALESCE(?, status)");
+    params.push(status);
+  }
+  if (weightage !== undefined) {
+    updates.push("weightage = COALESCE(?, weightage)");
+    params.push(weightage);
+  }
 
-    sql += updates.join(", ") + " WHERE id = ?;";
-    params.push(id);
+  sql += updates.join(", ") + " WHERE id = ?;";
+  params.push(id);
 
-    await db.promise().query(sql, params);
+  const [result] = await db.promise().query<ResultSetHeader>(sql, params); 
+  return result; 
 };
 
 // Delete a deal
-export const deleteDealById = async (id: number) => {
+
+export const deleteDealById = async (id: number): Promise<ResultSetHeader> => {
   const sql = "DELETE FROM deal_of_the_days WHERE id = ?;";
-  await db.promise().query(sql, [id]);
+  const [result] = await db.promise().query<ResultSetHeader>(sql, [id]);
+  return result; 
 };

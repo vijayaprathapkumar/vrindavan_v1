@@ -58,15 +58,17 @@ const getProductTypeById = async (id) => {
 exports.getProductTypeById = getProductTypeById;
 // Update product type by ID
 const updateProductTypeById = async (id, name, weightage, active) => {
-    await databaseConnection_1.db
+    const [result] = await databaseConnection_1.db
         .promise()
         .query("UPDATE product_types SET Name = ?, Weightage = ?, Active = ? WHERE id = ?", [name, weightage, active, id]);
+    return result;
 };
 exports.updateProductTypeById = updateProductTypeById;
 // Delete product type by ID
 const deleteProductTypeById = async (id) => {
-    await databaseConnection_1.db
+    const [result] = await databaseConnection_1.db
         .promise()
         .query("DELETE FROM product_types WHERE id = ?", [id]);
+    return result;
 };
 exports.deleteProductTypeById = deleteProductTypeById;
