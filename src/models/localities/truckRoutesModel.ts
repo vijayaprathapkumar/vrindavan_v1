@@ -11,12 +11,14 @@ export const getAllTruckRoutes = async (page: number, limit: number, searchTerm:
       ORDER BY COALESCE(updated_at, created_at) DESC 
       LIMIT ? OFFSET ?
   `;
+  
   const [routes]: [RowDataPacket[], any] = await db.promise().query(routesQuery, [`%${searchTerm}%`, limit, offset]);
 
   const countQuery = `
       SELECT COUNT(*) as total FROM truck_routes 
       WHERE name LIKE ?
   `;
+  
   const [[{ total }]]: [RowDataPacket[], any] = await db.promise().query(countQuery, [`%${searchTerm}%`]);
 
   return { routes, totalRecords: total };
