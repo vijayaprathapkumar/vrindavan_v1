@@ -8,8 +8,9 @@ const fetchPlaceOrders = async (req, res) => {
     const userId = parseInt(req.params.userId);
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
+    const searchTerm = req.query.searchTerm ? req.query.searchTerm : null;
     try {
-        const { total, placeOrders } = await (0, placeOrderModels_1.getAllPlaceOrders)(userId, page, limit);
+        const { total, placeOrders } = await (0, placeOrderModels_1.getAllPlaceOrders)(userId, page, limit, searchTerm);
         return res.json((0, responseHandler_1.createResponse)(200, "Place orders fetched successfully.", {
             placeOrders,
             currentPage: page,
