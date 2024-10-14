@@ -3,29 +3,43 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.getPlaceOrderById = exports.deleteAllCartItemsByUserId = exports.deductFromWalletBalance = exports.deletePlaceOrderById = exports.updatePlaceOrder = exports.getPriceForNextOrder = exports.addPlaceOrder = exports.getAllPlaceOrders = void 0;
 const databaseConnection_1 = require("../../config/databaseConnection");
 // Fetch all place orders for a user
-const getAllPlaceOrders = async (userId, page, limit) => {
+const getAllPlaceOrders = async (userId, page, limit, searchTerm) => {
     const offset = (page - 1) * limit;
-    const countQuery = `SELECT COUNT(*) as total FROM payments WHERE user_id = ?`;
-    const [countRows] = await databaseConnection_1.db.promise().query(countQuery, [userId]);
+    let searchCondition = "";
+    let queryParams = [userId];
+    if (searchTerm) {
+        searchCondition = `
+      AND (description LIKE ? OR status LIKE ? OR method LIKE ?)
+    `;
+        const searchValue = `%${searchTerm}%`;
+        queryParams.push(searchValue, searchValue, searchValue);
+    }
+    const countQuery = `
+    SELECT COUNT(*) as total 
+    FROM payments 
+    WHERE user_id = ? ${searchCondition}
+  `;
+    const [countRows] = await databaseConnection_1.db.promise().query(countQuery, queryParams);
     const total = countRows[0].total;
     const query = `
-      SELECT 
-        id, 
-        price, 
-        description, 
-        user_id, 
-        status, 
-        method, 
-        created_at, 
-        updated_at 
-      FROM 
-        payments 
-      WHERE 
-        user_id = ? 
-      ORDER BY created_at DESC 
-      LIMIT ? OFFSET ?;
-    `;
-    const [rows] = await databaseConnection_1.db.promise().query(query, [userId, limit, offset]);
+    SELECT 
+      id, 
+      price, 
+      description, 
+      user_id, 
+      status, 
+      method, 
+      created_at, 
+      updated_at 
+    FROM 
+      payments 
+    WHERE 
+      user_id = ? ${searchCondition}
+    ORDER BY created_at DESC 
+    LIMIT ? OFFSET ?;
+  `;
+    queryParams.push(limit, offset);
+    const [rows] = await databaseConnection_1.db.promise().query(query, queryParams);
     const placeOrders = rows.map(row => ({
         id: row.id,
         price: row.price,
