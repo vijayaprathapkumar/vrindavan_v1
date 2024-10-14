@@ -148,13 +148,17 @@ export const getAllSubscriptionsModel = (
     `;
 
     if (searchQuery) {
-      query += ` AND foods.name LIKE ?`;
+      query += ` AND (foods.name LIKE ? 
+                OR foods.unit LIKE ? 
+                OR foods.status LIKE ? 
+                OR foods.weightage LIKE ? 
+                OR foods.description LIKE ?)`;
     }
 
     query += ` ORDER BY user_subscriptions.created_at DESC LIMIT ?, ?`;
 
     const params: any[] = searchQuery
-      ? [userId, searchQuery, offset, limit]
+      ? [userId, searchQuery, searchQuery, searchQuery, searchQuery, searchQuery, offset, limit]
       : [userId, offset, limit];
 
     db.query<RowDataPacket[]>(query, params, (error, results) => {
@@ -165,6 +169,7 @@ export const getAllSubscriptionsModel = (
     });
   });
 };
+
 
 export const getTotalSubscriptionsCountModel = (
   userId: number
