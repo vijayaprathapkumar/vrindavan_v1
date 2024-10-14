@@ -18,9 +18,10 @@ export const fetchPlaceOrders = async (
   const userId = parseInt(req.params.userId);
   const page = parseInt(req.query.page as string) || 1;
   const limit = parseInt(req.query.limit as string) || 10;
+  const searchTerm = req.query.searchTerm ? (req.query.searchTerm as string) : null;
 
   try {
-    const { total, placeOrders } = await getAllPlaceOrders(userId, page, limit);
+    const { total, placeOrders } = await getAllPlaceOrders(userId, page, limit, searchTerm);
     return res.json(
       createResponse(200, "Place orders fetched successfully.", {
         placeOrders,
@@ -37,6 +38,7 @@ export const fetchPlaceOrders = async (
       .json(createResponse(500, "Failed to fetch place orders."));
   }
 };
+
 
 // Add a place order and clear the cart
 export const addPlaceOrderController = async (

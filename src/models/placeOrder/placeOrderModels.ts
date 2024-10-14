@@ -13,46 +13,68 @@ interface PlaceOrder {
 }
 
 // Fetch all place orders for a user
-export const getAllPlaceOrders = async (userId: number, page: number, limit: number): Promise<{ total: number; placeOrders: PlaceOrder[] }> => {
-    const offset = (page - 1) * limit;
+export const getAllPlaceOrders = async (
+  userId: number, 
+  page: number, 
+  limit: number, 
+  searchTerm: string | null
+): Promise<{ total: number; placeOrders: PlaceOrder[] }> => {
   
-    const countQuery = `SELECT COUNT(*) as total FROM payments WHERE user_id = ?`;
-    const [countRows]: [RowDataPacket[], any] = await db.promise().query(countQuery, [userId]);
-    const total = countRows[0].total;
-  
-    const query = `
-      SELECT 
-        id, 
-        price, 
-        description, 
-        user_id, 
-        status, 
-        method, 
-        created_at, 
-        updated_at 
-      FROM 
-        payments 
-      WHERE 
-        user_id = ? 
-      ORDER BY created_at DESC 
-      LIMIT ? OFFSET ?;
+  const offset = (page - 1) * limit;
+  let searchCondition = "";
+  let queryParams: (number | string)[] = [userId];
+
+  if (searchTerm) {
+    searchCondition = `
+      AND (description LIKE ? OR status LIKE ? OR method LIKE ?)
     `;
-  
-    const [rows]: [RowDataPacket[], any] = await db.promise().query(query, [userId, limit, offset]);
-  
-    const placeOrders = rows.map(row => ({
-      id: row.id,
-      price: row.price,
-      description: row.description,
-      user_id: row.user_id,
-      status: row.status,
-      method: row.method,
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
-    }));
-  
-    return { total, placeOrders };
+    const searchValue = `%${searchTerm}%`;
+    queryParams.push(searchValue, searchValue, searchValue);
+  }
+
+  const countQuery = `
+    SELECT COUNT(*) as total 
+    FROM payments 
+    WHERE user_id = ? ${searchCondition}
+  `;
+  const [countRows]: [RowDataPacket[], any] = await db.promise().query(countQuery, queryParams);
+  const total = countRows[0].total;
+
+  const query = `
+    SELECT 
+      id, 
+      price, 
+      description, 
+      user_id, 
+      status, 
+      method, 
+      created_at, 
+      updated_at 
+    FROM 
+      payments 
+    WHERE 
+      user_id = ? ${searchCondition}
+    ORDER BY created_at DESC 
+    LIMIT ? OFFSET ?;
+  `;
+  queryParams.push(limit, offset);
+
+  const [rows]: [RowDataPacket[], any] = await db.promise().query(query, queryParams);
+
+  const placeOrders = rows.map(row => ({
+    id: row.id,
+    price: row.price,
+    description: row.description,
+    user_id: row.user_id,
+    status: row.status,
+    method: row.method,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  }));
+
+  return { total, placeOrders };
 };
+
 
 // Add a new place order and update wallet balance
 export const addPlaceOrder = async (placeOrderData: { price: number; description?: string; userId: number; status: string; method: string }) => {

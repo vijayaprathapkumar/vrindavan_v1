@@ -96,11 +96,15 @@ const getAllSubscriptionsModel = (userId, page, limit, searchTerm) => {
       WHERE user_subscriptions.user_id = ? 
     `;
         if (searchQuery) {
-            query += ` AND foods.name LIKE ?`;
+            query += ` AND (foods.name LIKE ? 
+                OR foods.unit LIKE ? 
+                OR foods.status LIKE ? 
+                OR foods.weightage LIKE ? 
+                OR foods.description LIKE ?)`;
         }
         query += ` ORDER BY user_subscriptions.created_at DESC LIMIT ?, ?`;
         const params = searchQuery
-            ? [userId, searchQuery, offset, limit]
+            ? [userId, searchQuery, searchQuery, searchQuery, searchQuery, searchQuery, offset, limit]
             : [userId, offset, limit];
         databaseConnection_1.db.query(query, params, (error, results) => {
             if (error) {
