@@ -96,7 +96,7 @@ export const addPlaceOrder = async (placeOrderData: { price: number; description
     const deductionSuccess = await deductFromWalletBalance(userId, price);
     
     if (deductionSuccess) {
-      await insertIntoOrders(userId, result.insertId);
+      await insertIntoOrderPayment(userId, result.insertId);
       return result;
     } else {
       throw new Error("Failed to deduct from wallet balance.");
@@ -177,33 +177,29 @@ export const deletePlaceOrderById = async (id: number) => {
   }
 };
 
-const insertIntoOrders = async (userId: number, paymentId: number) => {
-  const orderSql = `
-    INSERT INTO orders (
-      user_id, 
-      order_type, 
-      order_date, 
-      order_status_id, 
-      tax, 
-      delivery_fee, 
-      active, 
-      payment_id, 
-      is_wallet_deduct
-    ) VALUES (?, ?, NOW(), ?, ?, ?, ?, ?, ?);
+const insertIntoOrderPayment = async (userId: number, paymentId: number) => {
+  const updateOrderSql = `
+    UPDATE orders
+    SET payment_id = ?, is_wallet_deduct = ?
+    WHERE user_id = ? 
+    AND order_status_id = 4  
+    ORDER BY id DESC 
+    LIMIT 1;
   `;
 
-  // Default values
-  const orderType = 2; 
-  const orderStatusId = 4; 
-  const tax = 0.00; 
-  const deliveryFee = 0.00;
-  const isWalletDeduct = 1; 
+  const isWalletDeduct = 1;
 
   try {
-    await db.promise().query(orderSql, [userId, orderType, orderStatusId, tax, deliveryFee, 1, paymentId, isWalletDeduct]);
+    const [updateResult]: [OkPacket, any] = await db.promise().query(updateOrderSql, [paymentId, isWalletDeduct, userId]);
+
+    if (updateResult.affectedRows === 0) {
+      throw new Error("No active order found for the user to update.");
+    }
+
+    return updateResult;
   } catch (error) {
-    console.error("Error inserting into orders:", error);
-    throw new Error("Failed to insert order.");
+    console.error("Error updating order:", error);
+    throw new Error("Failed to update order with payment details.");
   }
 };
 
