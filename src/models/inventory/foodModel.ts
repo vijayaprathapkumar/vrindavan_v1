@@ -57,9 +57,9 @@ export const getAllFoods = async (
   }
 
   if (filters.searchTerm) {
-    conditions.push("f.name LIKE ?");
-    values.push(`%${filters.searchTerm}%`);
-  }
+    conditions.push("(f.name LIKE ? OR f.unit LIKE ?)");
+    values.push(`%${filters.searchTerm}%`, `%${filters.searchTerm}%`);
+}
 
   if (conditions.length > 0) {
     query += " WHERE " + conditions.join(" AND ");
@@ -90,13 +90,30 @@ export const getAllFoods = async (
       foodMap[foodId] = {
         id: row.id,
         name: row.name,
+        price: row.price,
+        discount_price: row.discount_price,
         description: row.description,
+        ingredients: row.ingredients,
+        package_items_count: row.package_items_count,
+        weight: row.weight,
+        unit: row.unit,
+        sku_code: row.sku_code,
+        barcode: row.barcode,
+        cgst: row.cgst,
+        sgst: row.sgst,
+        subscription_type: row.subscription_type,
+        track_inventory: row.track_inventory,
+        featured: row.featured,
+        deliverable: row.deliverable,
+        restaurant_id: row.restaurant_id,
+        category_id: row.category_id,
+        subcategory_id: row.subcategory_id,
+        product_type_id: row.product_type_id,
+        hub_id: row.hub_id,
+        locality_id: row.locality_id,
+        product_brand_id: row.product_brand_id,
         weightage: row.weightage,
         status: row.status,
-        category_id: row.category_id,
-        price: row.price, // Include the price
-        restaurant_id: row.restaurant_id,
-        subcategory_id: row.subcategory_id,
         created_at: row.created_at,
         updated_at: row.updated_at,
         media: [], // Initialize an empty media array
