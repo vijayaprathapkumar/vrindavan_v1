@@ -2,30 +2,26 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.fetchBillingHistory = void 0;
 const billingHistoryModel_1 = require("../../models/wallet/billingHistoryModel");
-const responseHandler_1 = require("../../utils/responseHandler");
 const fetchBillingHistory = async (req, res) => {
-    const userId = parseInt(req.params.userId);
-    if (isNaN(userId)) {
-        return res.status(400).json((0, responseHandler_1.createResponse)(400, "Invalid user ID."));
-    }
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
+    const userId = req.params.userId; // Extract userId from request parameters
+    const page = parseInt(req.query.page) || 1; // Page number from query
+    const limit = parseInt(req.query.limit) || 10; // Limit of records per page
     try {
-        const billingHistory = await (0, billingHistoryModel_1.getBillingHistory)(userId, page, limit);
-        const totalRecords = await (0, billingHistoryModel_1.getTotalBillingHistoryCount)(userId);
-        const responce = {
-            billingHistory: billingHistory,
-            totalRecords,
-            currentPage: page,
+        const total = await (0, billingHistoryModel_1.getTotalBillingHistoryCount)(userId);
+        const billingHistory = await (0, billingHistoryModel_1.getOrderDetails)(userId, page, limit);
+        res.status(200).json({
+            total,
+            page,
             limit,
-        };
-        res.json((0, responseHandler_1.createResponse)(200, "Billing history fetched successfully.", responce));
+            data: billingHistory,
+        });
     }
     catch (error) {
         console.error("Error fetching billing history:", error);
-        res
-            .status(500)
-            .json((0, responseHandler_1.createResponse)(500, "Failed to fetch billing history.", error.message));
+        res.status(500).json({
+            status: 500,
+            message: error.message,
+        });
     }
 };
 exports.fetchBillingHistory = fetchBillingHistory;

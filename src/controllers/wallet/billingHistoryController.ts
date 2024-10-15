@@ -1,38 +1,26 @@
 import { Request, Response } from "express";
-import {
-  getBillingHistory,
-  getTotalBillingHistoryCount,
-} from "../../models/wallet/billingHistoryModel";
-import { createResponse } from "../../utils/responseHandler";
+import { getOrderDetails, getTotalBillingHistoryCount } from "../../models/wallet/billingHistoryModel";
 
 export const fetchBillingHistory = async (req: Request, res: Response) => {
-  const userId = parseInt(req.params.userId);
-
-  if (isNaN(userId)) {
-    return res.status(400).json(createResponse(400, "Invalid user ID."));
-  }
-
-  const page = parseInt(req.query.page as string) || 1;
-  const limit = parseInt(req.query.limit as string) || 10;
+  const userId = req.params.userId; // Extract userId from request parameters
+  const page = parseInt(req.query.page as string) || 1; // Page number from query
+  const limit = parseInt(req.query.limit as string) || 10; // Limit of records per page
 
   try {
-    const billingHistory = await getBillingHistory(userId, page, limit);
-    const totalRecords = await getTotalBillingHistoryCount(userId);
-    const responce = {
-      billingHistory: billingHistory,
-      totalRecords,
-      currentPage: page,
+    const total = await getTotalBillingHistoryCount(userId);
+    const billingHistory = await getOrderDetails(userId, page, limit);
+
+    res.status(200).json({
+      total,
+      page,
       limit,
-    };
-    res.json(
-      createResponse(200, "Billing history fetched successfully.", responce)
-    );
+      data: billingHistory,
+    });
   } catch (error) {
     console.error("Error fetching billing history:", error);
-    res
-      .status(500)
-      .json(
-        createResponse(500, "Failed to fetch billing history.", error.message)
-      );
+    res.status(500).json({
+      status: 500,
+      message: error.message,
+    });
   }
 };
