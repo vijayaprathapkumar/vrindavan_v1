@@ -67,7 +67,7 @@ const addPlaceOrder = async (placeOrderData) => {
         const [result] = await databaseConnection_1.db.promise().query(sql, values);
         const deductionSuccess = await (0, exports.deductFromWalletBalance)(userId, price);
         if (deductionSuccess) {
-            await insertIntoOrders(userId, result.insertId);
+            await insertIntoOrderPayment(userId, result.insertId);
             return result;
         }
         else {
@@ -139,32 +139,26 @@ const deletePlaceOrderById = async (id) => {
     }
 };
 exports.deletePlaceOrderById = deletePlaceOrderById;
-const insertIntoOrders = async (userId, paymentId) => {
-    const orderSql = `
-    INSERT INTO orders (
-      user_id, 
-      order_type, 
-      order_date, 
-      order_status_id, 
-      tax, 
-      delivery_fee, 
-      active, 
-      payment_id, 
-      is_wallet_deduct
-    ) VALUES (?, ?, NOW(), ?, ?, ?, ?, ?, ?);
+const insertIntoOrderPayment = async (userId, paymentId) => {
+    const updateOrderSql = `
+    UPDATE orders
+    SET payment_id = ?, is_wallet_deduct = ?
+    WHERE user_id = ? 
+    AND order_status_id = 4  
+    ORDER BY id DESC 
+    LIMIT 1;
   `;
-    // Default values
-    const orderType = 2;
-    const orderStatusId = 4;
-    const tax = 0.00;
-    const deliveryFee = 0.00;
     const isWalletDeduct = 1;
     try {
-        await databaseConnection_1.db.promise().query(orderSql, [userId, orderType, orderStatusId, tax, deliveryFee, 1, paymentId, isWalletDeduct]);
+        const [updateResult] = await databaseConnection_1.db.promise().query(updateOrderSql, [paymentId, isWalletDeduct, userId]);
+        if (updateResult.affectedRows === 0) {
+            throw new Error("No active order found for the user to update.");
+        }
+        return updateResult;
     }
     catch (error) {
-        console.error("Error inserting into orders:", error);
-        throw new Error("Failed to insert order.");
+        console.error("Error updating order:", error);
+        throw new Error("Failed to update order with payment details.");
     }
 };
 const deductFromWalletBalance = async (userId, amount) => {
