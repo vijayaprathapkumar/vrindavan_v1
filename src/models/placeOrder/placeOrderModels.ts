@@ -63,9 +63,9 @@ export const getAllPlaceOrders = async (
       o.user_id,
       o.order_type,
       o.order_date,
-      o.route_id ,
+      o.route_id,
       o.hub_id AS order_Hub_id,
-      o.locality_id  AS order_locality_id,
+      o.locality_id AS order_locality_id,
       o.delivery_boy_id,
       o.order_status_id,
       o.tax,
@@ -164,12 +164,10 @@ export const getAllPlaceOrders = async (
   const [rows]: [RowDataPacket[], any] = await db
     .promise()
     .query(query, queryParams);
-  console.log("Fetched rows:", rows);
-
+  
   const placeOrders: any[] = [];
 
   rows.forEach((row) => {
-
     let order = placeOrders.find((o) => o.order_id === row.order_id);
     if (!order) {
       order = {
@@ -217,7 +215,7 @@ export const getAllPlaceOrders = async (
       order_id: row.order_log_order_id,
       product_id: row.order_log_product_id,
       locality_id: row.order_log_locality_id,
-      delivery_boy_id: row.order_log_delivery_boy_id,
+      delivery_boy_id: row.delivery_boy_id,
       is_created: row.order_log_is_created,
       logs: row.order_log_logs,
       created_at: row.order_log_created_at,
@@ -270,10 +268,20 @@ export const getAllPlaceOrders = async (
         food_locality: row.food_locality,
       });
     }
+
+  
+    order.totalPriceItem = order.food_items.reduce((total, foodItem) => {
+      const itemPrice = foodItem.discount_price || foodItem.price;
+      return total + itemPrice;
+    }, 0);
   });
 
-  return { total, placeOrders };
+  return {
+    total,
+    placeOrders,
+  };
 };
+
 
 export const orderTypes = {
   all: "All",
@@ -365,7 +373,8 @@ export const addPlaceOrder = async (placeOrderData: {
 
     const orderValues = [
       userId,
-      orderTypes[1],
+      1,
+      // orderTypes[1],
       route_id,
       hub_id,
       locality_id,
