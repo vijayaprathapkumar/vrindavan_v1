@@ -198,7 +198,7 @@ export const getAllCustomers = async (
 };
 
 // Create a new customer
-// Create a new customer
+
 export const createCustomer = async (
   localityId: number,
   name: string,
@@ -207,7 +207,7 @@ export const createCustomer = async (
   houseNo: string,
   completeAddress: string,
   status?: string,
-  password: string = 'defaultPassword' // Set a default password if not provided
+  password: string = 'defaultPassword' 
 ): Promise<void> => {
   try {
     const existingUserQuery = `
@@ -217,39 +217,56 @@ export const createCustomer = async (
       .promise()
       .query<RowDataPacket[]>(existingUserQuery, [email]);
 
+    let userId: number;
+    
     if (existingUsers.length > 0) {
-      throw new Error(`User with email ${email} already exists`);
+      userId = existingUsers[0].id;
+    } else {
+      const insertUserQuery = `
+        INSERT INTO users (name, email, phone, password, status, created_at, updated_at) 
+        VALUES (?, ?, ?, ?, ?, NOW(), NOW());
+      `;
+      const [userResult] = await db
+        .promise()
+        .query<OkPacket>(insertUserQuery, [name, email, mobile, password, status]);
+
+      userId = userResult.insertId;
+
+      // Insert user address into delivery_addresses table
+      const insertAddressQuery = `
+        INSERT INTO delivery_addresses (user_id, locality_id, house_no, complete_address, created_at, updated_at) 
+        VALUES (?, ?, ?, ?, NOW(), NOW());
+      `;
+      const addressValues = [userId, localityId, houseNo, completeAddress];
+      await db.promise().query<OkPacket>(insertAddressQuery, addressValues);
+    }
+    const existingWalletQuery = `
+      SELECT id FROM wallet_balances WHERE user_id = ?;
+    `;
+    const [existingWallet] = await db
+      .promise()
+      .query<RowDataPacket[]>(existingWalletQuery, [userId]);
+
+    if (existingWallet.length > 0) {
+      const updateWalletQuery = `
+        UPDATE wallet_balances 
+        SET balance = 0.00, updated_at = NOW() 
+        WHERE user_id = ?;
+      `;
+      await db.promise().query(updateWalletQuery, [userId]);
+    } else {
+      const insertWalletQuery = `
+        INSERT INTO wallet_balances (user_id, balance, created_at, updated_at) 
+        VALUES (?, 0, NOW(), NOW());
+      `;
+      await db.promise().query(insertWalletQuery, [userId]);
     }
 
-    const insertUserQuery = `
-      INSERT INTO users (name, email, phone, password, status, created_at, updated_at) 
-      VALUES (?, ?, ?, ?, ?, NOW(), NOW());
-    `;
-    const [userResult] = await db
-      .promise()
-      .query<OkPacket>(insertUserQuery, [name, email, mobile, password, status]);
-
-    const insertAddressQuery = `
-      INSERT INTO delivery_addresses (user_id, locality_id, house_no, complete_address, created_at, updated_at) 
-      VALUES (?, ?, ?, ?, NOW(), NOW());
-    `;
-
-    const addressValues = [
-      userResult.insertId,
-      localityId,
-      houseNo,
-      completeAddress,
-    ];
-
-    await db.promise().query<OkPacket>(insertAddressQuery, addressValues);
   } catch (error) {
     console.error("Error creating customer:", error);
-    throw new Error(
-      "Error creating customer: " + (error.message || "Unknown error")
-    );
+    throw new Error("Error creating customer: " + (error.message || "Unknown error"));
   }
 };
-
 
 
 // Fetch customer by ID

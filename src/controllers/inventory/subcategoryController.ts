@@ -9,21 +9,23 @@ import {
 } from "../../models/inventory/subcategoryModel";
 import { createResponse } from "../../utils/responseHandler";
 
-// Fetch all subcategories with pagination and search
+// Fetch all subcategories with pagination, search, and categoryId filter
 export const getSubcategories = async (req: Request, res: Response): Promise<void> => {
   const limit = parseInt(req.query.limit as string) || 10;
   const page = parseInt(req.query.page as string) || 1;
   const searchTerm = (req.query.searchTerm as string) || "";
+  const categoryId = req.query.categoryId ? parseInt(req.query.categoryId as string) : null;
   const offset = (page - 1) * limit;
 
   try {
-    const totalCount = await getSubcategoriesCount(searchTerm);
-    const subcategories = await getAllSubCategoriesWithCategory(limit, offset, searchTerm);
+    const totalCount = await getSubcategoriesCount(searchTerm, categoryId);
+    const subcategories = await getAllSubCategoriesWithCategory(limit, offset, searchTerm, categoryId);
     const totalPages = Math.ceil(totalCount / limit);
 
     const subcategoriesWithMedia = subcategories.map(subcategory => {
       const subcategoryResponse = {
-        subcategory_id: subcategory.id,
+        id: subcategory.id,
+        category_id: subcategory.category_id,
         subcategory_name: subcategory.name,
         description: subcategory.description,
         weightage: subcategory.weightage,
@@ -68,6 +70,7 @@ export const getSubcategories = async (req: Request, res: Response): Promise<voi
     res.status(500).json(createResponse(500, "Error fetching subcategories", error.message));
   }
 };
+
 
 // Add a new subcategory (POST)
 export const addSubcategory = async (req: Request, res: Response): Promise<void> => {
