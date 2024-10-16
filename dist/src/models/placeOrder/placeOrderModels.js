@@ -272,17 +272,57 @@ const addPlaceOrder = async (placeOrderData) => {
         if (paymentResult.affectedRows === 0) {
             throw new Error("Payment insertion failed.");
         }
+        // Fetch current wallet balance
+        const walletBalanceSql = `
+      SELECT balance FROM wallet_balances WHERE user_id = ?;
+    `;
+        const [walletRows] = await databaseConnection_1.db
+            .promise()
+            .query(walletBalanceSql, [userId]);
+        if (walletRows.length === 0) {
+            throw new Error(`No wallet balance found for user ${userId}.`);
+        }
+        const beforeBalance = walletRows[0].balance;
+        const afterBalance = (beforeBalance - price).toFixed(2);
         // Deduct amount from user's wallet
         const deductionSuccess = await (0, exports.deductFromWalletBalance)(userId, price);
         if (!deductionSuccess) {
             throw new Error("Failed to deduct from wallet balance.");
         }
+        // Insert into wallet_logs
+        const walletLogSql = `
+      INSERT INTO wallet_logs (
+        user_id, 
+        order_id, 
+        order_date, 
+        order_item_id, 
+        before_balance, 
+        amount, 
+        after_balance, 
+        wallet_type, 
+        description, 
+        created_at, 
+        updated_at
+      ) 
+      VALUES (?, ?, NOW(), ?, ?, ?, ?, ?, ?, NOW(), NOW());
+    `;
+        const walletLogValues = [
+            userId,
+            null, // order_id will be updated later
+            paymentResult.insertId, // order_item_id is now the payment id
+            beforeBalance,
+            price,
+            afterBalance,
+            'deduction',
+            `Rs ${price} deducted from Rs ${beforeBalance}`,
+        ];
+        // Address SQL Query
         const addressSql = `
-    SELECT da.id AS delivery_address_id, da.*, l.route_id, l.hub_id, l.name AS locality_name
-    FROM delivery_addresses da
-    LEFT JOIN localities l ON da.locality_id = l.id
-    WHERE da.user_id = ?;
-  `;
+      SELECT da.id AS delivery_address_id, da.*, l.route_id, l.hub_id, l.name AS locality_name
+      FROM delivery_addresses da
+      LEFT JOIN localities l ON da.locality_id = l.id
+      WHERE da.user_id = ?;
+    `;
         const [addressRows] = await databaseConnection_1.db
             .promise()
             .query(addressSql, [userId]);
@@ -293,6 +333,7 @@ const addPlaceOrder = async (placeOrderData) => {
         }
         const addressData = addressRows[0];
         const { route_id, hub_id, locality_id, delivery_address_id } = addressData;
+        // Insert order record
         const orderSql = `
       INSERT INTO orders (
         user_id, 
@@ -316,7 +357,6 @@ const addPlaceOrder = async (placeOrderData) => {
         const orderValues = [
             userId,
             1,
-            // orderTypes[1],
             route_id,
             hub_id,
             locality_id,
@@ -334,6 +374,11 @@ const addPlaceOrder = async (placeOrderData) => {
         if (orderResult.affectedRows === 0) {
             throw new Error("Failed to create order.");
         }
+        const orderId = orderResult.insertId;
+        // Update wallet log with the correct order_id
+        walletLogValues[1] = orderId;
+        await databaseConnection_1.db.promise().query(walletLogSql, walletLogValues);
+        // Log cart items
         const cartItems = await (0, exports.getCartItemsByUserId)(userId);
         for (const item of cartItems) {
             const logSql = `
@@ -353,7 +398,7 @@ const addPlaceOrder = async (placeOrderData) => {
       `;
             const logValues = [
                 userId,
-                orderResult.insertId,
+                orderId,
                 item.food_id,
                 locality_id,
                 null,
