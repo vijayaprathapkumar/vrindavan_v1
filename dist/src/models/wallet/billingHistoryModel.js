@@ -12,8 +12,8 @@ const getOrderDetails = async (userId, page, limit) => {
             o.order_type,
             o.order_date,
             o.route_id,
-            o.hub_id,
-            o.locality_id,
+            o.hub_id AS order_hub_id,
+            o.locality_id AS order_locality_id,
             o.delivery_boy_id,
             o.order_status_id,
             o.tax,
@@ -29,6 +29,14 @@ const getOrderDetails = async (userId, page, limit) => {
             o.updated_at AS order_updated_at,
 
             os.status AS order_status,
+
+            p.id AS payment_id,
+            p.price AS payment_price,
+            p.description AS payment_description,
+            p.status AS payment_status,
+            p.method AS payment_method,
+            p.created_at AS payment_created_at,
+            p.updated_at AS payment_updated_at,
 
             ol.id AS order_log_id,
             ol.order_date AS order_log_date,
@@ -94,6 +102,8 @@ const getOrderDetails = async (userId, page, limit) => {
         LEFT JOIN 
             order_combos oc ON o.id = oc.order_id
         LEFT JOIN 
+            payments p ON o.payment_id = p.id
+        LEFT JOIN 
             order_combo_details ocd ON oc.id = ocd.order_combo_id
         LEFT JOIN 
             foods f ON ol.product_id = f.id 
@@ -120,8 +130,8 @@ const getOrderDetails = async (userId, page, limit) => {
                     created_at: row.order_created_at,
                     order_type: row.order_type,
                     route_id: row.route_id,
-                    hub_id: row.hub_id,
-                    locality_id: row.locality_id,
+                    hub_id: row.order_hub_id,
+                    locality_id: row.order_locality_id,
                     delivery_boy_id: row.delivery_boy_id,
                     order_status_id: row.order_status_id,
                     tax: row.tax,
@@ -130,30 +140,43 @@ const getOrderDetails = async (userId, page, limit) => {
                     active: row.active,
                     driver_id: row.driver_id,
                     delivery_address_id: row.delivery_address_id,
-                    payment_id: row.payment_id,
                     is_wallet_deduct: row.is_wallet_deduct,
                     delivery_status: row.delivery_status,
                     updated_at: row.order_updated_at,
                     status: row.order_status,
+                    payment: null,
                     order_logs: [],
                     order_combos: [],
                     food_items: [],
                 };
                 response.orders.push(order);
             }
-            order.order_logs.push({
-                id: row.order_log_id,
-                order_date: row.order_log_date,
-                user_id: row.user_id,
-                order_id: row.order_id,
-                product_id: row.order_log_product_id,
-                locality_id: row.order_log_locality_id,
-                delivery_boy_id: row.order_log_delivery_boy_id,
-                is_created: row.order_log_is_created,
-                logs: row.order_log_logs,
-                created_at: row.order_log_created_at,
-                updated_at: row.order_log_updated_at,
-            });
+            if (row.payment_id) {
+                order.payment = {
+                    id: row.payment_id,
+                    deduct_amount: row.payment_price,
+                    description: row.payment_description,
+                    status: row.payment_status,
+                    method: row.payment_method,
+                    created_at: row.payment_created_at,
+                    updated_at: row.payment_updated_at,
+                };
+            }
+            if (row.order_log_id) {
+                order.order_logs.push({
+                    id: row.order_log_id,
+                    order_date: row.order_log_date,
+                    user_id: row.user_id,
+                    order_id: row.order_id,
+                    product_id: row.order_log_product_id,
+                    locality_id: row.order_log_locality_id,
+                    delivery_boy_id: row.order_log_delivery_boy_id,
+                    is_created: row.order_log_is_created,
+                    logs: row.order_log_logs,
+                    created_at: row.order_log_created_at,
+                    updated_at: row.order_log_updated_at,
+                });
+            }
             if (row.order_combo_id) {
                 order.order_combos.push({
                     id: row.order_combo_id,
@@ -203,8 +226,8 @@ const getOrderDetails = async (userId, page, limit) => {
         return response;
     }
     catch (error) {
-        console.error("Database query error:", error);
-        throw new Error("Failed to fetch order details: " + error.message);
+        console.error("Error fetching order details:", error);
+        throw new Error("Could not fetch order details");
     }
 };
 exports.getOrderDetails = getOrderDetails;
