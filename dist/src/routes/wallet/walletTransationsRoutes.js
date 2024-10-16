@@ -9,5 +9,6 @@ const router = (0, express_1.Router)();
 router.post("/transaction", authMiddleware_1.verifyDeviceToken, walletTransactionsController_1.walletRecharges);
 router.get("/transaction/:userId", authMiddleware_1.verifyDeviceToken, walletTransactionsController_1.getTransactionsByUserId);
 router.get("/balance/:userId", authMiddleware_1.verifyDeviceToken, walletBalanceController_1.getWalletBalance);
-router.get("/billing_history/:userId", authMiddleware_1.verifyDeviceToken, billingHistoryController_1.fetchBillingHistory);
+// router.get("/billing_history/:userId",verifyDeviceToken, fetchBillingHistory);
+router.get("/billing_history/:userId", authMiddleware_1.verifyDeviceToken, billingHistoryController_1.fetchOrderBillingHistory);
 exports.default = router;
