@@ -43,7 +43,7 @@ interface CartItem {
 }
 
 // Fetch all cart items for a user with pagination
-export const getAllCartItems = async (userId: number, limit: number, offset: number): Promise<CartItem[]> => {
+export const getAllCartItems = async (userId: number, limit?: number, offset?: number): Promise<CartItem[]> => {
   const query = `
     SELECT 
       c.created_at AS created_at,
@@ -139,51 +139,12 @@ export const addCartItem = async (itemData: { foodId: number; userId: number; qu
   const cartValues = [foodId, userId, quantity];
 
   try {
-    // Insert into carts table
     const [cartResult]: [OkPacket, any] = await db.promise().query(cartSql, cartValues);
-
-    // Insert into orders table
-    const orderSql = `
-      INSERT INTO orders (
-        user_id, order_type, order_date, order_status_id, tax, delivery_fee, active, is_wallet_deduct, created_at, updated_at
-      ) VALUES (?, ?, NOW(), ?, ?, ?, ?, ?, NOW(), NOW());
-    `;
-    const orderValues = [userId, 2, 4, 0.00, 0.00, 1, 1];
-    const [orderResult]: [OkPacket, any] = await db.promise().query(orderSql, orderValues);
-
-    const orderId = orderResult.insertId;
-
-    // Insert into order_logs table
-    const orderLogSql = `
-      INSERT INTO order_logs (
-        order_date, user_id, order_id, product_id, locality_id, delivery_boy_id, is_created, logs, created_at, updated_at
-      ) VALUES (NOW(), ?, ?, ?, ?, ?, ?, ?, NOW(), NOW());
-    `;
-    const orderLogValues = [userId, orderId, foodId, 1, 1, 1, "Stock Available, Order Created"];
-    await db.promise().query(orderLogSql, orderLogValues);
-
-    // Insert into order_combos table
-    const orderComboSql = `
-      INSERT INTO order_combos (order_id, price, quantity,combo_id, created_at, updated_at) 
-      VALUES (?, (SELECT price FROM foods WHERE id = ?), ?,2, NOW(), NOW());
-    `;
-    const orderComboValues = [orderId, foodId, quantity];
-    const [orderComboResult]: [OkPacket, any] = await db.promise().query(orderComboSql, orderComboValues);
-
-    const orderComboId = orderComboResult.insertId;
-
-    // Insert into order_combo_details table
-    const orderComboDetailSql = `
-      INSERT INTO order_combo_details (order_combo_id, order_id, product_id, created_at, updated_at) 
-      VALUES (?, ?, ?, NOW(), NOW());
-    `;
-    const orderComboDetailValues = [orderComboId, orderId, foodId];
-    await db.promise().query(orderComboDetailSql, orderComboDetailValues);
 
     return cartResult;
   } catch (error) {
     console.error("SQL Error:", error);
-    throw new Error("Failed to add cart item and related records.");
+    throw new Error("Failed to add cart item.");
   }
 };
 
@@ -236,7 +197,7 @@ export const getCartItemById = async (id: number): Promise<CartItem | null> => {
   const [rows]: [RowDataPacket[], any] = await db.promise().query(query, [id]);
   
   if (rows.length === 0) {
-    return null; // No item found
+    return null;
   }
 
   const row = rows[0];

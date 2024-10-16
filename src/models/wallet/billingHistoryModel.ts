@@ -1,9 +1,8 @@
 import { db } from "../../config/databaseConnection";
 import { RowDataPacket } from "mysql2";
 
-// Define interfaces for each data type
 interface FoodData {
-    id: number; // This is the product_id
+    id: number; 
     name: string;
     price: number;
     discount_price: number | null;
@@ -49,7 +48,7 @@ interface OrderComboDetail {
     id: number;
     order_combo_id: number;
     order_id: number;
-    product_id: number; // This corresponds to the product_id in foods
+    product_id: number; 
     created_at: Date;
     updated_at: Date;
 }
@@ -59,7 +58,7 @@ interface OrderLog {
     order_date: Date;
     user_id: number;
     order_id: number;
-    product_id: number; // Corresponds to the product_id in foods
+    product_id: number;
     locality_id: number | null;
     delivery_boy_id: number;
     is_created: number;
@@ -68,7 +67,6 @@ interface OrderLog {
     updated_at: Date;
 }
 
-// The CombinedOrderData interface reflects the new structure
 interface CombinedOrderData {
     orders: { 
         order_id: number; 
@@ -100,7 +98,7 @@ interface CombinedOrderData {
 
 // Fetch order details for a user
 export const getOrderDetails = async (userId: string, page: number, limit: number): Promise<CombinedOrderData> => {
-    const offset = (page - 1) * limit; // Calculate offset for pagination
+    const offset = (page - 1) * limit; 
 
     const query = `
         SELECT 
@@ -206,21 +204,19 @@ export const getOrderDetails = async (userId: string, page: number, limit: numbe
     try {
         const [rows]: [RowDataPacket[], any] = await db.promise().query(query, [userId, offset, limit]);
 
-        // Initialize response structure
         const response: CombinedOrderData = {
             orders: [],
         };
 
-        // Populate orders array based on the fetched data
+       
         rows.forEach(row => {
-            // Check if the order already exists in the response
             let order = response.orders.find(o => o.order_id === row.order_id);
             if (!order) {
                 order = {
                     order_id: row.order_id,
                     user_id: row.user_id,
                     order_date: row.order_date,
-                    created_at: row.order_created_at, // Set created_at here
+                    created_at: row.order_created_at, 
                     order_type: row.order_type,
                     route_id: row.route_id,
                     hub_id: row.hub_id,
@@ -236,7 +232,7 @@ export const getOrderDetails = async (userId: string, page: number, limit: numbe
                     payment_id: row.payment_id,
                     is_wallet_deduct: row.is_wallet_deduct,
                     delivery_status: row.delivery_status,
-                    updated_at: row.order_updated_at, // Added updated_at
+                    updated_at: row.order_updated_at,
                     status: row.order_status,
                     order_logs: [],
                     order_combos: [],
@@ -245,7 +241,7 @@ export const getOrderDetails = async (userId: string, page: number, limit: numbe
                 response.orders.push(order);
             }
 
-            // Populate order logs array
+        
             order.order_logs.push({
                 id: row.order_log_id,
                 order_date: row.order_log_date,
@@ -260,7 +256,6 @@ export const getOrderDetails = async (userId: string, page: number, limit: numbe
                 updated_at: row.order_log_updated_at,
             });
 
-            // Populate order combos array
             if (row.order_combo_id) {
                 order.order_combos.push({
                     id: row.order_combo_id,
@@ -273,7 +268,6 @@ export const getOrderDetails = async (userId: string, page: number, limit: numbe
                 });
             }
 
-            // Populate food items array
             if (row.food_id) {
                 order.food_items.push({
                     id: row.food_id,
