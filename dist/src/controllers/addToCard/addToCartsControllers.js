@@ -12,9 +12,9 @@ const fetchCartItems = async (req, res) => {
     try {
         const cartItems = await (0, addToCartsModels_1.getAllCartItems)(userId, limit, offset);
         const totalPrice = cartItems.reduce((total, item) => {
-            return total + item.food.price * item.quantity;
+            const itemPrice = item.food.discountPrice || item.food.price;
+            return total + itemPrice * item.quantity;
         }, 0);
-        await (0, addToCartsModels_1.updatePaymentByUserId)(userId, totalPrice);
         const totalCartItems = await (0, addToCartsModels_1.getCountOfCartItems)(userId);
         return res.status(200).json((0, responseHandler_1.createResponse)(200, "Cart items fetched successfully.", {
             cart: cartItems,
@@ -33,7 +33,7 @@ const fetchCartItems = async (req, res) => {
     }
 };
 exports.fetchCartItems = fetchCartItems;
-// Add a new item to the cart and update the total price
+// Add a new item to the cart 
 const addCart = async (req, res) => {
     const { userId, foodId, quantity } = req.body;
     if (quantity <= 0) {
@@ -45,12 +45,12 @@ const addCart = async (req, res) => {
         await (0, addToCartsModels_1.addCartItem)({ userId, foodId, quantity });
         const cartItems = await (0, addToCartsModels_1.getAllCartItems)(userId, 10, 0);
         const totalPrice = cartItems.reduce((total, item) => {
-            return total + item.food.price * item.quantity;
+            const itemPrice = item.food.discountPrice || item.food.price;
+            return total + itemPrice * item.quantity;
         }, 0);
-        await (0, addToCartsModels_1.updatePaymentByUserId)(userId, totalPrice);
         return res
             .status(201)
-            .json((0, responseHandler_1.createResponse)(201, "Item added to cart successfully.", null));
+            .json((0, responseHandler_1.createResponse)(201, "Item added to cart successfully.", { totalPrice }));
     }
     catch (error) {
         console.error("Error adding cart item:", error);
@@ -90,9 +90,10 @@ const updateCart = async (req, res) => {
         await (0, addToCartsModels_1.updateCartItem)(Number(id), quantity);
         const cartItems = await (0, addToCartsModels_1.getAllCartItems)(userId, 10, 0);
         const totalPrice = cartItems.reduce((total, item) => {
-            return total + item.food.price * item.quantity;
+            const itemPrice = item.food.discountPrice || item.food.price;
+            return total + itemPrice * item.quantity;
         }, 0);
-        await (0, addToCartsModels_1.updatePaymentByUserId)(userId, totalPrice);
+        // await updatePaymentByUserId(userId, totalPrice);
         return res.status(200).json((0, responseHandler_1.createResponse)(200, "Cart item updated successfully.", null));
     }
     catch (error) {
@@ -111,9 +112,10 @@ const removeCart = async (req, res) => {
         await (0, addToCartsModels_1.deleteCartItemById)(Number(id));
         const cartItems = await (0, addToCartsModels_1.getAllCartItems)(userId, 10, 0);
         const totalPrice = cartItems.reduce((total, item) => {
-            return total + item.food.price * item.quantity;
+            const itemPrice = item.food.discountPrice || item.food.price;
+            return total + itemPrice * item.quantity;
         }, 0);
-        await (0, addToCartsModels_1.updatePaymentByUserId)(userId, totalPrice);
+        // await updatePaymentByUserId(userId, totalPrice);
         return res
             .status(200)
             .json((0, responseHandler_1.createResponse)(200, "Cart item removed successfully.", null));

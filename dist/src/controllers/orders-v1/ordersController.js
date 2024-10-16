@@ -3,17 +3,17 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.fetchOrderById = exports.removeOrder = exports.updateOrderController = exports.fetchOrders = void 0;
 const ordersModel_1 = require("../../models/orders-v1/ordersModel");
 const responseHandler_1 = require("../../utils/responseHandler");
-// Fetch all orders for a user
 const fetchOrders = async (req, res) => {
-    const userId = parseInt(req.params.userId);
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
-    // Validate the userId
+    const userId = parseInt(req.params.userId, 10);
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 10;
+    const startDate = req.query.startDate ? new Date(req.query.startDate) : undefined;
+    const endDate = req.query.endDate ? new Date(req.query.endDate) : undefined;
     if (isNaN(userId)) {
         return res.status(400).json((0, responseHandler_1.createResponse)(400, "User ID is required and must be a number."));
     }
     try {
-        const { total, orders } = await (0, ordersModel_1.getAllOrders)(userId, page, limit);
+        const { total, orders } = await (0, ordersModel_1.getAllOrders)(userId, page, limit, startDate, endDate);
         res.json((0, responseHandler_1.createResponse)(200, "Orders fetched successfully.", {
             orders,
             totalRecords: total,

@@ -3,19 +3,21 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.deleteSubcategory = exports.updateSubcategory = exports.getSubcategory = exports.addSubcategory = exports.getSubcategories = void 0;
 const subcategoryModel_1 = require("../../models/inventory/subcategoryModel");
 const responseHandler_1 = require("../../utils/responseHandler");
-// Fetch all subcategories with pagination and search
+// Fetch all subcategories with pagination, search, and categoryId filter
 const getSubcategories = async (req, res) => {
     const limit = parseInt(req.query.limit) || 10;
     const page = parseInt(req.query.page) || 1;
     const searchTerm = req.query.searchTerm || "";
+    const categoryId = req.query.categoryId ? parseInt(req.query.categoryId) : null;
     const offset = (page - 1) * limit;
     try {
-        const totalCount = await (0, subcategoryModel_1.getSubcategoriesCount)(searchTerm);
-        const subcategories = await (0, subcategoryModel_1.getAllSubCategoriesWithCategory)(limit, offset, searchTerm);
+        const totalCount = await (0, subcategoryModel_1.getSubcategoriesCount)(searchTerm, categoryId);
+        const subcategories = await (0, subcategoryModel_1.getAllSubCategoriesWithCategory)(limit, offset, searchTerm, categoryId);
         const totalPages = Math.ceil(totalCount / limit);
         const subcategoriesWithMedia = subcategories.map(subcategory => {
             const subcategoryResponse = {
-                subcategory_id: subcategory.id,
+                id: subcategory.id,
+                category_id: subcategory.category_id,
                 subcategory_name: subcategory.name,
                 description: subcategory.description,
                 weightage: subcategory.weightage,

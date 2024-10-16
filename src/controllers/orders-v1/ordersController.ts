@@ -7,19 +7,19 @@ import {
 } from "../../models/orders-v1/ordersModel";
 import { createResponse } from "../../utils/responseHandler";
 
-// Fetch all orders for a user
 export const fetchOrders = async (req: Request, res: Response) => {
-  const userId = parseInt(req.params.userId); 
-  const page = parseInt(req.query.page as string) || 1;
-  const limit = parseInt(req.query.limit as string) || 10;
+  const userId = parseInt(req.params.userId, 10); 
+  const page = parseInt(req.query.page as string, 10) || 1;
+  const limit = parseInt(req.query.limit as string, 10) || 10;
+  const startDate = req.query.startDate ? new Date(req.query.startDate as string) : undefined;
+  const endDate = req.query.endDate ? new Date(req.query.endDate as string) : undefined;
 
-  // Validate the userId
   if (isNaN(userId)) {
     return res.status(400).json(createResponse(400, "User ID is required and must be a number."));
   }
 
   try {
-    const { total, orders } = await getAllOrders(userId, page, limit);
+    const { total, orders } = await getAllOrders(userId, page, limit, startDate, endDate);
     res.json(createResponse(200, "Orders fetched successfully.", {
       orders,
       totalRecords: total,
