@@ -291,3 +291,112 @@ node_cron_1.default.schedule('0 0 * * *', async () => {
         console.error("Error updating subscriptions:", error);
     }
 });
+// Function to create an order based on subscription
+const createOrder = (subscription) => {
+    const { user_id, order_type, route_id, hub_id, locality_id, delivery_boy_id, order_status_id, tax = 0.00, delivery_fee = 0.00, hint, active = 1, driver_id, delivery_address_id, payment_id, is_wallet_deduct = 0, delivery_status = 0 } = subscription;
+    const query = `INSERT INTO orders 
+    (user_id, order_type, order_date, route_id, hub_id, locality_id, delivery_boy_id, order_status_id, 
+    tax, delivery_fee, hint, active, driver_id, delivery_address_id, payment_id, is_wallet_deduct, 
+    delivery_status, created_at, updated_at) 
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`;
+    const values = [
+        user_id,
+        order_type,
+        new Date(),
+        route_id,
+        hub_id,
+        locality_id,
+        delivery_boy_id,
+        order_status_id,
+        tax,
+        delivery_fee,
+        hint,
+        active,
+        driver_id,
+        delivery_address_id,
+        payment_id,
+        is_wallet_deduct,
+        delivery_status
+    ];
+    databaseConnection_1.db.query(query, values, (err, result) => {
+        if (err)
+            throw err;
+        // Accessing insertId from the result
+        const orderId = result.insertId;
+        console.log(`Order created for user ${user_id} with order ID: ${orderId}`);
+    });
+};
+// Cron job for "everyday"
+node_cron_1.default.schedule('0 0 * * *', () => {
+    console.log('Running everyday subscription job...');
+    const query = `SELECT * FROM user_subscriptions WHERE subscription_type = 'everyday'`;
+    databaseConnection_1.db.query(query, (err, results) => {
+        if (err)
+            throw err;
+        if (Array.isArray(results)) {
+            results.forEach(subscription => createOrder(subscription));
+        }
+    });
+});
+// Cron job for "alternative Day" (runs every other day)
+node_cron_1.default.schedule('0 0 */2 * *', () => {
+    console.log('Running alternative day subscription job...');
+    const query = `SELECT * FROM user_subscriptions WHERE subscription_type = 'alternative Day'`;
+    databaseConnection_1.db.query(query, (err, results) => {
+        if (err)
+            throw err;
+        if (Array.isArray(results)) {
+            results.forEach(subscription => createOrder(subscription));
+        }
+    });
+});
+// Cron job for "every 3rd day"
+node_cron_1.default.schedule('0 0 */3 * *', () => {
+    console.log('Running every 3rd day subscription job...');
+    const query = `SELECT * FROM user_subscriptions WHERE subscription_type = 'every 3rd day'`;
+    databaseConnection_1.db.query(query, (err, results) => {
+        if (err)
+            throw err;
+        if (Array.isArray(results)) {
+            results.forEach(subscription => createOrder(subscription));
+        }
+    });
+});
+// Cron job for "weekends" (runs every Saturday and Sunday)
+node_cron_1.default.schedule('0 0 * * 6,0', () => {
+    console.log('Running weekends subscription job...');
+    const query = `SELECT * FROM user_subscriptions WHERE subscription_type = 'weekends'`;
+    databaseConnection_1.db.query(query, (err, results) => {
+        if (err)
+            throw err;
+        if (Array.isArray(results)) {
+            results.forEach(subscription => createOrder(subscription));
+        }
+    });
+});
+// Cron job for "customize" (this could be handled based on specific user preferences)
+const handleCustomizeSubscriptions = () => {
+    console.log('Handling customize subscriptions...');
+    const query = `SELECT * FROM user_subscriptions WHERE subscription_type = 'customize'`;
+    databaseConnection_1.db.query(query, (err, results) => {
+        if (err)
+            throw err;
+        if (Array.isArray(results)) {
+            results.forEach(subscription => {
+                if (isTodayMatchingCustomSchedule(subscription.custom_schedule)) {
+                    createOrder(subscription);
+                }
+            });
+        }
+    });
+};
+// Check if today matches the user's custom schedule
+const isTodayMatchingCustomSchedule = (customSchedule) => {
+    // Assuming customSchedule is an array of days, e.g., ["Monday", "Wednesday"]
+    const today = new Date().toLocaleString('en-us', { weekday: 'long' });
+    return customSchedule.includes(today);
+};
+// Customize cron job can be run daily and will handle orders based on user preferences
+node_cron_1.default.schedule('0 0 * * *', () => {
+    handleCustomizeSubscriptions();
+});
