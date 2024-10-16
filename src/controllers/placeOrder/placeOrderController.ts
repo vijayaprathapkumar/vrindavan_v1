@@ -7,9 +7,11 @@ import {
   getPriceForNextOrder,
   deleteAllCartItemsByUserId,
   getPlaceOrderById,
+  getCartItemsByUserId,
 } from "../../models/placeOrder/placeOrderModels";
 import { createResponse } from "../../utils/responseHandler";
 
+// Fetch all place orders for a user
 // Fetch all place orders for a user
 export const fetchPlaceOrders = async (
   req: Request,
@@ -20,8 +22,12 @@ export const fetchPlaceOrders = async (
   const limit = parseInt(req.query.limit as string) || 10;
   const searchTerm = req.query.searchTerm ? (req.query.searchTerm as string) : null;
 
+  const startDate = req.query.startDate ? new Date(req.query.startDate as string) : undefined;
+  const endDate = req.query.endDate ? new Date(req.query.endDate as string) : undefined;
+
   try {
-    const { total, placeOrders } = await getAllPlaceOrders(userId, page, limit, searchTerm);
+    const { total, placeOrders } = await getAllPlaceOrders(userId, page, limit, startDate, endDate, searchTerm);
+    
     return res.json(
       createResponse(200, "Place orders fetched successfully.", {
         placeOrders,
@@ -39,7 +45,6 @@ export const fetchPlaceOrders = async (
   }
 };
 
-
 // Add a place order and clear the cart
 export const addPlaceOrderController = async (
   req: Request,
@@ -48,38 +53,36 @@ export const addPlaceOrderController = async (
   const { userId } = req.body;
 
   try {
-    const price = await getPriceForNextOrder(userId);
-    if (!price) {
-      return res
-        .status(400)
-        .json(createResponse(400, "Price not found for the user."));
+    const cartItems = await getCartItemsByUserId(userId);
+    if (!cartItems.length) {
+      return res.status(400).json(createResponse(400, "No items in cart."));
     }
+
+    const totalPrice = cartItems.reduce((total, item) => {
+      const itemPrice = item.food.discountPrice || item.food.price; 
+      return total + itemPrice * item.quantity;
+    }, 0);
 
     const status = "active";
     const method = "wallet";
 
-    const result = await addPlaceOrder({ price, userId, status, method });
-    if (result.affectedRows > 0) {
+    const orderResult = await addPlaceOrder({ price: totalPrice, userId, status, method });
+    
+    if (orderResult.affectedRows > 0) {
       await deleteAllCartItemsByUserId(userId);
-      return res
-        .status(201)
-        .json(
-          createResponse(
-            201,
-            "Place order added successfully, cart cleared, and wallet updated.",
-            null
-          )
-        );
+      return res.status(201).json(
+        createResponse(
+          201,
+          "Place order added successfully, cart cleared, and wallet updated.",
+          null
+        )
+      );
     } else {
-      return res
-        .status(400)
-        .json(createResponse(400, "Failed to add place order."));
+      return res.status(400).json(createResponse(400, "Failed to add place order."));
     }
   } catch (error) {
     console.error("Error adding place order:", error);
-    return res
-      .status(500)
-      .json(createResponse(500, "Failed to add place order."));
+    return res.status(500).json(createResponse(500, "Failed to add place order."));
   }
 };
 

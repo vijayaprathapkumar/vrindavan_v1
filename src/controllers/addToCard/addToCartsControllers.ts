@@ -9,7 +9,7 @@ import {
   getCartItemById,
 } from "../../models/addToCard/addToCartsModels";
 import { createResponse } from "../../utils/responseHandler";
-
+    
 // Fetch all cart items for a user and update the payments table
 export const fetchCartItems = async (
   req: Request,
@@ -24,10 +24,10 @@ export const fetchCartItems = async (
     const cartItems = await getAllCartItems(userId, limit, offset);
 
     const totalPrice = cartItems.reduce((total, item) => {
-      return total + item.food.price * item.quantity;
+      const itemPrice = item.food.discountPrice || item.food.price; 
+      return total + itemPrice * item.quantity;
     }, 0);
 
-    await updatePaymentByUserId(userId, totalPrice);
 
     const totalCartItems = await getCountOfCartItems(userId);
 
@@ -51,7 +51,7 @@ export const fetchCartItems = async (
   }
 };
 
-// Add a new item to the cart and update the total price
+// Add a new item to the cart 
 export const addCart = async (
   req: Request,
   res: Response
@@ -66,16 +66,19 @@ export const addCart = async (
 
   try {
     await addCartItem({ userId, foodId, quantity });
+
     const cartItems = await getAllCartItems(userId, 10, 0);
 
+
     const totalPrice = cartItems.reduce((total, item) => {
-      return total + item.food.price * item.quantity;
+
+      const itemPrice = item.food.discountPrice || item.food.price; 
+      return total + itemPrice * item.quantity;
     }, 0);
 
-    await updatePaymentByUserId(userId, totalPrice);
     return res
       .status(201)
-      .json(createResponse(201, "Item added to cart successfully.", null));
+      .json(createResponse(201, "Item added to cart successfully.", { totalPrice }));
   } catch (error) {
     console.error("Error adding cart item:", error);
     return res
@@ -83,6 +86,8 @@ export const addCart = async (
       .json(createResponse(500, "Failed to add item to cart."));
   }
 };
+
+
 
 // Fetch a cart item by its ID
 export const fetchCartItemById = async (req: Request, res: Response): Promise<Response> => {
@@ -121,11 +126,13 @@ export const updateCart = async (
     await updateCartItem(Number(id), quantity);
     const cartItems = await getAllCartItems(userId, 10, 0);
 
+    
     const totalPrice = cartItems.reduce((total, item) => {
-      return total + item.food.price * item.quantity;
+      const itemPrice = item.food.discountPrice || item.food.price; 
+      return total + itemPrice * item.quantity;
     }, 0);
 
-    await updatePaymentByUserId(userId, totalPrice);
+    // await updatePaymentByUserId(userId, totalPrice);
     return res.status(200).json(
       createResponse(200, "Cart item updated successfully.", null)
     );
@@ -149,11 +156,13 @@ export const removeCart = async (
     await deleteCartItemById(Number(id));
     const cartItems = await getAllCartItems(userId, 10, 0);
 
+   
     const totalPrice = cartItems.reduce((total, item) => {
-      return total + item.food.price * item.quantity;
+      const itemPrice = item.food.discountPrice || item.food.price; 
+      return total + itemPrice * item.quantity;
     }, 0);
 
-    await updatePaymentByUserId(userId, totalPrice);
+    // await updatePaymentByUserId(userId, totalPrice);
     return res
       .status(200)
       .json(createResponse(200, "Cart item removed successfully.", null));

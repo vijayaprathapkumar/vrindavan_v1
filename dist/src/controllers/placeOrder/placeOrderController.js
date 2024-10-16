@@ -4,13 +4,16 @@ exports.fetchPlaceOrderById = exports.removePlaceOrder = exports.updatePlaceOrde
 const placeOrderModels_1 = require("../../models/placeOrder/placeOrderModels");
 const responseHandler_1 = require("../../utils/responseHandler");
 // Fetch all place orders for a user
+// Fetch all place orders for a user
 const fetchPlaceOrders = async (req, res) => {
     const userId = parseInt(req.params.userId);
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const searchTerm = req.query.searchTerm ? req.query.searchTerm : null;
+    const startDate = req.query.startDate ? new Date(req.query.startDate) : undefined;
+    const endDate = req.query.endDate ? new Date(req.query.endDate) : undefined;
     try {
-        const { total, placeOrders } = await (0, placeOrderModels_1.getAllPlaceOrders)(userId, page, limit, searchTerm);
+        const { total, placeOrders } = await (0, placeOrderModels_1.getAllPlaceOrders)(userId, page, limit, startDate, endDate, searchTerm);
         return res.json((0, responseHandler_1.createResponse)(200, "Place orders fetched successfully.", {
             placeOrders,
             currentPage: page,
@@ -31,32 +34,28 @@ exports.fetchPlaceOrders = fetchPlaceOrders;
 const addPlaceOrderController = async (req, res) => {
     const { userId } = req.body;
     try {
-        const price = await (0, placeOrderModels_1.getPriceForNextOrder)(userId);
-        if (!price) {
-            return res
-                .status(400)
-                .json((0, responseHandler_1.createResponse)(400, "Price not found for the user."));
+        const cartItems = await (0, placeOrderModels_1.getCartItemsByUserId)(userId);
+        if (!cartItems.length) {
+            return res.status(400).json((0, responseHandler_1.createResponse)(400, "No items in cart."));
         }
+        const totalPrice = cartItems.reduce((total, item) => {
+            const itemPrice = item.food.discountPrice || item.food.price;
+            return total + itemPrice * item.quantity;
+        }, 0);
         const status = "active";
         const method = "wallet";
-        const result = await (0, placeOrderModels_1.addPlaceOrder)({ price, userId, status, method });
-        if (result.affectedRows > 0) {
+        const orderResult = await (0, placeOrderModels_1.addPlaceOrder)({ price: totalPrice, userId, status, method });
+        if (orderResult.affectedRows > 0) {
             await (0, placeOrderModels_1.deleteAllCartItemsByUserId)(userId);
-            return res
-                .status(201)
-                .json((0, responseHandler_1.createResponse)(201, "Place order added successfully, cart cleared, and wallet updated.", null));
+            return res.status(201).json((0, responseHandler_1.createResponse)(201, "Place order added successfully, cart cleared, and wallet updated.", null));
         }
         else {
-            return res
-                .status(400)
-                .json((0, responseHandler_1.createResponse)(400, "Failed to add place order."));
+            return res.status(400).json((0, responseHandler_1.createResponse)(400, "Failed to add place order."));
         }
     }
     catch (error) {
         console.error("Error adding place order:", error);
-        return res
-            .status(500)
-            .json((0, responseHandler_1.createResponse)(500, "Failed to add place order."));
+        return res.status(500).json((0, responseHandler_1.createResponse)(500, "Failed to add place order."));
     }
 };
 exports.addPlaceOrderController = addPlaceOrderController;

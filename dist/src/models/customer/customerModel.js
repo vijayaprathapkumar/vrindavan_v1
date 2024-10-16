@@ -176,9 +176,7 @@ const getAllCustomers = async (page, limit, locality, status, searchTerm, isAppr
 };
 exports.getAllCustomers = getAllCustomers;
 // Create a new customer
-// Create a new customer
-const createCustomer = async (localityId, name, email, mobile, houseNo, completeAddress, status, password = 'defaultPassword' // Set a default password if not provided
-) => {
+const createCustomer = async (localityId, name, email, mobile, houseNo, completeAddress, status, password = 'defaultPassword') => {
     try {
         const existingUserQuery = `
       SELECT id FROM users WHERE email = ?;
@@ -186,27 +184,48 @@ const createCustomer = async (localityId, name, email, mobile, houseNo, complete
         const [existingUsers] = await databaseConnection_1.db
             .promise()
             .query(existingUserQuery, [email]);
+        let userId;
         if (existingUsers.length > 0) {
-            throw new Error(`User with email ${email} already exists`);
+            userId = existingUsers[0].id;
         }
-        const insertUserQuery = `
-      INSERT INTO users (name, email, phone, password, status, created_at, updated_at) 
-      VALUES (?, ?, ?, ?, ?, NOW(), NOW());
+        else {
+            const insertUserQuery = `
+        INSERT INTO users (name, email, phone, password, status, created_at, updated_at) 
+        VALUES (?, ?, ?, ?, ?, NOW(), NOW());
+      `;
+            const [userResult] = await databaseConnection_1.db
+                .promise()
+                .query(insertUserQuery, [name, email, mobile, password, status]);
+            userId = userResult.insertId;
+            // Insert user address into delivery_addresses table
+            const insertAddressQuery = `
+        INSERT INTO delivery_addresses (user_id, locality_id, house_no, complete_address, created_at, updated_at) 
+        VALUES (?, ?, ?, ?, NOW(), NOW());
+      `;
+            const addressValues = [userId, localityId, houseNo, completeAddress];
+            await databaseConnection_1.db.promise().query(insertAddressQuery, addressValues);
+        }
+        const existingWalletQuery = `
+      SELECT id FROM wallet_balances WHERE user_id = ?;
     `;
-        const [userResult] = await databaseConnection_1.db
+        const [existingWallet] = await databaseConnection_1.db
             .promise()
-            .query(insertUserQuery, [name, email, mobile, password, status]);
-        const insertAddressQuery = `
-      INSERT INTO delivery_addresses (user_id, locality_id, house_no, complete_address, created_at, updated_at) 
-      VALUES (?, ?, ?, ?, NOW(), NOW());
-    `;
-        const addressValues = [
-            userResult.insertId,
-            localityId,
-            houseNo,
-            completeAddress,
-        ];
-        await databaseConnection_1.db.promise().query(insertAddressQuery, addressValues);
+            .query(existingWalletQuery, [userId]);
+        if (existingWallet.length > 0) {
+            const updateWalletQuery = `
+        UPDATE wallet_balances 
+        SET balance = 0.00, updated_at = NOW() 
+        WHERE user_id = ?;
+      `;
+            await databaseConnection_1.db.promise().query(updateWalletQuery, [userId]);
+        }
+        else {
+            const insertWalletQuery = `
+        INSERT INTO wallet_balances (user_id, balance, created_at, updated_at) 
+        VALUES (?, 0, NOW(), NOW());
+      `;
+            await databaseConnection_1.db.promise().query(insertWalletQuery, [userId]);
+        }
     }
     catch (error) {
         console.error("Error creating customer:", error);
