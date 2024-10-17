@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.deleteCustomer = exports.updateCustomer = exports.getCustomer = exports.addCustomer = exports.getCustomers = void 0;
 const customerModel_1 = require("../../models/customer/customerModel");
 const responseHandler_1 = require("../../utils/responseHandler");
+const databaseConnection_1 = require("../../config/databaseConnection");
 // Fetch all customers with pagination and filters
 const getCustomers = async (req, res) => {
     const { page = 1, limit = 10, locality, status, searchTerm } = req.query;
@@ -29,10 +30,21 @@ const getCustomers = async (req, res) => {
     }
 };
 exports.getCustomers = getCustomers;
-// Add a new customer
 const addCustomer = async (req, res) => {
     const { localityId, name, email, mobile, houseNo, completeAddress, status } = req.body;
     try {
+        const existingUserQuery = `
+      SELECT id FROM users WHERE email = ?;
+    `;
+        const [existingUsers] = await databaseConnection_1.db
+            .promise()
+            .query(existingUserQuery, [email]);
+        if (existingUsers.length > 0) {
+            return res.status(400).json({
+                statusCode: 400,
+                message: "This email is already registered",
+            });
+        }
         await (0, customerModel_1.createCustomer)(localityId, name, email, mobile, houseNo, completeAddress, status);
         res.status(201).json({
             statusCode: 201,

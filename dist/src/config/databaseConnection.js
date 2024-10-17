@@ -15,6 +15,7 @@ exports.db = mysql2_1.default.createPool({
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0,
+    connectTimeout: 60000
 });
 exports.db.getConnection((err) => {
     if (err) {
