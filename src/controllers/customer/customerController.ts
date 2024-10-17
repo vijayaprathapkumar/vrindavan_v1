@@ -7,6 +7,8 @@ import {
   deleteCustomerById,
 } from "../../models/customer/customerModel";
 import { createResponse } from "../../utils/responseHandler";
+import { RowDataPacket } from "mysql2";
+import { db } from "../../config/databaseConnection";
 
 // Fetch all customers with pagination and filters
 export const getCustomers = async (
@@ -44,16 +46,29 @@ export const getCustomers = async (
       .json(createResponse(500, "Error fetching customers", error));
   }
 };
-
-// Add a new customer
 export const addCustomer = async (
   req: Request,
   res: Response
-): Promise<void> => {
+): Promise<Response> => {
   const { localityId, name, email, mobile, houseNo, completeAddress, status } =
     req.body;
 
   try {
+    const existingUserQuery = `
+      SELECT id FROM users WHERE email = ?;
+    `;
+    const [existingUsers] = await db
+      .promise()
+      .query<RowDataPacket[]>(existingUserQuery, [email]);
+
+    if (existingUsers.length > 0) {
+      
+      return res.status(400).json({
+        statusCode: 400,
+        message: "This email is already registered",
+      });
+    }
+
     await createCustomer(
       localityId,
       name,
@@ -77,6 +92,7 @@ export const addCustomer = async (
       .json(createResponse(500, "Error creating customer", error.message));
   }
 };
+
 
 // Get customer by ID
 export const getCustomer = async (

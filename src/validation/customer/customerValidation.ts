@@ -6,8 +6,8 @@ export const customerValidation = [
   body("name").notEmpty().withMessage("Name is required"),
   body("email").isEmail().withMessage("Email is invalid"),
   body("mobile")
-    .matches(/^\d{10}$/)
-    .withMessage("Mobile number must be 10 digits"),
+    .matches(/^\+91\d{10}$/)
+    .withMessage("Mobile number must start with +91 and be followed by 10 digits"),
   body("houseNo")
     .optional()
     .notEmpty()

@@ -372,7 +372,6 @@ export const getCustomerById = async (id: number): Promise<any | null> => {
     },
   };
 };
-
 // Update customer by ID
 export const updateCustomerById = async (
   id: number,
@@ -385,7 +384,7 @@ export const updateCustomerById = async (
   status?: string
 ): Promise<void> => {
   try {
-    const existingUserQuery = `SELECT id FROM users WHERE id = ?;`;
+    const existingUserQuery = `SELECT id, email FROM users WHERE id = ?;`;
     const [existingUsers] = await db
       .promise()
       .query<RowDataPacket[]>(existingUserQuery, [id]);
@@ -394,7 +393,9 @@ export const updateCustomerById = async (
       throw new Error(`User with ID ${id} does not exist`);
     }
 
-    if (email) {
+    const existingEmail = existingUsers[0].email; 
+
+    if (email && existingEmail !== email) {
       const duplicateEmailQuery = `SELECT id FROM users WHERE email = ? AND id != ?;`;
       const [duplicateEmails] = await db
         .promise()
@@ -441,6 +442,7 @@ export const updateCustomerById = async (
     throw new Error("Error updating customer: " + error.message);
   }
 };
+
 
 // Delete customer by ID
 export const deleteCustomerById = async (customerId: number): Promise<void> => {
