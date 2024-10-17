@@ -338,14 +338,15 @@ exports.getCustomerById = getCustomerById;
 // Update customer by ID
 const updateCustomerById = async (id, localityId, name, email, mobile, houseNo, completeAddress, status) => {
     try {
-        const existingUserQuery = `SELECT id FROM users WHERE id = ?;`;
+        const existingUserQuery = `SELECT id, email FROM users WHERE id = ?;`;
         const [existingUsers] = await databaseConnection_1.db
             .promise()
             .query(existingUserQuery, [id]);
         if (existingUsers.length === 0) {
             throw new Error(`User with ID ${id} does not exist`);
         }
-        if (email) {
+        const existingEmail = existingUsers[0].email;
+        if (email && existingEmail !== email) {
             const duplicateEmailQuery = `SELECT id FROM users WHERE email = ? AND id != ?;`;
             const [duplicateEmails] = await databaseConnection_1.db
                 .promise()

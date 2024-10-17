@@ -8,8 +8,8 @@ exports.customerValidation = [
     (0, express_validator_1.body)("name").notEmpty().withMessage("Name is required"),
     (0, express_validator_1.body)("email").isEmail().withMessage("Email is invalid"),
     (0, express_validator_1.body)("mobile")
-        .matches(/^\d{10}$/)
-        .withMessage("Mobile number must be 10 digits"),
+        .matches(/^\+91\d{10}$/)
+        .withMessage("Mobile number must start with +91 and be followed by 10 digits"),
     (0, express_validator_1.body)("houseNo")
         .optional()
         .notEmpty()
