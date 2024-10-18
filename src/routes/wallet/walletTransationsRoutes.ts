@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { walletRecharges, getTransactionsByUserId } from "../../controllers/wallet/walletTransactionsController";
 import { getWalletBalance } from "../../controllers/wallet/walletBalanceController";
-import {  fetchOrderBillingHistory } from "../../controllers/wallet/billingHistoryController";
+import {  fetchOrderBillingHistory, fetchOrderBillingHistoryForMobile } from "../../controllers/wallet/billingHistoryController";
 import { verifyDeviceToken } from "../../middlewares/authMiddleware";
 
 const router = Router();
@@ -11,6 +11,7 @@ router.get("/transaction/:userId",verifyDeviceToken, getTransactionsByUserId);
 router.get("/balance/:userId",verifyDeviceToken,getWalletBalance );
 // router.get("/billing_history/:userId",verifyDeviceToken, fetchBillingHistory);
 router.get("/billing_history/:userId",verifyDeviceToken, fetchOrderBillingHistory);
+router.get("/billing_history-api/:userId",verifyDeviceToken, fetchOrderBillingHistoryForMobile);
 
 
 export default router;
