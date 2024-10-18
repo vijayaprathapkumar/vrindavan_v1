@@ -376,7 +376,6 @@ export const getOrdersBilling = async (
     endDate?: string
 ) => {
     try {
-        // Fetch the current wallet balance
         const walletBalanceSql = `
             SELECT balance, created_at AS balance_created_at 
             FROM wallet_balances 
@@ -392,7 +391,6 @@ export const getOrdersBilling = async (
 
         const currentBalance = walletBalanceRows[0].balance;
 
-        // Initialize date condition and query parameters
         let dateCondition = '';
         const queryParams: (string | number)[] = [userId];
 
@@ -405,10 +403,8 @@ export const getOrdersBilling = async (
             queryParams.push(endDate);
         }
 
-        // Pagination offset
         const offset = (page - 1) * limit; 
 
-        // Fetch wallet logs with pagination and date filtering
         const walletLogsSql = `
             SELECT 
                 wl.id AS log_id, 
@@ -509,7 +505,7 @@ export const getOrdersBilling = async (
                     foodName: log.food_name,
                     foodPrice: log.food_price,
                     foodDiscountPrice: log.food_discount_price,
-                    foodDescription: log.food_description,
+                    foodDescription: log.food_description ? log.food_description.replace(/<\/?[^>]+(>|$)/g, "") : null,
                     foodIngredients: log.food_ingredients,
                     foodPackageItemsCount: log.food_package_items_count,
                     foodWeight: log.food_weight,
@@ -568,10 +564,9 @@ export const getOrdersBilling = async (
             };
         });
 
-        // Return both current balance and wallet logs
         const billingInfo = {
             currentBalance,
-            walletLogs: structuredLogs, // Correctly return the wallet logs
+            walletLogs: structuredLogs, 
         };
 
         return billingInfo;
@@ -609,4 +604,129 @@ export const getTotalOrderBillingHistoryCount = async (
     const [rows]: [RowDataPacket[], any] = await db.promise().query(countSql, queryParams);
     
     return rows[0].totalCount; 
+};
+
+
+
+
+//for mobile
+
+
+export const getOrdersBillingForMobile = async (
+    userId: number,
+    page: number,
+    limit: number,
+    startDate?: string,
+    endDate?: string
+) => {
+    try {
+        const walletBalanceSql = `
+            SELECT balance, created_at AS balance_created_at 
+            FROM wallet_balances 
+            WHERE user_id = ?;
+        `;
+        const [walletBalanceRows]: [RowDataPacket[], any] = await db
+            .promise()
+            .query(walletBalanceSql, [userId]);
+
+        if (walletBalanceRows.length === 0) {
+            throw new Error(`No wallet balance found for user ${userId}.`);
+        }
+
+        const currentBalance = walletBalanceRows[0].balance;
+
+        let dateCondition = '';
+        const queryParams: (string | number)[] = [userId];
+
+        if (startDate) {
+            dateCondition += " AND wl.order_date >= ?";
+            queryParams.push(startDate);
+        }
+        if (endDate) {
+            dateCondition += " AND wl.order_date <= ?";
+            queryParams.push(endDate);
+        }
+
+        const offset = (page - 1) * limit;
+
+        const walletLogsSql = `
+            SELECT 
+                wl.id AS log_id, 
+                wl.order_id, 
+                wl.order_date AS wallet_log_order_date, 
+                wl.order_item_id, 
+                wl.before_balance, 
+                wl.amount, 
+                wl.after_balance, 
+                wl.wallet_type, 
+                wl.description, 
+                wl.created_at AS log_created_at,
+                ol.product_id,
+                f.name AS food_name,
+                f.price AS food_price,
+                COUNT(ol.product_id) AS food_quantity  -- Calculate quantity
+            FROM wallet_logs wl 
+            LEFT JOIN orders o ON wl.order_id = o.id
+            LEFT JOIN order_logs ol ON o.id = ol.order_id
+            LEFT JOIN foods f ON ol.product_id = f.id
+            WHERE wl.user_id = ? 
+            ${dateCondition}
+            GROUP BY wl.id, ol.product_id  -- Group by log id and food product id
+            ORDER BY wl.created_at DESC 
+            LIMIT ? OFFSET ?; 
+        `;
+
+        queryParams.push(limit, offset);
+
+        const [walletLogsRows]: [RowDataPacket[], any] = await db
+            .promise()
+            .query(walletLogsSql, queryParams);
+
+        // Structure wallet logs and food data
+        const structuredLogs = [];
+        const foodMap = new Map(); // Use a Map to collect food data
+
+        for (const log of walletLogsRows) {
+            structuredLogs.push({
+                logId: log.log_id,
+                orderId: log.order_id,
+                orderDate: log.wallet_log_order_date,
+                beforeBalance: log.before_balance,
+                amount: log.amount,
+                afterBalance: log.after_balance,
+                walletType: log.wallet_type,
+                description: log.description,
+                createdAt: log.log_created_at,
+            });
+
+            // Collect food data
+            const foodEntry = {
+                foodId: log.product_id,
+                foodName: log.food_name,
+                foodPrice: log.food_price,
+                quantity: log.food_quantity,
+            };
+
+            if (foodMap.has(foodEntry.foodId)) {
+                const existing = foodMap.get(foodEntry.foodId);
+                existing.quantity += foodEntry.quantity; // Aggregate quantity
+            } else {
+                foodMap.set(foodEntry.foodId, foodEntry);
+            }
+        }
+
+        // Convert food map to array
+        const foods = Array.from(foodMap.values());
+
+        const billingInfo = {
+            currentBalance,
+            walletLogs: structuredLogs,
+            foods, // Add foods array to billing info
+        };
+
+        return billingInfo;
+    } catch (error) {
+        console.error("SQL Error in getOrdersBilling:", error);
+        throw new Error("Failed to retrieve orders billing information.");
+    }
 };
