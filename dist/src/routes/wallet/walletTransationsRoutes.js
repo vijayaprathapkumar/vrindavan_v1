@@ -11,4 +11,5 @@ router.get("/transaction/:userId", authMiddleware_1.verifyDeviceToken, walletTra
 router.get("/balance/:userId", authMiddleware_1.verifyDeviceToken, walletBalanceController_1.getWalletBalance);
 // router.get("/billing_history/:userId",verifyDeviceToken, fetchBillingHistory);
 router.get("/billing_history/:userId", authMiddleware_1.verifyDeviceToken, billingHistoryController_1.fetchOrderBillingHistory);
+router.get("/billing_history-api/:userId", authMiddleware_1.verifyDeviceToken, billingHistoryController_1.fetchOrderBillingHistoryForMobile);
 exports.default = router;

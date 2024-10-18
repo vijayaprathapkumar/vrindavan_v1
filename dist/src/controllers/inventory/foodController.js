@@ -25,7 +25,7 @@ const fetchAllFoods = async (req, res) => {
             food_name: food.name,
             price: food.price,
             discount_price: food.discount_price,
-            description: food.description.replace(/<\/?[^>]+(>|$)/g, ""),
+            description: food.description ? food.description.replace(/<\/?[^>]+(>|$)/g, "") : null,
             ingredients: food.ingredients,
             package_items_count: food.package_items_count,
             weight: food.weight,
