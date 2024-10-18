@@ -368,7 +368,6 @@ import { RowDataPacket } from "mysql2";
 
 
 
-
 export const getOrdersBilling = async (
     userId: number,
     page: number,
@@ -569,10 +568,10 @@ export const getOrdersBilling = async (
             };
         });
 
-    
+        // Return both current balance and wallet logs
         const billingInfo = {
             currentBalance,
-            billingHistrory: structuredLogs,
+            walletLogs: structuredLogs, // Correctly return the wallet logs
         };
 
         return billingInfo;
