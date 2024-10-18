@@ -572,7 +572,7 @@ export const getOrdersBilling = async (
     
         const billingInfo = {
             currentBalance,
-            walletLogs: structuredLogs,
+            billingHistrory: structuredLogs,
         };
 
         return billingInfo;
