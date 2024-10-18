@@ -191,7 +191,7 @@ export const getFoodById = async (id: number): Promise<{ food: Food | null }> =>
     name: foodData.name,
     price: foodData.price,
     discount_price: foodData.discount_price,
-    description: foodData.description.replace(/<\/?[^>]+(>|$)/g, ""), 
+    description: foodData.description ? foodData.description.replace(/<\/?[^>]+(>|$)/g, "") : null, 
     ingredients: foodData.ingredients,
     package_items_count: foodData.package_items_count,
     weight: foodData.weight,
