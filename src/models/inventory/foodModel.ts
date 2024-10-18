@@ -80,7 +80,6 @@ export const getAllFoods = async (
 
   const [rows] = await db.promise().execute<RowDataPacket[]>(query, values);
 
-  // Create a mapping of foods to their media
   const foodMap: { [key: number]: Food & { media: Media[] } } = {};
 
   rows.forEach(row => {
@@ -116,11 +115,10 @@ export const getAllFoods = async (
         status: row.status,
         created_at: row.created_at,
         updated_at: row.updated_at,
-        media: [], // Initialize an empty media array
+        media: [],
       };
     }
 
-    // If media_id is present, add the media to the corresponding food
     if (row.media_id) {
       foodMap[foodId].media.push({
         id: row.media_id,
@@ -146,15 +144,13 @@ export const getAllFoods = async (
     }
   });
   
-  // Convert the foodMap object back to an array
   const foods: Food[] = Object.values(foodMap);
 
   return { foods, totalCount };
 };
 
-
 // Fetch a single food by ID
-export const getFoodById = async (id: number): Promise<{ food: Food | null; media: Media[] }> => {
+export const getFoodById = async (id: number): Promise<{ food: Food | null }> => {
   const [rows] = await db
     .promise()
     .execute<RowDataPacket[]>(`
@@ -176,44 +172,81 @@ export const getFoodById = async (id: number): Promise<{ food: Food | null; medi
              m.responsive_images,
              m.order_column,
              m.created_at AS media_created_at,
-             m.updated_at AS media_updated_at
+             m.updated_at AS media_updated_at,
+             CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name) AS original_url
       FROM foods f
       LEFT JOIN media m ON f.id = m.model_id AND m.model_type = 'App\\\\Models\\\\Food'
       WHERE f.id = ?`,
       [id]
     );
 
-  const food = rows.length > 0 ? (rows[0] as Food) : null;
+  if (rows.length === 0) {
+    return { food: null }; 
+  }
 
-  const media: Media[] = rows
-    .map(row => ({
-      id: row.media_id,
-      model_type: row.model_type,
-      model_id: row.model_id,
-      uuid: row.uuid,
-      collection_name: row.collection_name,
-      name: row.media_name,
-      file_name: row.media_file_name,
-      mime_type: row.mime_type,
-      disk: row.disk,
-      conversions_disk: row.conversions_disk,
-      size: row.size,
-      manipulations: row.manipulations,
-      custom_properties: row.custom_properties,
-      generated_conversions: row.generated_conversions,
-      responsive_images: row.responsive_images,
-      order_column: row.order_column,
-      created_at: row.media_created_at,
-      updated_at: row.media_updated_at,
-      original_url: `https://vrindavanmilk.com/storage/app/public/${row.media_id}/${row.media_file_name}`,
-    }))
-    .filter(m => m.id)
-    .sort((a, b) => {
-      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-    });
+  const foodData = rows[0];
 
-  return { food, media };
+  const food: Food & { media: Media[] } = {
+    id: foodData.id,
+    name: foodData.name,
+    price: foodData.price,
+    discount_price: foodData.discount_price,
+    description: foodData.description.replace(/<\/?[^>]+(>|$)/g, ""), 
+    ingredients: foodData.ingredients,
+    package_items_count: foodData.package_items_count,
+    weight: foodData.weight,
+    unit: foodData.unit,
+    sku_code: foodData.sku_code,
+    barcode: foodData.barcode,
+    cgst: foodData.cgst,
+    sgst: foodData.sgst,
+    subscription_type: foodData.subscription_type,
+    track_inventory: foodData.track_inventory,
+    featured: foodData.featured,
+    deliverable: foodData.deliverable,
+    restaurant_id: foodData.restaurant_id,
+    category_id: foodData.category_id,
+    subcategory_id: foodData.subcategory_id,
+    product_type_id: foodData.product_type_id,
+    hub_id: foodData.hub_id,
+    locality_id: foodData.locality_id,
+    product_brand_id: foodData.product_brand_id,
+    weightage: foodData.weightage,
+    status: foodData.status,
+    created_at: foodData.created_at,
+    updated_at: foodData.updated_at,
+    media: [], 
+  };
+
+  rows.forEach(row => {
+    if (row.media_id) {
+      food.media.push({
+        id: row.media_id,
+        model_type: row.model_type,
+        model_id: row.model_id,
+        uuid: row.uuid,
+        collection_name: row.collection_name,
+        name: row.media_name,
+        file_name: row.media_file_name,
+        mime_type: row.media_mime_type,
+        disk: row.disk,
+        conversions_disk: row.conversions_disk,
+        size: row.size,
+        manipulations: row.manipulations,
+        custom_properties: row.custom_properties,
+        generated_conversions: row.generated_conversions,
+        responsive_images: row.responsive_images,
+        order_column: row.order_column,
+        created_at: row.media_created_at,
+        updated_at: row.media_updated_at,
+        original_url: row.original_url,
+      } as Media);
+    }
+  });
+
+  return { food };
 };
+
 
 // Create a new food item
 export const createFood = async (foodData: Food): Promise<Food> => {
