@@ -516,9 +516,10 @@ const getOrdersBilling = async (userId, page, limit, startDate, endDate) => {
                 },
             };
         });
+        // Return both current balance and wallet logs
         const billingInfo = {
             currentBalance,
-            billingHistrory: structuredLogs,
+            walletLogs: structuredLogs, // Correctly return the wallet logs
         };
         return billingInfo;
     }
