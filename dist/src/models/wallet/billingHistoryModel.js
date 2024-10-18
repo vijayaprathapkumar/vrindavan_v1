@@ -3,7 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.getOrdersBillingForMobile = exports.getTotalOrderBillingHistoryCount = exports.getOrdersBilling = void 0;
 const databaseConnection_1 = require("../../config/databaseConnection");
 // interface FoodData {
-//     id: number; 
+//     id: number;
 //     name: string;
 //     price: number;
 //     discount_price: number | null;
@@ -66,10 +66,10 @@ const databaseConnection_1 = require("../../config/databaseConnection");
 //     updated_at: Date;
 // }
 // interface CombinedOrderData {
-//     orders: { 
-//         order_id: number; 
-//         user_id: number; 
-//         order_date: Date; 
+//     orders: {
+//         order_id: number;
+//         user_id: number;
+//         order_date: Date;
 //         created_at: Date;
 //         order_type: string;
 //         route_id: number | null;
@@ -87,7 +87,7 @@ const databaseConnection_1 = require("../../config/databaseConnection");
 //         delivery_status: number | null;
 //         updated_at: Date;
 //         status: string;
-//         payment: PaymentData | null; 
+//         payment: PaymentData | null;
 //         order_logs: OrderLog[];
 //         order_combos: OrderCombo[];
 //         food_items: FoodData[];
@@ -95,9 +95,9 @@ const databaseConnection_1 = require("../../config/databaseConnection");
 // }
 // // Fetch order details for a user
 // export const getOrderDetails = async (userId: number, page: number, limit: number): Promise<CombinedOrderData> => {
-//     const offset = (page - 1) * limit; 
+//     const offset = (page - 1) * limit;
 //     const query = `
-//         SELECT 
+//         SELECT
 //             o.id AS order_id,
 //             o.user_id,
 //             o.order_type,
@@ -180,25 +180,25 @@ const databaseConnection_1 = require("../../config/databaseConnection");
 //             f.created_at AS food_created_at,
 //             f.updated_at AS food_updated_at,
 //             f.food_locality
-//         FROM 
+//         FROM
 //             orders o
-//         INNER JOIN 
-//             order_logs ol ON o.id = ol.order_id 
-//         LEFT JOIN 
+//         INNER JOIN
+//             order_logs ol ON o.id = ol.order_id
+//         LEFT JOIN
 //             order_combos oc ON o.id = oc.order_id
-//         LEFT JOIN 
+//         LEFT JOIN
 //             payments p ON o.payment_id = p.id
-//         LEFT JOIN 
+//         LEFT JOIN
 //             order_combo_details ocd ON oc.id = ocd.order_combo_id
-//         LEFT JOIN 
-//             foods f ON ol.product_id = f.id 
-//         LEFT JOIN 
-//             order_statuses os ON o.order_status_id = os.id      
-//         WHERE 
-//             ol.user_id = ? 
-//         ORDER BY 
+//         LEFT JOIN
+//             foods f ON ol.product_id = f.id
+//         LEFT JOIN
+//             order_statuses os ON o.order_status_id = os.id
+//         WHERE
+//             ol.user_id = ?
+//         ORDER BY
 //             o.order_date DESC
-//         LIMIT ?, ?; 
+//         LIMIT ?, ?;
 //     `;
 //     try {
 //         const [rows]: [RowDataPacket[], any] = await db.promise().query(query, [userId, offset, limit]);
@@ -212,7 +212,7 @@ const databaseConnection_1 = require("../../config/databaseConnection");
 //                     order_id: row.order_id,
 //                     user_id: row.user_id,
 //                     order_date: row.order_date,
-//                     created_at: row.order_created_at, 
+//                     created_at: row.order_created_at,
 //                     order_type: row.order_type,
 //                     route_id: row.route_id,
 //                     hub_id: row.order_hub_id,
@@ -229,7 +229,7 @@ const databaseConnection_1 = require("../../config/databaseConnection");
 //                     delivery_status: row.delivery_status,
 //                     updated_at: row.order_updated_at,
 //                     status: row.order_status,
-//                     payment: null, 
+//                     payment: null,
 //                     order_logs: [],
 //                     order_combos: [],
 //                     food_items: [],
@@ -317,11 +317,11 @@ const databaseConnection_1 = require("../../config/databaseConnection");
 // // Fetch total count of billing history for a user
 // export const getTotalBillingHistoryCount = async (userId: number): Promise<number> => {
 //     const query = `
-//         SELECT 
+//         SELECT
 //             COUNT(*) as total
-//         FROM 
+//         FROM
 //             order_logs ol
-//         WHERE 
+//         WHERE
 //             ol.user_id = ?;
 //     `;
 //     try {
@@ -347,7 +347,7 @@ const getOrdersBilling = async (userId, page, limit, startDate, endDate) => {
             throw new Error(`No wallet balance found for user ${userId}.`);
         }
         const currentBalance = walletBalanceRows[0].balance;
-        let dateCondition = '';
+        let dateCondition = "";
         const queryParams = [userId];
         if (startDate) {
             dateCondition += " AND wl.order_date >= ?";
@@ -437,8 +437,10 @@ const getOrdersBilling = async (userId, page, limit, startDate, endDate) => {
         const [walletLogsRows] = await databaseConnection_1.db
             .promise()
             .query(walletLogsSql, queryParams);
-        const structuredLogs = walletLogsRows.map(log => {
-            const foodDiscountPrice = log.food_discount_price !== null ? log.food_discount_price : log.food_price;
+        const structuredLogs = walletLogsRows.map((log) => {
+            const foodDiscountPrice = log.food_discount_price !== null
+                ? log.food_discount_price
+                : log.food_price;
             return {
                 logId: log.log_id,
                 orderId: log.order_id,
@@ -454,7 +456,9 @@ const getOrdersBilling = async (userId, page, limit, startDate, endDate) => {
                     foodName: log.food_name,
                     foodPrice: log.food_price,
                     foodDiscountPrice: log.food_discount_price,
-                    foodDescription: log.food_description ? log.food_description.replace(/<\/?[^>]+(>|$)/g, "") : null,
+                    foodDescription: log.food_description
+                        ? log.food_description.replace(/<\/?[^>]+(>|$)/g, "")
+                        : null,
                     foodIngredients: log.food_ingredients,
                     foodPackageItemsCount: log.food_package_items_count,
                     foodWeight: log.food_weight,
@@ -539,11 +543,14 @@ const getTotalOrderBillingHistoryCount = async (userId, startDate, endDate) => {
         countSql += " AND wl.order_date <= ?";
         queryParams.push(endDate);
     }
-    const [rows] = await databaseConnection_1.db.promise().query(countSql, queryParams);
+    const [rows] = await databaseConnection_1.db
+        .promise()
+        .query(countSql, queryParams);
     return rows[0].totalCount;
 };
 exports.getTotalOrderBillingHistoryCount = getTotalOrderBillingHistoryCount;
-//for mobile
+// for mobile
+// for mobile
 const getOrdersBillingForMobile = async (userId, page, limit, startDate, endDate) => {
     try {
         const walletBalanceSql = `
@@ -558,7 +565,7 @@ const getOrdersBillingForMobile = async (userId, page, limit, startDate, endDate
             throw new Error(`No wallet balance found for user ${userId}.`);
         }
         const currentBalance = walletBalanceRows[0].balance;
-        let dateCondition = '';
+        let dateCondition = "";
         const queryParams = [userId];
         if (startDate) {
             dateCondition += " AND wl.order_date >= ?";
@@ -584,25 +591,40 @@ const getOrdersBillingForMobile = async (userId, page, limit, startDate, endDate
                 ol.product_id,
                 f.name AS food_name,
                 f.price AS food_price,
-                COUNT(ol.product_id) AS food_quantity  -- Calculate quantity
+                f.discount_price -- Include discount_price
             FROM wallet_logs wl 
             LEFT JOIN orders o ON wl.order_id = o.id
             LEFT JOIN order_logs ol ON o.id = ol.order_id
             LEFT JOIN foods f ON ol.product_id = f.id
             WHERE wl.user_id = ? 
             ${dateCondition}
-            GROUP BY wl.id, ol.product_id  -- Group by log id and food product id
             ORDER BY wl.created_at DESC 
-            LIMIT ? OFFSET ?; 
+            LIMIT ? OFFSET ?;
         `;
         queryParams.push(limit, offset);
         const [walletLogsRows] = await databaseConnection_1.db
             .promise()
             .query(walletLogsSql, queryParams);
-        // Structure wallet logs and food data
         const structuredLogs = [];
-        const foodMap = new Map(); // Use a Map to collect food data
+        const logIdToFoodsMap = new Map();
         for (const log of walletLogsRows) {
+            if (!logIdToFoodsMap.has(log.log_id)) {
+                logIdToFoodsMap.set(log.log_id, []);
+            }
+            if (log.product_id) {
+                // Calculate the price to use for quantity calculation
+                const priceToUse = log.discount_price !== null ? log.discount_price : log.food_price;
+                // Calculate quantity based on the amount and the price to use
+                const quantity = Math.floor(log.amount / priceToUse);
+                logIdToFoodsMap.get(log.log_id).push({
+                    foodId: log.product_id,
+                    foodName: log.food_name,
+                    foodPrice: log.food_price,
+                    discountPrice: log.discount_price,
+                    quantity: quantity > 0 ? quantity : 1, // Ensure quantity is at least 1
+                    foodOriginalPrice: log.discount_price !== null ? log.discount_price : log.food_price,
+                });
+            }
             structuredLogs.push({
                 logId: log.log_id,
                 orderId: log.order_id,
@@ -613,33 +635,17 @@ const getOrdersBillingForMobile = async (userId, page, limit, startDate, endDate
                 walletType: log.wallet_type,
                 description: log.description,
                 createdAt: log.log_created_at,
+                foods: logIdToFoodsMap.get(log.log_id),
             });
-            // Collect food data
-            const foodEntry = {
-                foodId: log.product_id,
-                foodName: log.food_name,
-                foodPrice: log.food_price,
-                quantity: log.food_quantity,
-            };
-            if (foodMap.has(foodEntry.foodId)) {
-                const existing = foodMap.get(foodEntry.foodId);
-                existing.quantity += foodEntry.quantity; // Aggregate quantity
-            }
-            else {
-                foodMap.set(foodEntry.foodId, foodEntry);
-            }
         }
-        // Convert food map to array
-        const foods = Array.from(foodMap.values());
         const billingInfo = {
             currentBalance,
             walletLogs: structuredLogs,
-            foods, // Add foods array to billing info
         };
         return billingInfo;
     }
     catch (error) {
-        console.error("SQL Error in getOrdersBilling:", error);
+        console.error("SQL Error in getOrdersBillingForMobile:", error);
         throw new Error("Failed to retrieve orders billing information.");
     }
 };
