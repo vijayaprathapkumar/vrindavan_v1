@@ -1,5 +1,9 @@
 import { Request, Response } from "express";
-import {  getOrdersBilling, getOrdersBillingForMobile, getTotalOrderBillingHistoryCount } from "../../models/wallet/billingHistoryModel";
+import {
+  getOrdersBilling,
+  getOrdersBillingForMobile,
+  getTotalOrderBillingHistoryCount,
+} from "../../models/wallet/billingHistoryModel";
 
 // export const fetchBillingHistory = async (req: Request, res: Response) => {
 //   const userId = req.params.userId; // Extract userId from request parameters
@@ -25,8 +29,6 @@ import {  getOrdersBilling, getOrdersBillingForMobile, getTotalOrderBillingHisto
 //   }
 // };
 
-
-
 /// working
 const isValidDate = (dateString: string) => {
   const date = new Date(dateString);
@@ -39,92 +41,109 @@ export const fetchOrderBillingHistory = async (req: Request, res: Response) => {
   const startDate = req.query.startDate as string;
   const endDate = req.query.endDate as string;
   if (startDate && !isValidDate(startDate)) {
-      return res.status(400).json({ status: 400, message: "Invalid startDate format." });
+    return res
+      .status(400)
+      .json({ status: 400, message: "Invalid startDate format." });
   }
 
   if (endDate && !isValidDate(endDate)) {
-      return res.status(400).json({ status: 400, message: "Invalid endDate format." });
+    return res
+      .status(400)
+      .json({ status: 400, message: "Invalid endDate format." });
   }
 
   try {
-      const total = await getTotalOrderBillingHistoryCount(userId, startDate, endDate);
-      const billingHistory = await getOrdersBilling(userId, page, limit, startDate, endDate);
+    const total = await getTotalOrderBillingHistoryCount(
+      userId,
+      startDate,
+      endDate
+    );
+    const billingHistory = await getOrdersBilling(
+      userId,
+      page,
+      limit,
+      startDate,
+      endDate
+    );
 
-      res.status(200).json({
-          status: 200,
-          message: "Billing history retrieved successfully.",
-          data: {
-              totalCount: total, 
-              currentPage: page, 
-              limit: limit,
-              walletBalance: billingHistory.currentBalance,
-              walletLogs: billingHistory.walletLogs, 
-          },
-      });
+    res.status(200).json({
+      status: 200,
+      message: "Billing history retrieved successfully.",
+      data: {
+        totalCount: total,
+        currentPage: page,
+        limit: limit,
+        walletBalance: billingHistory.currentBalance,
+        walletLogs: billingHistory.walletLogs,
+      },
+    });
   } catch (error) {
-      console.error("Error fetching billing history:", error);
-      res.status(500).json({
-          status: 500,
-          message: "Failed to retrieve billing history.",
-          error: error.message,
-      });
+    console.error("Error fetching billing history:", error);
+    res.status(500).json({
+      status: 500,
+      message: "Failed to retrieve billing history.",
+      error: error.message,
+    });
   }
 };
 
-
-
-
-
-
-
-
-
-
 // mobile api
-
-
 
 /// working
 
-export const fetchOrderBillingHistoryForMobile = async (req: Request, res: Response) => {
-    const userId = parseInt(req.params.userId);
-    const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 10;
-    const startDate = req.query.startDate as string;
-    const endDate = req.query.endDate as string;
+export const fetchOrderBillingHistoryForMobile = async (
+  req: Request,
+  res: Response
+) => {
+  const userId = parseInt(req.params.userId);
+  const page = parseInt(req.query.page as string) || 1;
+  const limit = parseInt(req.query.limit as string) || 10;
+  const startDate = req.query.startDate as string;
+  const endDate = req.query.endDate as string;
 
-    if (startDate && !isValidDate(startDate)) {
-        return res.status(400).json({ status: 400, message: "Invalid startDate format." });
-    }
+  if (startDate && !isValidDate(startDate)) {
+    return res
+      .status(400)
+      .json({ status: 400, message: "Invalid startDate format." });
+  }
 
-    if (endDate && !isValidDate(endDate)) {
-        return res.status(400).json({ status: 400, message: "Invalid endDate format." });
-    }
+  if (endDate && !isValidDate(endDate)) {
+    return res
+      .status(400)
+      .json({ status: 400, message: "Invalid endDate format." });
+  }
 
-    try {
-        const total = await getTotalOrderBillingHistoryCount(userId, startDate, endDate);
-        const billingHistory = await getOrdersBillingForMobile(userId, page, limit, startDate, endDate);
+  try {
+    const total = await getTotalOrderBillingHistoryCount(
+      userId,
+      startDate,
+      endDate
+    );
+    const billingHistory = await getOrdersBillingForMobile(
+      userId,
+      page,
+      limit,
+      startDate,
+      endDate
+    );
 
-        res.status(200).json({
-            status: 200,
-            message: "Billing history retrieved successfully.",
-            data: {
-                totalCount: total,
-                currentPage: page,
-                limit: limit,
-                walletBalance: billingHistory.currentBalance,
-                walletLogs: billingHistory.walletLogs,
-                foods: billingHistory.foods,  // Include foods array
-            },
-        });
-    } catch (error) {
-        console.error("Error fetching billing history:", error);
-        res.status(500).json({
-            status: 500,
-            message: "Failed to retrieve billing history.",
-            error: error.message,
-        });
-    }
+    res.status(200).json({
+      status: 200,
+      message: "Billing history retrieved successfully.",
+      data: {
+        totalCount: total,
+        currentPage: page,
+        limit: limit,
+        walletBalance: billingHistory.currentBalance,
+        walletLogs: billingHistory.walletLogs,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching billing history:", error);
+    res.status(500).json({
+      status: 500,
+      message: "Failed to retrieve billing history.",
+      error: error.message,
+    });
+  }
 };
-  
-
