@@ -35,10 +35,14 @@ const fetchOrderBillingHistory = async (req, res) => {
     const startDate = req.query.startDate;
     const endDate = req.query.endDate;
     if (startDate && !isValidDate(startDate)) {
-        return res.status(400).json({ status: 400, message: "Invalid startDate format." });
+        return res
+            .status(400)
+            .json({ status: 400, message: "Invalid startDate format." });
     }
     if (endDate && !isValidDate(endDate)) {
-        return res.status(400).json({ status: 400, message: "Invalid endDate format." });
+        return res
+            .status(400)
+            .json({ status: 400, message: "Invalid endDate format." });
     }
     try {
         const total = await (0, billingHistoryModel_1.getTotalOrderBillingHistoryCount)(userId, startDate, endDate);
@@ -74,10 +78,14 @@ const fetchOrderBillingHistoryForMobile = async (req, res) => {
     const startDate = req.query.startDate;
     const endDate = req.query.endDate;
     if (startDate && !isValidDate(startDate)) {
-        return res.status(400).json({ status: 400, message: "Invalid startDate format." });
+        return res
+            .status(400)
+            .json({ status: 400, message: "Invalid startDate format." });
     }
     if (endDate && !isValidDate(endDate)) {
-        return res.status(400).json({ status: 400, message: "Invalid endDate format." });
+        return res
+            .status(400)
+            .json({ status: 400, message: "Invalid endDate format." });
     }
     try {
         const total = await (0, billingHistoryModel_1.getTotalOrderBillingHistoryCount)(userId, startDate, endDate);
@@ -91,7 +99,6 @@ const fetchOrderBillingHistoryForMobile = async (req, res) => {
                 limit: limit,
                 walletBalance: billingHistory.currentBalance,
                 walletLogs: billingHistory.walletLogs,
-                foods: billingHistory.foods, // Include foods array
             },
         });
     }
