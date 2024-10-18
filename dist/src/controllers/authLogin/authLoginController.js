@@ -10,9 +10,18 @@ const requestOtp = async (req, res) => {
     const { mobile_number } = req.body;
     const otp = (0, msg91_1.generateOTP)();
     try {
+        const { user_id, status: userProfileStatus } = await (0, authLoginModel_1.checkUserProfileStatus)(mobile_number);
         await (0, msg91_1.sendOTP)(mobile_number, otp);
         await (0, authLoginModel_1.saveOTPDetails)(mobile_number, otp);
-        res.json((0, responseHandler_1.createResponse)(200, "OTP sent successfully."));
+        if (userProfileStatus === 1) {
+            res.json((0, responseHandler_1.createResponse)(200, "OTP sent successfully.", { user_profile: 1, user_id }));
+        }
+        else if (userProfileStatus === 0) {
+            res.json((0, responseHandler_1.createResponse)(200, "OTP sent. Profile is incomplete.", { user_profile: 0, user_id }));
+        }
+        else {
+            res.json((0, responseHandler_1.createResponse)(200, "OTP sent. User does not exist.", { user_profile: 0, user_id: null }));
+        }
     }
     catch (error) {
         console.error("Error requesting OTP:", error);

@@ -518,7 +518,7 @@ const getOrdersBilling = async (userId, page, limit, startDate, endDate) => {
         });
         const billingInfo = {
             currentBalance,
-            walletLogs: structuredLogs,
+            billingHistrory: structuredLogs,
         };
         return billingInfo;
     }

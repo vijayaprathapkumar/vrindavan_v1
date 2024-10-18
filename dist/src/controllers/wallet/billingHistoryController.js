@@ -34,7 +34,6 @@ const fetchOrderBillingHistory = async (req, res) => {
     const limit = parseInt(req.query.limit) || 10;
     const startDate = req.query.startDate;
     const endDate = req.query.endDate;
-    // Check if startDate and endDate are valid dates
     if (startDate && !isValidDate(startDate)) {
         return res.status(400).json({ status: 400, message: "Invalid startDate format." });
     }
@@ -45,17 +44,23 @@ const fetchOrderBillingHistory = async (req, res) => {
         const total = await (0, billingHistoryModel_1.getTotalOrderBillingHistoryCount)(userId, startDate, endDate);
         const billingHistory = await (0, billingHistoryModel_1.getOrdersBilling)(userId, page, limit, startDate, endDate);
         res.status(200).json({
-            totalCount: total, // Total count of billing history entries
-            currentPage: page, // Current page number
-            limit: limit, // Number of entries per page
-            data: billingHistory, // The actual billing history data
+            status: 200,
+            message: "Billing history retrieved successfully.",
+            data: {
+                totalCount: total,
+                currentPage: page,
+                limit: limit,
+                walletBalance: billingHistory.currentBalance,
+                walletLogs: billingHistory.walletLogs,
+            },
         });
     }
     catch (error) {
         console.error("Error fetching billing history:", error);
         res.status(500).json({
             status: 500,
-            message: error.message,
+            message: "Failed to retrieve billing history.",
+            error: error.message,
         });
     }
 };
