@@ -121,11 +121,12 @@ export const getSubcategory = async (req: Request, res: Response): Promise<void>
       })).filter(mediaItem => mediaItem.media_id !== null),
     };
 
+    const subcategoryResponse=[subcategory]
     res.status(200).json({
       statusCode: 200,
       message: "Subcategory fetched successfully",
       data: {
-        subcategory: subcategory,
+        subcategory: subcategoryResponse,
       },
     });
   } catch (error) {

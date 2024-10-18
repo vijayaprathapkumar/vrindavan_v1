@@ -3,27 +3,39 @@ import {
   verifyOTP,
   saveOTPDetails,
   storeDeviceToken,
-  getStoredDeviceToken, 
+  getStoredDeviceToken,
+  checkUserProfileStatus, 
 } from "../../models/authLogin/authLoginModel";
 import { createResponse } from "../../utils/responseHandler";
 import { generateDeviceToken } from "../../utils/tokenUtils";
 import { generateOTP, sendOTP } from "../../services/msg91";
 
 // Request OTP
+
 export const requestOtp = async (req: Request, res: Response) => {
   const { mobile_number } = req.body;
   const otp = generateOTP();
 
   try {
+    const { user_id, status: userProfileStatus } = await checkUserProfileStatus(mobile_number);
+
     await sendOTP(mobile_number, otp);
     await saveOTPDetails(mobile_number, otp);
 
-    res.json(createResponse(200, "OTP sent successfully."));
+    if (userProfileStatus === 1) {
+      res.json(createResponse(200, "OTP sent successfully.", { user_profile: 1, user_id }));
+    } else if (userProfileStatus === 0) {
+      res.json(createResponse(200, "OTP sent. Profile is incomplete.", { user_profile: 0, user_id }));
+    } else {
+      res.json(createResponse(200, "OTP sent. User does not exist.", { user_profile: 0, user_id: null }));
+    }
   } catch (error) {
     console.error("Error requesting OTP:", error);
     res.status(500).json(createResponse(500, "Failed to send OTP."));
   }
 };
+
+
 
 // Verify OTP
 export const verifyOtp = async (req: Request, res: Response) => {
