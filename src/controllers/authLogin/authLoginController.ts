@@ -39,24 +39,32 @@ export const verifyOtp = async (req: Request, res: Response) => {
     
     if (isVerified) {
       const { user_id, status: userProfileStatus } = await checkUserProfileStatus(mobile_number);
+      
       const device_token = generateDeviceToken();
       await storeDeviceToken(mobile_number, device_token);
 
       if (userProfileStatus === 1) {
-        res.json(createResponse(200, "OTP verified successfully.", { device_token, user_profile: 1, user_id }));
+        return res.json(createResponse(200, "OTP verified successfully.", { device_token, user_profile: 1, user_id }));
       } else {
-        res.json(createResponse(200, "OTP verified. Profile is incomplete.", { device_token, user_profile: 0, user_id }));
+        return res.json(createResponse(200, "OTP verified. Profile is incomplete.", { device_token, user_profile: 0, user_id }));
       }
     } else {
-      res.status(400).json(createResponse(400, "Invalid OTP."));
+      return res.status(400).json(createResponse(400, "Invalid OTP."));
     }
   } catch (error) {
     if (error.message === "OTP has already been verified.") {
       const existing_device_token = await getStoredDeviceToken(mobile_number);
-      res.status(400).json(createResponse(400, "OTP has already been verified.", { device_token: existing_device_token }));
+      
+      const { user_id, status: userProfileStatus } = await checkUserProfileStatus(mobile_number);
+
+      return res.status(400).json(createResponse(400, "OTP has already been verified.", {
+        device_token: existing_device_token,
+        user_profile: userProfileStatus,
+        user_id 
+      }));
     } else {
       console.error("Error verifying OTP:", error);
-      res.status(500).json(createResponse(500, "Failed to verify OTP."));
+      return res.status(500).json(createResponse(500, "Failed to verify OTP."));
     }
   }
 };

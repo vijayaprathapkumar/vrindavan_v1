@@ -181,22 +181,18 @@ const createCustomer = async (localityId, name, email, mobile, houseNo, complete
         const existingUserQuery = `
       SELECT id FROM users WHERE email = ?;
     `;
-        const [existingUsers] = await databaseConnection_1.db
-            .promise()
-            .query(existingUserQuery, [email]);
+        const [existingUsers] = await databaseConnection_1.db.promise().query(existingUserQuery, [email]);
         let userId;
         if (existingUsers.length > 0) {
-            userId = existingUsers[0].id;
+            userId = existingUsers[0].id; // Existing user, return the ID
         }
         else {
             const insertUserQuery = `
         INSERT INTO users (name, email, phone, password, status, created_at, updated_at) 
         VALUES (?, ?, ?, ?, ?, NOW(), NOW());
       `;
-            const [userResult] = await databaseConnection_1.db
-                .promise()
-                .query(insertUserQuery, [name, email, mobile, password, status]);
-            userId = userResult.insertId;
+            const [userResult] = await databaseConnection_1.db.promise().query(insertUserQuery, [name, email, mobile, password, status]);
+            userId = userResult.insertId; // Newly created user, return the new ID
             // Insert user address into delivery_addresses table
             const insertAddressQuery = `
         INSERT INTO delivery_addresses (user_id, locality_id, house_no, complete_address, created_at, updated_at) 
@@ -205,12 +201,11 @@ const createCustomer = async (localityId, name, email, mobile, houseNo, complete
             const addressValues = [userId, localityId, houseNo, completeAddress];
             await databaseConnection_1.db.promise().query(insertAddressQuery, addressValues);
         }
+        // Handle wallet creation/update
         const existingWalletQuery = `
       SELECT id FROM wallet_balances WHERE user_id = ?;
     `;
-        const [existingWallet] = await databaseConnection_1.db
-            .promise()
-            .query(existingWalletQuery, [userId]);
+        const [existingWallet] = await databaseConnection_1.db.promise().query(existingWalletQuery, [userId]);
         if (existingWallet.length > 0) {
             const updateWalletQuery = `
         UPDATE wallet_balances 
@@ -226,6 +221,7 @@ const createCustomer = async (localityId, name, email, mobile, houseNo, complete
       `;
             await databaseConnection_1.db.promise().query(insertWalletQuery, [userId]);
         }
+        return userId; // Return the userId whether it was newly created or already existing
     }
     catch (error) {
         console.error("Error creating customer:", error);
