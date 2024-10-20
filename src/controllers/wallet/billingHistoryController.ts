@@ -90,7 +90,6 @@ export const fetchOrderBillingHistory = async (req: Request, res: Response) => {
 // mobile api
 
 /// working
-
 export const fetchOrderBillingHistoryForMobile = async (
   req: Request,
   res: Response
@@ -100,6 +99,7 @@ export const fetchOrderBillingHistoryForMobile = async (
   const limit = parseInt(req.query.limit as string) || 10;
   const startDate = req.query.startDate as string;
   const endDate = req.query.endDate as string;
+  const searchTerm = req.query.searchTerm as string;
 
   if (startDate && !isValidDate(startDate)) {
     return res
@@ -117,25 +117,27 @@ export const fetchOrderBillingHistoryForMobile = async (
     const total = await getTotalOrderBillingHistoryCount(
       userId,
       startDate,
-      endDate
+      endDate,
+      searchTerm 
     );
     const billingHistory = await getOrdersBillingForMobile(
       userId,
       page,
       limit,
       startDate,
-      endDate
+      endDate,
+      searchTerm 
     );
 
     res.status(200).json({
       status: 200,
       message: "Billing history retrieved successfully.",
       data: {
+        walletBalance: billingHistory.currentBalance,
+        walletLogs: billingHistory.walletLogs,
         totalCount: total,
         currentPage: page,
         limit: limit,
-        walletBalance: billingHistory.currentBalance,
-        walletLogs: billingHistory.walletLogs,
       },
     });
   } catch (error) {

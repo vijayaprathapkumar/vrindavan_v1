@@ -4,7 +4,6 @@ exports.fetchPlaceOrderById = exports.removePlaceOrder = exports.updatePlaceOrde
 const placeOrderModels_1 = require("../../models/placeOrder/placeOrderModels");
 const responseHandler_1 = require("../../utils/responseHandler");
 // Fetch all place orders for a user
-// Fetch all place orders for a user
 const fetchPlaceOrders = async (req, res) => {
     const userId = parseInt(req.params.userId);
     const page = parseInt(req.query.page) || 1;

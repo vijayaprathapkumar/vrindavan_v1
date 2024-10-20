@@ -12,7 +12,7 @@ import {
 import { createResponse } from "../../utils/responseHandler";
 
 // Fetch all place orders for a user
-// Fetch all place orders for a user
+
 export const fetchPlaceOrders = async (
   req: Request,
   res: Response
@@ -27,6 +27,8 @@ export const fetchPlaceOrders = async (
 
   try {
     const { total, placeOrders } = await getAllPlaceOrders(userId, page, limit, startDate, endDate, searchTerm);
+
+
     
     return res.json(
       createResponse(200, "Place orders fetched successfully.", {

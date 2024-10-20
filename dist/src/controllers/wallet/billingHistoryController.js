@@ -77,6 +77,7 @@ const fetchOrderBillingHistoryForMobile = async (req, res) => {
     const limit = parseInt(req.query.limit) || 10;
     const startDate = req.query.startDate;
     const endDate = req.query.endDate;
+    const searchTerm = req.query.searchTerm;
     if (startDate && !isValidDate(startDate)) {
         return res
             .status(400)
@@ -88,17 +89,17 @@ const fetchOrderBillingHistoryForMobile = async (req, res) => {
             .json({ status: 400, message: "Invalid endDate format." });
     }
     try {
-        const total = await (0, billingHistoryModel_1.getTotalOrderBillingHistoryCount)(userId, startDate, endDate);
-        const billingHistory = await (0, billingHistoryModel_1.getOrdersBillingForMobile)(userId, page, limit, startDate, endDate);
+        const total = await (0, billingHistoryModel_1.getTotalOrderBillingHistoryCount)(userId, startDate, endDate, searchTerm);
+        const billingHistory = await (0, billingHistoryModel_1.getOrdersBillingForMobile)(userId, page, limit, startDate, endDate, searchTerm);
         res.status(200).json({
             status: 200,
             message: "Billing history retrieved successfully.",
             data: {
+                walletBalance: billingHistory.currentBalance,
+                walletLogs: billingHistory.walletLogs,
                 totalCount: total,
                 currentPage: page,
                 limit: limit,
-                walletBalance: billingHistory.currentBalance,
-                walletLogs: billingHistory.walletLogs,
             },
         });
     }
