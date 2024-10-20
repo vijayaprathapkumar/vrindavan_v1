@@ -528,10 +528,14 @@ const getOrdersBilling = async (userId, page, limit, startDate, endDate) => {
     }
 };
 exports.getOrdersBilling = getOrdersBilling;
-const getTotalOrderBillingHistoryCount = async (userId, startDate, endDate) => {
+const getTotalOrderBillingHistoryCount = async (userId, startDate, endDate, searchTerm // Include searchTerm parameter
+) => {
     let countSql = `
         SELECT COUNT(*) AS totalCount
         FROM wallet_logs wl
+        LEFT JOIN orders o ON wl.order_id = o.id
+        LEFT JOIN food_orders fo ON o.id = fo.order_id
+        LEFT JOIN foods f ON fo.food_id = f.id
         WHERE wl.user_id = ? 
     `;
     const queryParams = [userId];
@@ -543,21 +547,24 @@ const getTotalOrderBillingHistoryCount = async (userId, startDate, endDate) => {
         countSql += " AND wl.order_date <= ?";
         queryParams.push(endDate);
     }
+    if (searchTerm) {
+        countSql += " AND f.name LIKE ?";
+        queryParams.push(`%${searchTerm}%`);
+    }
     const [rows] = await databaseConnection_1.db
         .promise()
         .query(countSql, queryParams);
     return rows[0].totalCount;
 };
 exports.getTotalOrderBillingHistoryCount = getTotalOrderBillingHistoryCount;
-// for mobile
-// for mobile
-const getOrdersBillingForMobile = async (userId, page, limit, startDate, endDate) => {
+const getOrdersBillingForMobile = async (userId, page, limit, startDate, endDate, searchTerm // New parameter for searching food name
+) => {
     try {
         const walletBalanceSql = `
-            SELECT balance, created_at AS balance_created_at 
-            FROM wallet_balances 
-            WHERE user_id = ?;
-        `;
+      SELECT balance, created_at AS balance_created_at 
+      FROM wallet_balances 
+      WHERE user_id = ?;
+    `;
         const [walletBalanceRows] = await databaseConnection_1.db
             .promise()
             .query(walletBalanceSql, [userId]);
@@ -566,6 +573,7 @@ const getOrdersBillingForMobile = async (userId, page, limit, startDate, endDate
         }
         const currentBalance = walletBalanceRows[0].balance;
         let dateCondition = "";
+        let searchCondition = "";
         const queryParams = [userId];
         if (startDate) {
             dateCondition += " AND wl.order_date >= ?";
@@ -575,72 +583,80 @@ const getOrdersBillingForMobile = async (userId, page, limit, startDate, endDate
             dateCondition += " AND wl.order_date <= ?";
             queryParams.push(endDate);
         }
+        if (searchTerm) {
+            searchCondition += " AND f.name LIKE ?";
+            queryParams.push(`%${searchTerm}%`);
+        }
         const offset = (page - 1) * limit;
         const walletLogsSql = `
-            SELECT 
-                wl.id AS log_id, 
-                wl.order_id, 
-                wl.order_date AS wallet_log_order_date, 
-                wl.order_item_id, 
-                wl.before_balance, 
-                wl.amount, 
-                wl.after_balance, 
-                wl.wallet_type, 
-                wl.description, 
-                wl.created_at AS log_created_at,
-                ol.product_id,
-                f.name AS food_name,
-                f.price AS food_price,
-                f.discount_price -- Include discount_price
-            FROM wallet_logs wl 
-            LEFT JOIN orders o ON wl.order_id = o.id
-            LEFT JOIN order_logs ol ON o.id = ol.order_id
-            LEFT JOIN foods f ON ol.product_id = f.id
-            WHERE wl.user_id = ? 
-            ${dateCondition}
-            ORDER BY wl.created_at DESC 
-            LIMIT ? OFFSET ?;
-        `;
+      SELECT 
+        wl.id AS log_id, 
+        wl.order_id, 
+        wl.order_date AS wallet_log_order_date, 
+        wl.order_item_id, 
+        wl.before_balance, 
+        wl.amount, 
+        wl.after_balance, 
+        wl.wallet_type, 
+        wl.description, 
+        wl.created_at AS log_created_at,
+        fo.food_id,
+        f.name AS food_name,
+        f.price AS food_price,
+        f.discount_price,
+        fo.quantity AS food_quantity
+      FROM wallet_logs wl 
+      LEFT JOIN orders o ON wl.order_id = o.id
+      LEFT JOIN food_orders fo ON o.id = fo.order_id
+      LEFT JOIN foods f ON fo.food_id = f.id
+      WHERE wl.user_id = ? 
+      ${dateCondition}
+      ${searchCondition} 
+      ORDER BY wl.created_at DESC 
+      LIMIT ? OFFSET ?;
+    `;
         queryParams.push(limit, offset);
         const [walletLogsRows] = await databaseConnection_1.db
             .promise()
             .query(walletLogsSql, queryParams);
-        const structuredLogs = [];
-        const logIdToFoodsMap = new Map();
-        for (const log of walletLogsRows) {
-            if (!logIdToFoodsMap.has(log.log_id)) {
-                logIdToFoodsMap.set(log.log_id, []);
+        const groupedLogs = walletLogsRows.reduce((acc, log) => {
+            let existingLog = acc.find(item => item.orderId === log.order_id);
+            if (!existingLog) {
+                existingLog = {
+                    logId: log.log_id,
+                    orderId: log.order_id,
+                    orderDate: log.wallet_log_order_date,
+                    beforeBalance: log.before_balance,
+                    amount: log.amount,
+                    afterBalance: log.after_balance,
+                    walletType: log.wallet_type,
+                    description: log.description,
+                    createdAt: log.log_created_at,
+                    foods: [],
+                    totalQuantity: 0,
+                    totalPrice: 0,
+                };
+                acc.push(existingLog);
             }
-            if (log.product_id) {
-                // Calculate the price to use for quantity calculation
-                const priceToUse = log.discount_price !== null ? log.discount_price : log.food_price;
-                // Calculate quantity based on the amount and the price to use
-                const quantity = Math.floor(log.amount / priceToUse);
-                logIdToFoodsMap.get(log.log_id).push({
-                    foodId: log.product_id,
+            // Calculate food price
+            const foodPrice = log.discount_price !== null ? log.discount_price : log.food_price;
+            if (log.food_id && !existingLog.foods.some(food => food.foodId === log.food_id)) {
+                existingLog.foods.push({
+                    foodId: log.food_id,
                     foodName: log.food_name,
                     foodPrice: log.food_price,
                     discountPrice: log.discount_price,
-                    quantity: quantity > 0 ? quantity : 1, // Ensure quantity is at least 1
-                    foodOriginalPrice: log.discount_price !== null ? log.discount_price : log.food_price,
+                    foodQuantity: log.food_quantity,
+                    foodOriginalPrice: foodPrice * log.food_quantity,
                 });
+                existingLog.totalQuantity += log.food_quantity;
+                existingLog.totalPrice += foodPrice * log.food_quantity;
             }
-            structuredLogs.push({
-                logId: log.log_id,
-                orderId: log.order_id,
-                orderDate: log.wallet_log_order_date,
-                beforeBalance: log.before_balance,
-                amount: log.amount,
-                afterBalance: log.after_balance,
-                walletType: log.wallet_type,
-                description: log.description,
-                createdAt: log.log_created_at,
-                foods: logIdToFoodsMap.get(log.log_id),
-            });
-        }
+            return acc;
+        }, []);
         const billingInfo = {
             currentBalance,
-            walletLogs: structuredLogs,
+            walletLogs: groupedLogs,
         };
         return billingInfo;
     }

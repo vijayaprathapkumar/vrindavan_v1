@@ -30,24 +30,29 @@ const verifyOtp = async (req, res) => {
             const device_token = (0, tokenUtils_1.generateDeviceToken)();
             await (0, authLoginModel_1.storeDeviceToken)(mobile_number, device_token);
             if (userProfileStatus === 1) {
-                res.json((0, responseHandler_1.createResponse)(200, "OTP verified successfully.", { device_token, user_profile: 1, user_id }));
+                return res.json((0, responseHandler_1.createResponse)(200, "OTP verified successfully.", { device_token, user_profile: 1, user_id }));
             }
             else {
-                res.json((0, responseHandler_1.createResponse)(200, "OTP verified. Profile is incomplete.", { device_token, user_profile: 0, user_id }));
+                return res.json((0, responseHandler_1.createResponse)(200, "OTP verified. Profile is incomplete.", { device_token, user_profile: 0, user_id }));
             }
         }
         else {
-            res.status(400).json((0, responseHandler_1.createResponse)(400, "Invalid OTP."));
+            return res.status(400).json((0, responseHandler_1.createResponse)(400, "Invalid OTP."));
         }
     }
     catch (error) {
         if (error.message === "OTP has already been verified.") {
             const existing_device_token = await (0, authLoginModel_1.getStoredDeviceToken)(mobile_number);
-            res.status(400).json((0, responseHandler_1.createResponse)(400, "OTP has already been verified.", { device_token: existing_device_token }));
+            const { user_id, status: userProfileStatus } = await (0, authLoginModel_1.checkUserProfileStatus)(mobile_number);
+            return res.status(400).json((0, responseHandler_1.createResponse)(400, "OTP has already been verified.", {
+                device_token: existing_device_token,
+                user_profile: userProfileStatus,
+                user_id
+            }));
         }
         else {
             console.error("Error verifying OTP:", error);
-            res.status(500).json((0, responseHandler_1.createResponse)(500, "Failed to verify OTP."));
+            return res.status(500).json((0, responseHandler_1.createResponse)(500, "Failed to verify OTP."));
         }
     }
 };
