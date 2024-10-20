@@ -4,6 +4,7 @@ exports.deleteCustomer = exports.updateCustomer = exports.getCustomer = exports.
 const customerModel_1 = require("../../models/customer/customerModel");
 const responseHandler_1 = require("../../utils/responseHandler");
 const databaseConnection_1 = require("../../config/databaseConnection");
+const authLoginModel_1 = require("../../models/authLogin/authLoginModel");
 // Fetch all customers with pagination and filters
 const getCustomers = async (req, res) => {
     const { page = 1, limit = 10, locality, status, searchTerm } = req.query;
@@ -33,31 +34,26 @@ exports.getCustomers = getCustomers;
 const addCustomer = async (req, res) => {
     const { localityId, name, email, mobile, houseNo, completeAddress, status } = req.body;
     try {
-        const existingUserQuery = `
-      SELECT id FROM users WHERE email = ?;
-    `;
-        const [existingUsers] = await databaseConnection_1.db
-            .promise()
-            .query(existingUserQuery, [email]);
+        const existingUserQuery = `SELECT id FROM users WHERE email = ?;`;
+        const [existingUsers] = await databaseConnection_1.db.promise().query(existingUserQuery, [email]);
         if (existingUsers.length > 0) {
-            return res.status(400).json({
-                statusCode: 400,
-                message: "This email is already registered",
-            });
+            const userId = existingUsers[0].id;
+            const { status: userProfileStatus } = await (0, authLoginModel_1.checkUserProfileStatus)(mobile);
+            return res.status(400).json((0, responseHandler_1.createResponse)(400, "This email is already registered.", {
+                user_profile: userProfileStatus,
+                user_id: userId
+            }));
         }
-        await (0, customerModel_1.createCustomer)(localityId, name, email, mobile, houseNo, completeAddress, status);
-        res.status(201).json({
-            statusCode: 201,
-            message: "Customer created successfully",
-            data: {
-                customer: null,
-            },
-        });
+        const userId = await (0, customerModel_1.createCustomer)(localityId, name, email, mobile, houseNo, completeAddress, status);
+        const { status: userProfileStatus } = await (0, authLoginModel_1.checkUserProfileStatus)(mobile);
+        return res.status(201).json((0, responseHandler_1.createResponse)(201, "Customer created successfully.", {
+            user_profile: userProfileStatus,
+            user_id: userId
+        }));
     }
     catch (error) {
-        res
-            .status(500)
-            .json((0, responseHandler_1.createResponse)(500, "Error creating customer", error.message));
+        console.error("Error creating customer:", error);
+        return res.status(500).json((0, responseHandler_1.createResponse)(500, "Error creating customer", error.message));
     }
 };
 exports.addCustomer = addCustomer;
