@@ -102,8 +102,7 @@ const fetchPlaceOrderById = async (req, res) => {
                 .status(404)
                 .json((0, responseHandler_1.createResponse)(404, "Place order not found."));
         }
-        const responce = { placeOrder: [placeOrder] };
-        return res.json((0, responseHandler_1.createResponse)(200, "Place order fetched successfully.", responce));
+        return res.json((0, responseHandler_1.createResponse)(200, "Place order fetched successfully.", { placeOrder }));
     }
     catch (error) {
         console.error("Error fetching place order:", error);
