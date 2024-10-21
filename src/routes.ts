@@ -25,6 +25,7 @@ import subscriptionsRoutes from "./routes/subscriptions/subscriptionsRoutes";
 import paymentsRoutes from "./routes/placeOrder/placeOrderRoutes";
 import ordersRoutes from "./routes/orders-v1/ordersRoutes";
 import placeOrderRoutes from "./routes/placeOrder/placeOrderRoutes";
+import notificationRoutes from "./routes/notification/notificationRoutes";
 
 const router = express.Router();
 
@@ -82,4 +83,8 @@ router.use('/placeOrder', placeOrderRoutes);
 
 //order-v1
 router.use("/orders", ordersRoutes);
+
+//notifications
+router.use("/notifications", notificationRoutes);
+
 export default router;
