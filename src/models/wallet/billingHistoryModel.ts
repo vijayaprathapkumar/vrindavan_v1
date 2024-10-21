@@ -584,22 +584,22 @@ export const getTotalOrderBillingHistoryCount = async (
         LEFT JOIN foods f ON fo.food_id = f.id
         WHERE wl.user_id = ? 
     `;
-  
+
   const queryParams: (string | number)[] = [userId];
 
   if (startDate) {
     countSql += " AND wl.order_date >= ?";
     queryParams.push(startDate);
   }
-  
+
   if (endDate) {
     countSql += " AND wl.order_date <= ?";
     queryParams.push(endDate);
   }
-  
+
   if (searchTerm) {
-    countSql += " AND f.name LIKE ?"; 
-    queryParams.push(`%${searchTerm}%`); 
+    countSql += " AND f.name LIKE ?";
+    queryParams.push(`%${searchTerm}%`);
   }
 
   const [rows]: [RowDataPacket[], any] = await db
@@ -609,15 +609,17 @@ export const getTotalOrderBillingHistoryCount = async (
   return rows[0].totalCount;
 };
 
+//apifor mobile
 export const getOrdersBillingForMobile = async (
   userId: number,
   page: number,
   limit: number,
   startDate?: string,
   endDate?: string,
-  searchTerm?: string // New parameter for searching food name
+  searchTerm?: string
 ) => {
   try {
+    // Fetch wallet balance
     const walletBalanceSql = `
       SELECT balance, created_at AS balance_created_at 
       FROM wallet_balances 
@@ -633,10 +635,12 @@ export const getOrdersBillingForMobile = async (
 
     const currentBalance = walletBalanceRows[0].balance;
 
-    let dateCondition = "";
-    let searchCondition = ""; 
+    // Initialize date and search conditions
+    let dateCondition = '';
+    let searchCondition = '';
     const queryParams: (string | number)[] = [userId];
 
+    // Build the conditions only if the parameters are provided
     if (startDate) {
       dateCondition += " AND wl.order_date >= ?";
       queryParams.push(startDate);
@@ -646,12 +650,13 @@ export const getOrdersBillingForMobile = async (
       queryParams.push(endDate);
     }
     if (searchTerm) {
-      searchCondition += " AND f.name LIKE ?"; 
+      searchCondition += " AND f.name LIKE ?";
       queryParams.push(`%${searchTerm}%`);
     }
 
     const offset = (page - 1) * limit;
 
+    // Update the walletLogsSql to include food order details
     const walletLogsSql = `
       SELECT 
         wl.id AS log_id, 
@@ -668,13 +673,33 @@ export const getOrdersBillingForMobile = async (
         f.name AS food_name,
         f.price AS food_price,
         f.discount_price,
-        fo.quantity AS food_quantity
+        fo.quantity AS food_quantity,
+        o.id AS order_id,
+        o.user_id,
+        o.order_type,
+        o.order_date,
+        o.route_id,
+        o.hub_id,
+        o.locality_id,
+        o.delivery_boy_id,
+        o.order_status_id,
+        o.tax,
+        o.delivery_fee,
+        o.hint,
+        o.active,
+        o.driver_id,
+        o.delivery_address_id,
+        o.payment_id,
+        o.is_wallet_deduct,
+        o.delivery_status,
+        o.created_at AS order_created_at,
+        o.updated_at AS order_updated_at
       FROM wallet_logs wl 
       LEFT JOIN orders o ON wl.order_id = o.id
       LEFT JOIN food_orders fo ON o.id = fo.order_id
       LEFT JOIN foods f ON fo.food_id = f.id
       WHERE wl.user_id = ? 
-      ${dateCondition}
+      ${dateCondition} 
       ${searchCondition} 
       ORDER BY wl.created_at DESC 
       LIMIT ? OFFSET ?;
@@ -686,11 +711,27 @@ export const getOrdersBillingForMobile = async (
       .promise()
       .query(walletLogsSql, queryParams);
 
+    // Count total records for the given conditions
+    const countSql = `
+      SELECT COUNT(DISTINCT wl.id) AS totalRecords
+      FROM wallet_logs wl 
+      LEFT JOIN orders o ON wl.order_id = o.id
+      LEFT JOIN food_orders fo ON o.id = fo.order_id
+      LEFT JOIN foods f ON fo.food_id = f.id
+      WHERE wl.user_id = ? 
+      ${dateCondition} 
+      ${searchCondition};
+    `;
+
+    const [countRows]: [RowDataPacket[], any] = await db.promise().query(countSql, queryParams);
+
+    const totalRecords = countRows[0]?.totalRecords || 0;
+
+    // Group wallet logs and food details
     const groupedLogs = walletLogsRows.reduce((acc, log) => {
-      let existingLog = acc.find(item => item.orderId === log.order_id);
+      let existingLog = acc.find((item) => item.orderId === log.order_id);
 
       if (!existingLog) {
-
         existingLog = {
           logId: log.log_id,
           orderId: log.order_id,
@@ -708,10 +749,9 @@ export const getOrdersBillingForMobile = async (
         acc.push(existingLog);
       }
 
-      // Calculate food price
       const foodPrice = log.discount_price !== null ? log.discount_price : log.food_price;
 
-      if (log.food_id && !existingLog.foods.some(food => food.foodId === log.food_id)) {
+      if (log.food_id) {
         existingLog.foods.push({
           foodId: log.food_id,
           foodName: log.food_name,
@@ -719,6 +759,7 @@ export const getOrdersBillingForMobile = async (
           discountPrice: log.discount_price,
           foodQuantity: log.food_quantity,
           foodOriginalPrice: foodPrice * log.food_quantity,
+          orderId: log.order_id, 
         });
 
         existingLog.totalQuantity += log.food_quantity;
@@ -731,6 +772,7 @@ export const getOrdersBillingForMobile = async (
     const billingInfo = {
       currentBalance,
       walletLogs: groupedLogs,
+      totalRecords,
     };
 
     return billingInfo;
