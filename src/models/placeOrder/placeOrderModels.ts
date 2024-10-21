@@ -192,8 +192,11 @@ export const getAllPlaceOrders = async (
       orders.push(existingOrder);
     }
 
-    const foodOriginalPrice = row.food_price * row.food_quantity;
+    // const foodOriginalPrice = row.food_price ;
+    const foodOriginalPrice = row.food_discount_price !== null ? row.food_discount_price : row.food_price;
 
+    console.log('foodOriginalPrice',foodOriginalPrice);
+    
     // Add food order to the existing order
     existingOrder.food_orders.push({
       food_order_id: row.food_order_id,
@@ -227,7 +230,7 @@ export const getAllPlaceOrders = async (
       product_brand_id: row.food_product_brand_id,
       weightage: row.food_weightage,
       status: row.food_status,
-      foodOriginalPrice: foodOriginalPrice,
+      foodOriginalPrice: foodOriginalPrice * row.food_quantity,
       media: {
         id: row.media_id,
         model_type: row.model_type,
