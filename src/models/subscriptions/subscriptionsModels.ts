@@ -102,6 +102,7 @@ export const addSubscriptionQuantityChangeModel = (
   });
 };
 
+
 export const getAllSubscriptionsModel = (
   userId: number,
   page: number,
@@ -114,47 +115,47 @@ export const getAllSubscriptionsModel = (
   return new Promise((resolve, reject) => {
     let query = `
       SELECT user_subscriptions.*, 
-              foods.id as food_id, 
-              foods.name, 
-              foods.price, 
-              foods.discount_price, 
-              foods.description, 
-              foods.perma_link, 
-              foods.ingredients, 
-              foods.package_items_count, 
-              foods.weight, 
-              foods.unit, 
-              foods.sku_code, 
-              foods.barcode, 
-              foods.cgst, 
-              foods.sgst, 
-              foods.subscription_type, 
-              foods.track_inventory, 
-              foods.featured, 
-              foods.deliverable, 
-              foods.restaurant_id, 
-              foods.category_id, 
-              foods.subcategory_id, 
-              foods.product_type_id, 
-              foods.hub_id, 
-              foods.locality_id, 
-              foods.product_brand_id, 
-              foods.weightage, 
-              foods.status, 
-              foods.created_at, 
-              foods.updated_at, 
-              foods.food_locality
+             foods.id as food_id, 
+             foods.name, 
+             foods.price, 
+             foods.discount_price, 
+             foods.description, 
+             foods.perma_link, 
+             foods.ingredients, 
+             foods.package_items_count, 
+             foods.weight, 
+             foods.unit, 
+             foods.sku_code, 
+             foods.barcode, 
+             foods.cgst, 
+             foods.sgst, 
+             foods.subscription_type AS food_subscription_type, 
+             foods.track_inventory, 
+             foods.featured, 
+             foods.deliverable, 
+             foods.restaurant_id, 
+             foods.category_id, 
+             foods.subcategory_id, 
+             foods.product_type_id, 
+             foods.hub_id, 
+             foods.locality_id, 
+             foods.product_brand_id, 
+             foods.weightage, 
+             foods.status, 
+             foods.created_at, 
+             foods.updated_at, 
+             foods.food_locality
       FROM user_subscriptions 
       LEFT JOIN foods ON user_subscriptions.product_id = foods.id 
-      WHERE user_subscriptions.user_id = ? 
+      WHERE user_subscriptions.user_id = ?
     `;
 
     if (searchQuery) {
       query += ` AND (foods.name LIKE ? 
-                OR foods.unit LIKE ? 
-                OR foods.status LIKE ? 
-                OR foods.weightage LIKE ? 
-                OR foods.description LIKE ?)`;
+                      OR foods.unit LIKE ? 
+                      OR foods.status LIKE ? 
+                      OR foods.weightage LIKE ? 
+                      OR foods.description LIKE ?)`;
     }
 
     query += ` ORDER BY user_subscriptions.created_at DESC LIMIT ?, ?`;
@@ -171,7 +172,6 @@ export const getAllSubscriptionsModel = (
     });
   });
 };
-
 
 export const getTotalSubscriptionsCountModel = (
   userId: number
@@ -419,7 +419,7 @@ cron.schedule('0 0 * * *', async () => {
 
 //cron job subcribtions quntity
 
-cron.schedule('47 23 * * *', async () => {
+cron.schedule('02 13 * * *', async () => {
   console.log('Cron job running...');
 
   try {

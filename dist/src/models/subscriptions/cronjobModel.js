@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deductFromWalletBalance = exports.addSubscriptionsPlaceOrder = exports.createOrder = void 0;
+exports.deductFromWalletBalance = exports.insertIntoOrderPayment = exports.addSubscriptionsPlaceOrder = exports.createOrder = void 0;
 exports.handleNextDayOrders = handleNextDayOrders;
 const moment_1 = __importDefault(require("moment"));
 const databaseConnection_1 = require("../../config/databaseConnection");
@@ -11,7 +11,7 @@ async function fetchSubscriptions(batchSize, offset) {
     const [subscriptions] = await databaseConnection_1.db
         .promise()
         .query(`SELECT * FROM user_subscriptions WHERE user_id = ? LIMIT ? OFFSET ?`, [
-        12930,
+        12944,
         batchSize,
         offset,
     ]);
@@ -33,21 +33,23 @@ async function handleNextDayOrders() {
             if (sub.subscription_type === "everyday") {
                 quantityToOrder = sub.quantity;
             }
-            else if (sub.subscription_type === "alternative day") {
+            else if (sub.subscription_type === "alternative_day") {
                 const lastOrderDate = (0, moment_1.default)(sub.last_order_date);
                 if (tomorrow.diff(lastOrderDate, "days") % 2 === 0) {
                     quantityToOrder = sub.quantity;
                 }
             }
-            else if (sub.subscription_type === "every 3rd day") {
+            else if (sub.subscription_type === "every_3_day") {
                 const lastOrderDate = (0, moment_1.default)(sub.last_order_date);
                 if (tomorrow.diff(lastOrderDate, "days") % 3 === 0) {
                     quantityToOrder = sub.quantity;
                 }
             }
-            else if (sub.subscription_type === "weekends" &&
-                (dayOfWeek === "saturday" || dayOfWeek === "sunday")) {
-                quantityToOrder = sub.quantity;
+            else if (sub.subscription_type === "every_7_day") {
+                const lastOrderDate = (0, moment_1.default)(sub.last_order_date);
+                if (tomorrow.diff(lastOrderDate, "days") % 7 === 0) {
+                    quantityToOrder = sub.quantity;
+                }
             }
             else if (sub.subscription_type === "customize") {
                 quantityToOrder = sub[`${dayOfWeek}Qty`];
@@ -66,7 +68,7 @@ async function handleNextDayOrders() {
 }
 // Create an order based on subscription
 const createOrder = async (subscription) => {
-    const userId = subscription.user_id; // Get user ID from the subscription
+    const userId = subscription.user_id;
     console.log("Creating order for user:", userId);
     try {
         const cartItems = await getsubscriptionByUserId(userId);
@@ -149,11 +151,10 @@ const getsubscriptionByUserId = async (userId, retries = 3) => {
 const addSubscriptionsPlaceOrder = async (placeOrderData) => {
     const { price, description, userId, status, method } = placeOrderData;
     const defaultDescription = description || `Default place order for user ${userId}`;
-    // Insert payment record
     const paymentSql = `
-      INSERT INTO payments (price, description, user_id, status, method, created_at, updated_at) 
-      VALUES (?, ?, ?, ?, ?, NOW(), NOW());
-    `;
+    INSERT INTO payments (price, description, user_id, status, method, created_at, updated_at) 
+    VALUES (?, ?, ?, ?, ?, NOW(), NOW());
+  `;
     const paymentValues = [price, defaultDescription, userId, status, method];
     try {
         const [paymentResult] = await databaseConnection_1.db
@@ -163,8 +164,8 @@ const addSubscriptionsPlaceOrder = async (placeOrderData) => {
             throw new Error("Payment insertion failed.");
         }
         const walletBalanceSql = `
-        SELECT balance FROM wallet_balances WHERE user_id = ?;
-      `;
+      SELECT balance FROM wallet_balances WHERE user_id = ?;
+    `;
         const [walletRows] = await databaseConnection_1.db
             .promise()
             .query(walletBalanceSql, [userId]);
@@ -178,24 +179,24 @@ const addSubscriptionsPlaceOrder = async (placeOrderData) => {
             throw new Error("Failed to deduct from wallet balance.");
         }
         const walletLogSql = `
-        INSERT INTO wallet_logs (
-          user_id, 
-          order_id, 
-          order_date, 
-          order_item_id, 
-          before_balance, 
-          amount, 
-          after_balance, 
-          wallet_type, 
-          description, 
-          created_at, 
-          updated_at
-        ) 
-        VALUES (?, ?, NOW(), ?, ?, ?, ?, ?, ?, NOW(), NOW());
-      `;
+      INSERT INTO wallet_logs (
+        user_id, 
+        order_id, 
+        order_date, 
+        order_item_id, 
+        before_balance, 
+        amount, 
+        after_balance, 
+        wallet_type, 
+        description, 
+        created_at, 
+        updated_at
+      ) 
+      VALUES (?, ?, NOW(), ?, ?, ?, ?, ?, ?, NOW(), NOW());
+    `;
         const walletLogValues = [
             userId,
-            null, // order_id will be updated later
+            null,
             paymentResult.insertId,
             beforeBalance,
             price,
@@ -204,11 +205,11 @@ const addSubscriptionsPlaceOrder = async (placeOrderData) => {
             `Rs ${price} deducted from Rs ${beforeBalance}`,
         ];
         const addressSql = `
-        SELECT da.id AS delivery_address_id, da.*, l.route_id, l.hub_id, l.name AS locality_name
-        FROM delivery_addresses da
-        LEFT JOIN localities l ON da.locality_id = l.id
-        WHERE da.user_id = ?;
-      `;
+      SELECT da.id AS delivery_address_id, da.*, l.route_id, l.hub_id, l.name AS locality_name
+      FROM delivery_addresses da
+      LEFT JOIN localities l ON da.locality_id = l.id
+      WHERE da.user_id = ?;
+    `;
         const [addressRows] = await databaseConnection_1.db
             .promise()
             .query(addressSql, [userId]);
@@ -220,38 +221,38 @@ const addSubscriptionsPlaceOrder = async (placeOrderData) => {
         const addressData = addressRows[0];
         const { route_id, hub_id, locality_id, delivery_address_id } = addressData;
         const orderSql = `
-        INSERT INTO orders (
-          user_id, 
-          order_type, 
-          order_date, 
-          route_id, 
-          hub_id, 
-          locality_id, 
-          delivery_boy_id, 
-          order_status_id, 
-          tax, 
-          delivery_fee, 
-          payment_id, 
-          delivery_address_id,
-          is_wallet_deduct, 
-          created_at, 
-          updated_at
-        ) 
-        VALUES (?, ?, NOW(), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW());
-      `;
+      INSERT INTO orders (
+        user_id, 
+        order_type, 
+        order_date, 
+        route_id, 
+        hub_id, 
+        locality_id, 
+        delivery_boy_id, 
+        order_status_id, 
+        tax, 
+        delivery_fee, 
+        payment_id, 
+        delivery_address_id,
+        is_wallet_deduct, 
+        created_at, 
+        updated_at
+      ) 
+      VALUES (?, ?, NOW(), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW());
+    `;
         const orderValues = [
             userId,
-            2,
+            2, // Assuming order_type is 1
             route_id,
             hub_id,
             locality_id,
-            null,
-            1,
-            0.0,
-            0.0,
+            null, // delivery_boy_id
+            1, // order_status_id
+            0.0, // tax
+            0.0, // delivery_fee
             paymentResult.insertId,
             delivery_address_id,
-            1,
+            1, // is_wallet_deduct
         ];
         const [orderResult] = await databaseConnection_1.db
             .promise()
@@ -259,22 +260,60 @@ const addSubscriptionsPlaceOrder = async (placeOrderData) => {
         if (orderResult.affectedRows === 0) {
             throw new Error("Failed to create order.");
         }
-        // Update wallet log with order ID
-        await databaseConnection_1.db
-            .promise()
-            .query(`UPDATE wallet_logs SET order_id = ? WHERE order_item_id = ?`, [
-            orderResult.insertId,
-            paymentResult.insertId,
-        ]);
-        console.log(`Order created successfully with ID: ${orderResult.insertId}`);
-        return orderResult;
+        const orderId = orderResult.insertId;
+        walletLogValues[1] = orderId;
+        await databaseConnection_1.db.promise().query(walletLogSql, walletLogValues);
+        const cartItems = await getsubscriptionByUserId(userId);
+        // Insert into food_orders
+        for (const item of cartItems) {
+            console.log('item', item);
+            const finalPrice = item.foodDiscountPrice !== null && item.foodDiscountPrice !== undefined
+                ? item.foodDiscountPrice
+                : item.foodPrice;
+            const foodOrderSql = `
+        INSERT INTO food_orders (
+          price,
+          quantity,
+          food_id,
+          order_id,
+          created_at,
+          updated_at
+        ) 
+        VALUES (?, ?, ?, ?, NOW(), NOW());
+      `;
+            const foodOrderValues = [finalPrice, item.quantity, item.food_id, orderId];
+            await databaseConnection_1.db.promise().query(foodOrderSql, foodOrderValues);
+        }
+        await (0, exports.insertIntoOrderPayment)(userId, paymentResult.insertId);
+        return paymentResult;
     }
     catch (error) {
-        console.error("Error in addSubscriptionsPlaceOrder:", error);
-        throw error; // Rethrow error for higher-level handling
+        console.error("SQL Error in addPlaceOrder:", error);
+        throw new Error("Failed to add place order.");
     }
 };
 exports.addSubscriptionsPlaceOrder = addSubscriptionsPlaceOrder;
+const insertIntoOrderPayment = async (userId, paymentId) => {
+    const orderSql = `
+    UPDATE orders
+    SET payment_id = ?, updated_at = NOW()
+    WHERE user_id = ? AND order_status_id = 1;
+  `;
+    const orderValues = [paymentId, userId];
+    try {
+        const [result] = await databaseConnection_1.db
+            .promise()
+            .query(orderSql, orderValues);
+        if (result.affectedRows === 0) {
+            throw new Error("No active order found for the user to update.");
+        }
+    }
+    catch (error) {
+        console.error("SQL Error in insertIntoOrderPayment:", error);
+        throw new Error("Failed to update order with payment details.");
+    }
+};
+exports.insertIntoOrderPayment = insertIntoOrderPayment;
 const deductFromWalletBalance = async (userId, amount) => {
     const sql = `
       UPDATE wallet_balances 

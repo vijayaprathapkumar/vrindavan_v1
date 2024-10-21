@@ -13,11 +13,12 @@ const fetchPlaceOrders = async (req, res) => {
     const endDate = req.query.endDate ? new Date(req.query.endDate) : undefined;
     try {
         const { total, placeOrders } = await (0, placeOrderModels_1.getAllPlaceOrders)(userId, page, limit, startDate, endDate, searchTerm);
+        const totalPages = Math.ceil(total / limit);
         return res.json((0, responseHandler_1.createResponse)(200, "Place orders fetched successfully.", {
             placeOrders,
             currentPage: page,
             limit,
-            totalPages: Math.ceil(total / limit),
+            totalPages,
             totalRecords: total,
         }));
     }
