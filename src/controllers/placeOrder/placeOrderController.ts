@@ -148,9 +148,8 @@ export const fetchPlaceOrderById = async (
         .json(createResponse(404, "Place order not found."));
     }
 
-    const responce = { placeOrder: [placeOrder] };
     return res.json(
-      createResponse(200, "Place order fetched successfully.", responce)
+      createResponse(200, "Place order fetched successfully.", { placeOrder })
     );
   } catch (error) {
     console.error("Error fetching place order:", error);
@@ -159,3 +158,4 @@ export const fetchPlaceOrderById = async (
       .json(createResponse(500, "Failed to fetch place order."));
   }
 };
+
