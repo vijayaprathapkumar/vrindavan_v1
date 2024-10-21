@@ -45,16 +45,18 @@ export const getAllPlaceOrders = async (
   // Count total number of orders
   const countQuery = `
     SELECT COUNT(DISTINCT o.id) as total
-    FROM orders o
-    INNER JOIN payments p ON o.payment_id = p.id
-    INNER JOIN order_logs ol ON o.id = ol.order_id
-    WHERE o.user_id = ? ${searchCondition} ${dateCondition}
+FROM orders o
+LEFT JOIN payments p ON o.payment_id = p.id
+LEFT JOIN order_logs ol ON o.id = ol.order_id
+WHERE o.user_id = ? ${searchCondition} ${dateCondition}
+
   `;
 
   const [countRows]: [RowDataPacket[], any] = await db
     .promise()
     .query(countQuery, queryParams);
   const total = countRows[0].total;
+console.log('total',countRows);
 
   // Main query to fetch orders and related data, including food name from foods table
   const query = `
@@ -86,7 +88,35 @@ export const getAllPlaceOrders = async (
       fo.created_at AS food_order_created_at,
       fo.updated_at AS food_order_updated_at,
 
-      f.name AS food_name  
+      f.id AS food_id,
+      f.name AS food_name,
+      f.price AS food_price,
+      f.discount_price AS food_discount_price,
+      f.description AS food_description,
+      f.perma_link AS food_perma_link,
+      f.ingredients AS food_ingredients,
+      f.package_items_count AS food_package_items_count,
+      f.weight AS food_weight,
+      f.unit AS food_unit,
+      f.sku_code AS food_sku_code,
+      f.barcode AS food_barcode,
+      f.cgst AS food_cgst,
+      f.sgst AS food_sgst,
+      f.subscription_type AS food_subscription_type,
+      f.track_inventory AS food_track_inventory,
+      f.featured AS food_featured,
+      f.deliverable AS food_deliverable,
+      f.restaurant_id AS food_restaurant_id,
+      f.category_id AS food_category_id,
+      f.subcategory_id AS food_subcategory_id,
+      f.product_type_id AS food_product_type_id,
+      f.hub_id AS food_hub_id,
+      f.locality_id AS food_locality_id,
+      f.product_brand_id AS food_product_brand_id,
+      f.weightage AS food_weightage,
+      f.status AS food_status,
+      f.created_at AS food_created_at,
+      f.updated_at AS food_updated_at
 
     FROM 
       orders o
@@ -135,13 +165,13 @@ export const getAllPlaceOrders = async (
         created_at: row.order_created_at,
         updated_at: row.order_updated_at,
         food_orders: [],
-        total_quantity: 0, 
-        total_amount: 0, 
+        total_quantity: 0,
+        total_amount: 0,
       };
 
       orders.push(existingOrder);
-    }  
-    
+    }
+
     const foodOriginalPrice = row.food_price * row.food_quantity;
 
     // Add food order to the existing order
@@ -152,10 +182,34 @@ export const getAllPlaceOrders = async (
       name: row.food_name,
       created_at: row.food_order_created_at,
       updated_at: row.food_order_updated_at,
+      discount_price: row.food_discount_price,
+      description: row.food_description,
+      perma_link: row.food_perma_link,
+      ingredients: row.food_ingredients,
+      package_items_count: row.food_package_items_count,
+      weight: row.food_weight,
+      unit: row.food_unit,
+      sku_code: row.food_sku_code,
+      barcode: row.food_barcode,
+      cgst: row.food_cgst,
+      sgst: row.food_sgst,
+      subscription_type: row.food_subscription_type,
+      track_inventory: row.food_track_inventory,
+      featured: row.food_featured,
+      deliverable: row.food_deliverable,
+      restaurant_id: row.food_restaurant_id,
+      category_id: row.food_category_id,
+      subcategory_id: row.food_subcategory_id,
+      product_type_id: row.food_product_type_id,
+      hub_id: row.food_hub_id,
+      locality_id: row.food_locality_id,
+      product_brand_id: row.food_product_brand_id,
+      weightage: row.food_weightage,
+      status: row.food_status,
       foodOriginalPrice: foodOriginalPrice,
     });
 
-    existingOrder.total_amount += foodOriginalPrice; 
+    existingOrder.total_amount += foodOriginalPrice;
     existingOrder.total_quantity += row.food_quantity;
     return orders;
   }, [] as any[]);

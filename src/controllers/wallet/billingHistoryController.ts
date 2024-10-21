@@ -88,8 +88,6 @@ export const fetchOrderBillingHistory = async (req: Request, res: Response) => {
 };
 
 // mobile api
-
-/// working
 export const fetchOrderBillingHistoryForMobile = async (
   req: Request,
   res: Response
@@ -129,13 +127,18 @@ export const fetchOrderBillingHistoryForMobile = async (
       searchTerm 
     );
 
+    // Calculate total pages
+    const totalPages = Math.ceil(total / limit);
+
     res.status(200).json({
       status: 200,
       message: "Billing history retrieved successfully.",
       data: {
         walletBalance: billingHistory.currentBalance,
         walletLogs: billingHistory.walletLogs,
-        totalCount: total,
+        totalFoodCount: total,
+        totalRecords: billingHistory.totalRecords, 
+        totalPages: totalPages,
         currentPage: page,
         limit: limit,
       },
