@@ -20,6 +20,6 @@ router.put("/:id", updateNotificationController);
 
 router.delete("/:id", deleteNotification);
 
-router.post("/:id/send", sendNotification);
+router.post("/send/:id", sendNotification);
 
 export default router;

@@ -11,5 +11,5 @@ router.post("/", notificationController_1.addNotification);
 router.get("/:id", notificationController_1.fetchNotificationById);
 router.put("/:id", notificationController_1.updateNotificationController);
 router.delete("/:id", notificationController_1.deleteNotification);
-router.post("/:id/send", notificationController_1.sendNotification);
+router.post("/send/:id", notificationController_1.sendNotification);
 exports.default = router;

@@ -14,13 +14,15 @@ export interface Notification {
   created_at?: Date;
   updated_at?: Date;
   original_url?: string;
+  notifications_log_ids?:string;
+  notification_sent_dates?:string;
 }
 
 // Get all notifications
 export const getAllNotifications = async (
   page: number,
   limit: number,
-  searchTerm?: string 
+  searchTerm?: string
 ): Promise<{ notifications: Notification[]; total: number }> => {
   const offset = (page - 1) * limit;
 
@@ -43,15 +45,18 @@ export const getAllNotifications = async (
         un.notification_send,
         un.created_at,
         un.updated_at,
-        GROUP_CONCAT(CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name)) AS original_url
+        GROUP_CONCAT(CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name)) AS original_url,
+        GROUP_CONCAT(ul.id) AS log_ids,  
+        GROUP_CONCAT(ul.notification_sent_date) AS notification_sent_dates  
       FROM user_notifications un
-      LEFT JOIN media m ON un.product_id = m.model_id  AND m.model_type = 'App\\\\Models\\\\Food'
+      LEFT JOIN media m ON un.product_id = m.model_id AND m.model_type = 'App\\\\Models\\\\Food'
+      LEFT JOIN user_notification_logs ul ON un.id = ul.user_notification_id  
       WHERE 1=1 ${searchCondition}  
       GROUP BY un.id
       ORDER BY un.created_at DESC
       LIMIT ? OFFSET ?;
     `;
-
+   
   // If searchTerm exists, use it in the query
   const queryParams = searchTerm
     ? [`%${searchTerm}%`, `%${searchTerm}%`, limit, offset]
@@ -88,6 +93,8 @@ export const getAllNotifications = async (
       created_at: row.created_at,
       updated_at: row.updated_at,
       original_url: row.original_url,
+      notifications_log_ids: row.log_ids,
+      notification_sent_dates: row.notification_sent_dates,
     })),
     total: totalCount,
   };
@@ -134,15 +141,15 @@ export const createNotification = async (notificationData: {
     return result;
   } catch (error) {
     console.error("Error creating notification:", error);
-    throw error; // Handle error as needed
+    throw error; 
   }
 };
 
 // Fetch notification by ID
 export const getNotificationById = async (
-    id: number
-  ): Promise<Notification | null> => {
-    const query = `
+  id: number
+): Promise<Notification | null> => {
+  const query = `
       SELECT
         un.id,
         CASE un.notification_type
@@ -157,34 +164,41 @@ export const getNotificationById = async (
         un.notification_send,
         un.created_at,
         un.updated_at,
-        GROUP_CONCAT(CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name)) AS original_url
+        GROUP_CONCAT(CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name)) AS original_url,
+        GROUP_CONCAT(ul.id) AS log_ids,  
+        GROUP_CONCAT(ul.notification_sent_date) AS notification_sent_dates  
       FROM user_notifications un
       LEFT JOIN media m ON un.product_id = m.model_id AND m.model_type = 'App\\\\Models\\\\Food'
-      WHERE un.id = ?  -- Correctly place the WHERE clause
+      LEFT JOIN user_notification_logs ul ON un.id = ul.user_notification_id 
+      WHERE un.id = ? 
       GROUP BY un.id
       ORDER BY un.created_at DESC;
     `;
-  
-    const [rows]: [RowDataPacket[], any] = await db.promise().query<RowDataPacket[]>(query, [id]);
-  
-    if (rows.length === 0) return null;
-  
-    const row = rows[0];
-    return {
-      id: row.id,
-      notification_type: row.notification_type,
-      title: row.title,
-      description: row.description,
-      user_id: row.user_id,
-      product_id: row.product_id,
-      is_global: row.is_global,
-      notification_send: row.notification_send,
-      created_at: row.created_at,
-      updated_at: row.updated_at,
-      original_url: row.original_url, 
-    };
+
+  const [rows]: [RowDataPacket[], any] = await db
+    .promise()
+    .query<RowDataPacket[]>(query, [id]);
+
+  if (rows.length === 0) return null;
+
+  const row = rows[0];
+  return {
+    id: row.id,
+    notification_type: row.notification_type,
+    title: row.title,
+    description: row.description,
+    user_id: row.user_id,
+    product_id: row.product_id,
+    is_global: row.is_global,
+    notification_send: row.notification_send,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+    original_url: row.original_url,
+    notifications_log_ids: row.log_ids,
+    notification_sent_dates: row.notification_sent_dates,
   };
-  
+};
+
 // Update notification by ID
 export const updateNotification = async (
   id: number,
