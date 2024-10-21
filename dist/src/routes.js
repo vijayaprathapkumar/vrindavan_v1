@@ -29,6 +29,7 @@ const walletTransationsRoutes_1 = __importDefault(require("./routes/wallet/walle
 const subscriptionsRoutes_1 = __importDefault(require("./routes/subscriptions/subscriptionsRoutes"));
 const ordersRoutes_1 = __importDefault(require("./routes/orders-v1/ordersRoutes"));
 const placeOrderRoutes_1 = __importDefault(require("./routes/placeOrder/placeOrderRoutes"));
+const notificationRoutes_1 = __importDefault(require("./routes/notification/notificationRoutes"));
 const router = express_1.default.Router();
 // Auth Login
 router.use("/auth", authLoginRoute_1.default);
@@ -69,4 +70,6 @@ router.use("/subscriptions", subscriptionsRoutes_1.default);
 router.use('/placeOrder', placeOrderRoutes_1.default);
 //order-v1
 router.use("/orders", ordersRoutes_1.default);
+//notifications
+router.use("/notifications", notificationRoutes_1.default);
 exports.default = router;
