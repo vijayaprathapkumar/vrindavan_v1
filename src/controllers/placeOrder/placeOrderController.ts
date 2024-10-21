@@ -28,14 +28,14 @@ export const fetchPlaceOrders = async (
   try {
     const { total, placeOrders } = await getAllPlaceOrders(userId, page, limit, startDate, endDate, searchTerm);
 
+    const totalPages = Math.ceil(total / limit);
 
-    
     return res.json(
       createResponse(200, "Place orders fetched successfully.", {
         placeOrders,
         currentPage: page,
         limit,
-        totalPages: Math.ceil(total / limit),
+        totalPages,
         totalRecords: total,
       })
     );

@@ -17,9 +17,9 @@ import { createResponse } from "../../utils/responseHandler";
 
 const validSubscriptionTypes = [
   "everyday",
-  "alternative Day",
-  "every 3rd day",
-  "weekends",
+  "alternative_day",
+  "every_3_day",
+  "every_7_day",
   "customize",
 ];
 
@@ -311,11 +311,11 @@ export const getSubscriptionById = async (req: Request, res: Response) => {
         .json(createResponse(404, "Subscription not found."));
     }
 
-    const responce ={subscription:[subscription]}
+    const response = { subscription: [subscription] };
     res
       .status(200)
       .json(
-        createResponse(200, "Subscription fetched successfully.", responce)
+        createResponse(200, "Subscription fetched successfully.", response)
       );
   } catch (error) {
     console.error("Error fetching subscription:", error);
@@ -335,38 +335,23 @@ export const updateSubscriptionPauseController = async (
   const {
     user_id,
     is_pause_subscription,
-    pause_until_i_come_back,
-    pause_specific_period_startDate,
-    pause_specific_period_endDate,
+    pause_start_time,
+    pause_end_time,
   } = req.body;
-
-  if (!user_id) {
-    return res.status(400).json(createResponse(400, "Missing user ID."));
-  }
 
   try {
     await updateSubscriptionPauseInfo(
       user_id,
       is_pause_subscription,
-      pause_until_i_come_back,
-      pause_specific_period_startDate,
-      pause_specific_period_endDate
+      pause_start_time,
+      pause_end_time
     );
-    res
-      .status(200)
-      .json(
-        createResponse(200, "Subscription pause info updated successfully.")
-      );
+
+    res.status(200).json(createResponse(200, "Pause info updated successfully."));
   } catch (error) {
     console.error("Error updating subscription pause info:", error);
     res
       .status(500)
-      .json(
-        createResponse(
-          500,
-          "Failed to update subscription pause info.",
-          error.message
-        )
-      );
+      .json(createResponse(500, "Failed to update pause info.", error.message));
   }
 };

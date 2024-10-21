@@ -5,9 +5,9 @@ const subscriptionsModels_1 = require("../../models/subscriptions/subscriptionsM
 const responseHandler_1 = require("../../utils/responseHandler");
 const validSubscriptionTypes = [
     "everyday",
-    "alternative Day",
-    "every 3rd day",
-    "weekends",
+    "alternative_day",
+    "every_3_day",
+    "every_7_day",
     "customize",
 ];
 // Add Subscription
@@ -223,10 +223,10 @@ const getSubscriptionById = async (req, res) => {
                 .status(404)
                 .json((0, responseHandler_1.createResponse)(404, "Subscription not found."));
         }
-        const responce = { subscription: [subscription] };
+        const response = { subscription: [subscription] };
         res
             .status(200)
-            .json((0, responseHandler_1.createResponse)(200, "Subscription fetched successfully.", responce));
+            .json((0, responseHandler_1.createResponse)(200, "Subscription fetched successfully.", response));
     }
     catch (error) {
         console.error("Error fetching subscription:", error);
@@ -238,21 +238,16 @@ const getSubscriptionById = async (req, res) => {
 exports.getSubscriptionById = getSubscriptionById;
 // Update Subscription Pause Info
 const updateSubscriptionPauseController = async (req, res) => {
-    const { user_id, is_pause_subscription, pause_until_i_come_back, pause_specific_period_startDate, pause_specific_period_endDate, } = req.body;
-    if (!user_id) {
-        return res.status(400).json((0, responseHandler_1.createResponse)(400, "Missing user ID."));
-    }
+    const { user_id, is_pause_subscription, pause_start_time, pause_end_time, } = req.body;
     try {
-        await (0, subscriptionsModels_1.updateSubscriptionPauseInfo)(user_id, is_pause_subscription, pause_until_i_come_back, pause_specific_period_startDate, pause_specific_period_endDate);
-        res
-            .status(200)
-            .json((0, responseHandler_1.createResponse)(200, "Subscription pause info updated successfully."));
+        await (0, subscriptionsModels_1.updateSubscriptionPauseInfo)(user_id, is_pause_subscription, pause_start_time, pause_end_time);
+        res.status(200).json((0, responseHandler_1.createResponse)(200, "Pause info updated successfully."));
     }
     catch (error) {
         console.error("Error updating subscription pause info:", error);
         res
             .status(500)
-            .json((0, responseHandler_1.createResponse)(500, "Failed to update subscription pause info.", error.message));
+            .json((0, responseHandler_1.createResponse)(500, "Failed to update pause info.", error.message));
     }
 };
 exports.updateSubscriptionPauseController = updateSubscriptionPauseController;
