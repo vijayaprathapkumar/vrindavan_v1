@@ -23,9 +23,12 @@ const getAllNotifications = async (page, limit, searchTerm) => {
         un.notification_send,
         un.created_at,
         un.updated_at,
-        GROUP_CONCAT(CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name)) AS original_url
+        GROUP_CONCAT(CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name)) AS original_url,
+        GROUP_CONCAT(ul.id) AS log_ids,  
+        GROUP_CONCAT(ul.notification_sent_date) AS notification_sent_dates  
       FROM user_notifications un
-      LEFT JOIN media m ON un.product_id = m.model_id  AND m.model_type = 'App\\\\Models\\\\Food'
+      LEFT JOIN media m ON un.product_id = m.model_id AND m.model_type = 'App\\\\Models\\\\Food'
+      LEFT JOIN user_notification_logs ul ON un.id = ul.user_notification_id  
       WHERE 1=1 ${searchCondition}  
       GROUP BY un.id
       ORDER BY un.created_at DESC
@@ -63,6 +66,8 @@ const getAllNotifications = async (page, limit, searchTerm) => {
             created_at: row.created_at,
             updated_at: row.updated_at,
             original_url: row.original_url,
+            notifications_log_ids: row.log_ids,
+            notification_sent_dates: row.notification_sent_dates,
         })),
         total: totalCount,
     };
@@ -91,7 +96,7 @@ const createNotification = async (notificationData) => {
     }
     catch (error) {
         console.error("Error creating notification:", error);
-        throw error; // Handle error as needed
+        throw error;
     }
 };
 exports.createNotification = createNotification;
@@ -112,14 +117,19 @@ const getNotificationById = async (id) => {
         un.notification_send,
         un.created_at,
         un.updated_at,
-        GROUP_CONCAT(CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name)) AS original_url
+        GROUP_CONCAT(CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name)) AS original_url,
+        GROUP_CONCAT(ul.id) AS log_ids,  
+        GROUP_CONCAT(ul.notification_sent_date) AS notification_sent_dates  
       FROM user_notifications un
       LEFT JOIN media m ON un.product_id = m.model_id AND m.model_type = 'App\\\\Models\\\\Food'
-      WHERE un.id = ?  -- Correctly place the WHERE clause
+      LEFT JOIN user_notification_logs ul ON un.id = ul.user_notification_id 
+      WHERE un.id = ? 
       GROUP BY un.id
       ORDER BY un.created_at DESC;
     `;
-    const [rows] = await databaseConnection_1.db.promise().query(query, [id]);
+    const [rows] = await databaseConnection_1.db
+        .promise()
+        .query(query, [id]);
     if (rows.length === 0)
         return null;
     const row = rows[0];
@@ -135,6 +145,8 @@ const getNotificationById = async (id) => {
         created_at: row.created_at,
         updated_at: row.updated_at,
         original_url: row.original_url,
+        notifications_log_ids: row.log_ids,
+        notification_sent_dates: row.notification_sent_dates,
     };
 };
 exports.getNotificationById = getNotificationById;
