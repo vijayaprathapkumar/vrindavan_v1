@@ -55,7 +55,7 @@ export const getAllPlaceOrders = async (
     .promise()
     .query(countQuery, queryParams);
   const total = countRows[0].total;
-  console.log('total', countRows);
+  console.log("total", countRows);
 
   // Main query to fetch orders and related data, including food name from foods table
   const query = `
@@ -193,10 +193,13 @@ export const getAllPlaceOrders = async (
     }
 
     // const foodOriginalPrice = row.food_price ;
-    const foodOriginalPrice = row.food_discount_price !== null ? row.food_discount_price : row.food_price;
+    const foodOriginalPrice =
+      row.food_discount_price !== null
+        ? row.food_discount_price
+        : row.food_price;
+    const totalFoodItemPrice = foodOriginalPrice * row.food_quantity;
 
-    console.log('foodOriginalPrice',foodOriginalPrice);
-    
+
     // Add food order to the existing order
     existingOrder.food_orders.push({
       food_order_id: row.food_order_id,
@@ -230,7 +233,7 @@ export const getAllPlaceOrders = async (
       product_brand_id: row.food_product_brand_id,
       weightage: row.food_weightage,
       status: row.food_status,
-      foodOriginalPrice: foodOriginalPrice * row.food_quantity,
+      foodOriginalPrice: totalFoodItemPrice,
       media: {
         id: row.media_id,
         model_type: row.model_type,
@@ -254,8 +257,8 @@ export const getAllPlaceOrders = async (
       },
     });
 
-    existingOrder.total_amount += foodOriginalPrice;
     existingOrder.total_quantity += row.food_quantity;
+    existingOrder.total_amount += totalFoodItemPrice;
     return orders;
   }, [] as any[]);
 
@@ -740,7 +743,13 @@ export const getPlaceOrderById = async (orderId: number): Promise<any> => {
       };
     }
 
-    const foodOriginalPrice = row.food_price * row.food_quantity;
+    const foodOriginalPrice =
+    row.food_discount_price !== null
+      ? row.food_discount_price
+      : row.food_price;
+
+    const totalFoodItemPrice = foodOriginalPrice * row.food_quantity;
+    const totaloodItemPrice = row.food_price * row.food_quantity;
 
     // Add food order to the existing order
     order.food_orders.push({
@@ -775,7 +784,7 @@ export const getPlaceOrderById = async (orderId: number): Promise<any> => {
       product_brand_id: row.food_product_brand_id,
       weightage: row.food_weightage,
       status: row.food_status,
-      foodOriginalPrice: foodOriginalPrice,
+      foodOriginalPrice: totalFoodItemPrice,
       media: {
         id: row.media_id,
         model_type: row.model_type,
@@ -798,8 +807,9 @@ export const getPlaceOrderById = async (orderId: number): Promise<any> => {
         original_url: row.original_url,
       },
     });
+    console.log("foodOriginalPrice", foodOriginalPrice);
 
-    order.total_amount += foodOriginalPrice;
+    order.total_amount += totalFoodItemPrice;
     order.total_quantity += row.food_quantity;
 
     return order;
@@ -807,7 +817,6 @@ export const getPlaceOrderById = async (orderId: number): Promise<any> => {
 
   return structuredOrder;
 };
-
 
 export const getCartItemsByUserId = async (userId: number): Promise<any[]> => {
   const query = `

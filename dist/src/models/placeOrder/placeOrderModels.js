@@ -34,7 +34,7 @@ const getAllPlaceOrders = async (userId, page, limit, startDate, endDate, search
         .promise()
         .query(countQuery, queryParams);
     const total = countRows[0].total;
-    console.log('total', countRows);
+    console.log("total", countRows);
     // Main query to fetch orders and related data, including food name from foods table
     const query = `
     SELECT 
@@ -165,8 +165,10 @@ const getAllPlaceOrders = async (userId, page, limit, startDate, endDate, search
             orders.push(existingOrder);
         }
         // const foodOriginalPrice = row.food_price ;
-        const foodOriginalPrice = row.food_discount_price !== null ? row.food_discount_price : row.food_price;
-        console.log('foodOriginalPrice', foodOriginalPrice);
+        const foodOriginalPrice = row.food_discount_price !== null
+            ? row.food_discount_price
+            : row.food_price;
+        const totalFoodItemPrice = foodOriginalPrice * row.food_quantity;
         // Add food order to the existing order
         existingOrder.food_orders.push({
             food_order_id: row.food_order_id,
@@ -200,7 +202,7 @@ const getAllPlaceOrders = async (userId, page, limit, startDate, endDate, search
             product_brand_id: row.food_product_brand_id,
             weightage: row.food_weightage,
             status: row.food_status,
-            foodOriginalPrice: foodOriginalPrice * row.food_quantity,
+            foodOriginalPrice: totalFoodItemPrice,
             media: {
                 id: row.media_id,
                 model_type: row.model_type,
@@ -223,8 +225,8 @@ const getAllPlaceOrders = async (userId, page, limit, startDate, endDate, search
                 original_url: row.original_url,
             },
         });
-        existingOrder.total_amount += foodOriginalPrice;
         existingOrder.total_quantity += row.food_quantity;
+        existingOrder.total_amount += totalFoodItemPrice;
         return orders;
     }, []);
     return { total, placeOrders: structuredOrders };
@@ -638,7 +640,11 @@ const getPlaceOrderById = async (orderId) => {
                 total_amount: 0,
             };
         }
-        const foodOriginalPrice = row.food_price * row.food_quantity;
+        const foodOriginalPrice = row.food_discount_price !== null
+            ? row.food_discount_price
+            : row.food_price;
+        const totalFoodItemPrice = foodOriginalPrice * row.food_quantity;
+        const totaloodItemPrice = row.food_price * row.food_quantity;
         // Add food order to the existing order
         order.food_orders.push({
             food_order_id: row.food_order_id,
@@ -672,7 +678,7 @@ const getPlaceOrderById = async (orderId) => {
             product_brand_id: row.food_product_brand_id,
             weightage: row.food_weightage,
             status: row.food_status,
-            foodOriginalPrice: foodOriginalPrice,
+            foodOriginalPrice: totalFoodItemPrice,
             media: {
                 id: row.media_id,
                 model_type: row.model_type,
@@ -695,7 +701,8 @@ const getPlaceOrderById = async (orderId) => {
                 original_url: row.original_url,
             },
         });
-        order.total_amount += foodOriginalPrice;
+        console.log("foodOriginalPrice", foodOriginalPrice);
+        order.total_amount += totalFoodItemPrice;
         order.total_quantity += row.food_quantity;
         return order;
     }, null);
