@@ -45,18 +45,17 @@ export const getAllPlaceOrders = async (
   // Count total number of orders
   const countQuery = `
     SELECT COUNT(DISTINCT o.id) as total
-FROM orders o
-LEFT JOIN payments p ON o.payment_id = p.id
-LEFT JOIN order_logs ol ON o.id = ol.order_id
-WHERE o.user_id = ? ${searchCondition} ${dateCondition}
-
+    FROM orders o
+    LEFT JOIN payments p ON o.payment_id = p.id
+    LEFT JOIN order_logs ol ON o.id = ol.order_id
+    WHERE o.user_id = ? ${searchCondition} ${dateCondition}
   `;
 
   const [countRows]: [RowDataPacket[], any] = await db
     .promise()
     .query(countQuery, queryParams);
   const total = countRows[0].total;
-console.log('total',countRows);
+  console.log('total', countRows);
 
   // Main query to fetch orders and related data, including food name from foods table
   const query = `
@@ -116,7 +115,27 @@ console.log('total',countRows);
       f.weightage AS food_weightage,
       f.status AS food_status,
       f.created_at AS food_created_at,
-      f.updated_at AS food_updated_at
+      f.updated_at AS food_updated_at,
+
+      m.id AS media_id,
+      m.model_type,
+      m.model_id,
+      m.uuid,
+      m.collection_name,
+      m.name AS media_name,
+      m.file_name AS media_file_name,
+      m.mime_type AS media_mime_type,
+      m.disk,
+      m.conversions_disk,
+      m.size,
+      m.manipulations,
+      m.custom_properties,
+      m.generated_conversions,
+      m.responsive_images,
+      m.order_column,
+      m.created_at AS media_created_at,
+      m.updated_at AS media_updated_at,
+      CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name) AS original_url
 
     FROM 
       orders o
@@ -124,6 +143,7 @@ console.log('total',countRows);
       food_orders fo ON o.id = fo.order_id
     LEFT JOIN 
       foods f ON fo.food_id = f.id  
+    LEFT JOIN media m ON f.id = m.model_id AND m.model_type = 'App\\\\Models\\\\Food' 
 
     WHERE 
       o.user_id = ? ${dateCondition} ${searchCondition}
@@ -177,6 +197,7 @@ console.log('total',countRows);
     // Add food order to the existing order
     existingOrder.food_orders.push({
       food_order_id: row.food_order_id,
+      foods_id: row.food_id,
       price: row.food_price,
       quantity: row.food_quantity,
       name: row.food_name,
@@ -207,6 +228,27 @@ console.log('total',countRows);
       weightage: row.food_weightage,
       status: row.food_status,
       foodOriginalPrice: foodOriginalPrice,
+      media: {
+        id: row.media_id,
+        model_type: row.model_type,
+        model_id: row.model_id,
+        uuid: row.uuid,
+        collection_name: row.collection_name,
+        media_name: row.media_name,
+        media_file_name: row.media_file_name,
+        mime_type: row.media_mime_type,
+        disk: row.disk,
+        conversions_disk: row.conversions_disk,
+        size: row.size,
+        manipulations: row.manipulations,
+        custom_properties: row.custom_properties,
+        generated_conversions: row.generated_conversions,
+        responsive_images: row.responsive_images,
+        order_column: row.order_column,
+        created_at: row.media_created_at,
+        updated_at: row.media_updated_at,
+        original_url: row.original_url,
+      },
     });
 
     existingOrder.total_amount += foodOriginalPrice;
@@ -565,18 +607,16 @@ export const deleteAllCartItemsByUserId = async (userId: number) => {
 };
 
 // Fetch a place order by ID
-export const getPlaceOrderById = async (
-  orderId: number
-): Promise<any | null> => {
-  const sql = `
+export const getPlaceOrderById = async (orderId: number): Promise<any> => {
+  const query = `
     SELECT 
       o.id AS order_id,
       o.user_id,
       o.order_type,
       o.order_date,
       o.route_id,
-      o.hub_id AS order_Hub_id,
-      o.locality_id AS order_locality_id,
+      o.hub_id,
+      o.locality_id,
       o.delivery_boy_id,
       o.order_status_id,
       o.tax,
@@ -591,210 +631,180 @@ export const getPlaceOrderById = async (
       o.created_at AS order_created_at,
       o.updated_at AS order_updated_at,
 
-      p.id AS payment_id,
-      p.price AS payment_price,
-      p.description AS payment_description,
-      p.status AS payment_status,
-      p.method AS payment_method,
-      p.created_at AS payment_created_at,
-      p.updated_at AS payment_updated_at,
-
-      os.status AS order_status,
-
-      ol.id AS order_log_id,
-      ol.order_date AS order_log_date,
-      ol.user_id AS order_log_user_id,
-      ol.order_id AS order_log_order_id,
-      ol.product_id AS order_log_product_id,
-      ol.locality_id AS order_log_locality_id,
-      ol.delivery_boy_id AS order_log_delivery_boy_id,
-      ol.is_created AS order_log_is_created,
-      ol.logs AS order_log_logs,
-      ol.created_at AS order_log_created_at,
-      ol.updated_at AS order_log_updated_at,
-
-      oc.id AS order_combo_id,
-      oc.price AS combo_price,
-      oc.quantity AS combo_quantity,
-      oc.combo_id AS combo_id,
-      oc.order_id AS combo_order_id,
-      oc.created_at AS combo_created_at,
-      oc.updated_at AS combo_updated_at,
-
-      ocd.id AS order_combo_detail_id,
-      ocd.order_combo_id AS ocd_order_combo_id,
-      ocd.order_id AS ocd_order_id,
-      ocd.product_id AS ocd_product_id,
-      ocd.created_at AS detail_created_at,
-      ocd.updated_at AS detail_updated_at,
+      fo.id AS food_order_id,
+      fo.price AS food_price,
+      fo.quantity AS food_quantity,
+      fo.created_at AS food_order_created_at,
+      fo.updated_at AS food_order_updated_at,
 
       f.id AS food_id,
       f.name AS food_name,
       f.price AS food_price,
-      f.discount_price,
+      f.discount_price AS food_discount_price,
       f.description AS food_description,
-      f.perma_link,
-      f.ingredients,
-      f.package_items_count,
-      f.weight,
-      f.unit,
-      f.sku_code,
-      f.barcode,
-      f.cgst,
-      f.sgst,
-      f.subscription_type,
-      f.track_inventory,
-      f.featured,
-      f.deliverable,
-      f.restaurant_id,
-      f.category_id,
-      f.subcategory_id,
-      f.product_type_id,
-      f.hub_id,
-      f.locality_id,
-      f.product_brand_id,
-      f.weightage,
-      f.status,
+      f.perma_link AS food_perma_link,
+      f.ingredients AS food_ingredients,
+      f.package_items_count AS food_package_items_count,
+      f.weight AS food_weight,
+      f.unit AS food_unit,
+      f.sku_code AS food_sku_code,
+      f.barcode AS food_barcode,
+      f.cgst AS food_cgst,
+      f.sgst AS food_sgst,
+      f.subscription_type AS food_subscription_type,
+      f.track_inventory AS food_track_inventory,
+      f.featured AS food_featured,
+      f.deliverable AS food_deliverable,
+      f.restaurant_id AS food_restaurant_id,
+      f.category_id AS food_category_id,
+      f.subcategory_id AS food_subcategory_id,
+      f.product_type_id AS food_product_type_id,
+      f.hub_id AS food_hub_id,
+      f.locality_id AS food_locality_id,
+      f.product_brand_id AS food_product_brand_id,
+      f.weightage AS food_weightage,
+      f.status AS food_status,
       f.created_at AS food_created_at,
       f.updated_at AS food_updated_at,
-      f.food_locality
-    FROM orders o
-    LEFT JOIN payments p ON o.payment_id = p.id
-    LEFT JOIN order_logs ol ON o.id = ol.order_id
-    LEFT JOIN foods f ON ol.product_id = f.id
-    LEFT JOIN order_statuses os ON o.order_status_id = os.id
-    LEFT JOIN order_combos oc ON o.id = oc.order_id
-    LEFT JOIN order_combo_details ocd ON oc.id = ocd.order_combo_id
-    WHERE o.id = ?;
+
+      m.id AS media_id,
+      m.model_type,
+      m.model_id,
+      m.uuid,
+      m.collection_name,
+      m.name AS media_name,
+      m.file_name AS media_file_name,
+      m.mime_type AS media_mime_type,
+      m.disk,
+      m.conversions_disk,
+      m.size,
+      m.manipulations,
+      m.custom_properties,
+      m.generated_conversions,
+      m.responsive_images,
+      m.order_column,
+      m.created_at AS media_created_at,
+      m.updated_at AS media_updated_at,
+      CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name) AS original_url
+
+    FROM 
+      orders o
+    LEFT JOIN 
+      food_orders fo ON o.id = fo.order_id
+    LEFT JOIN 
+      foods f ON fo.food_id = f.id  
+    LEFT JOIN media m ON f.id = m.model_id AND m.model_type = 'App\\\\Models\\\\Food' 
+
+    WHERE 
+      o.id = ?
   `;
 
-  try {
-    const [rows]: [RowDataPacket[], any] = await db
-      .promise()
-      .query(sql, [orderId]);
+  const [rows]: [RowDataPacket[], any] = await db
+    .promise()
+    .query(query, [orderId]);
 
-    if (rows.length === 0) {
-      return null;
-    }
+  if (rows.length === 0) {
+    return null; // No order found
+  }
 
-    const row = rows[0];
-    const placeOrder: any = {
-      order_id: row.order_id,
-      user_id: row.user_id,
-      order_date: row.order_date,
-      created_at: row.order_created_at,
-      order_type: row.order_type,
-      route_id: row.route_id,
-      hub_id: row.order_Hub_id,
-      locality_id: row.order_locality_id,
-      delivery_boy_id: row.delivery_boy_id,
-      order_status_id: row.order_status_id,
-      tax: row.tax,
-      delivery_fee: row.delivery_fee,
-      hint: row.hint,
-      active: row.active,
-      driver_id: row.driver_id,
-      delivery_address_id: row.delivery_address_id,
-      payment_id: row.payment_id,
-      is_wallet_deduct: row.is_wallet_deduct,
-      delivery_status: row.delivery_status,
-      updated_at: row.order_updated_at,
-      status: row.order_status,
-      order_logs: [],
-      order_combos: [],
-      food_items: [],
-      payment: {
-        id: row.payment_id,
-        price: row.payment_price,
-        description: row.payment_description,
-        status: row.payment_status,
-        method: row.payment_method,
-        created_at: row.payment_created_at,
-        updated_at: row.payment_updated_at,
-      },
-    };
-
-    // Populate order logs
-    placeOrder.order_logs.push({
-      id: row.order_log_id,
-      order_date: row.order_log_date,
-      user_id: row.order_log_user_id,
-      order_id: row.order_log_order_id,
-      product_id: row.order_log_product_id,
-      locality_id: row.order_log_locality_id,
-      delivery_boy_id: row.delivery_boy_id,
-      is_created: row.order_log_is_created,
-      logs: row.order_log_logs,
-      created_at: row.order_log_created_at,
-      updated_at: row.order_log_updated_at,
-    });
-
-    // Populate order combos
-    if (row.order_combo_id) {
-      placeOrder.order_combos.push({
-        id: row.order_combo_id,
-        price: row.combo_price,
-        quantity: row.combo_quantity,
-        combo_id: row.combo_id,
-        order_id: row.combo_order_id,
-        created_at: row.combo_created_at,
-        updated_at: row.combo_updated_at,
-      });
-    }
-
-    // Populate food items
-    if (row.food_id) {
-      placeOrder.food_items.push({
-        id: row.food_id,
-        name: row.food_name,
-        price: row.food_price,
-        discount_price: row.discount_price,
-        description: row.food_description
-          ? row.food_description.replace(/<\/?[^>]+(>|$)/g, "")
-          : null,
-        perma_link: row.perma_link,
-        ingredients: row.ingredients,
-        package_items_count: row.package_items_count,
-        weight: row.weight,
-        unit: row.unit,
-        sku_code: row.sku_code,
-        barcode: row.barcode,
-        cgst: row.cgst,
-        sgst: row.sgst,
-        subscription_type: row.subscription_type,
-        track_inventory: row.track_inventory,
-        featured: row.featured,
-        deliverable: row.deliverable,
-        restaurant_id: row.restaurant_id,
-        category_id: row.category_id,
-        subcategory_id: row.subcategory_id,
-        product_type_id: row.product_type_id,
+  // Structure the result
+  const structuredOrder = rows.reduce((order, row) => {
+    if (!order) {
+      order = {
+        order_id: row.order_id,
+        user_id: row.user_id,
+        order_type: row.order_type,
+        order_date: row.order_date,
+        route_id: row.route_id,
         hub_id: row.hub_id,
         locality_id: row.locality_id,
-        product_brand_id: row.product_brand_id,
-        weightage: row.weightage,
-        status: row.status,
-        created_at: row.food_created_at,
-        updated_at: row.food_updated_at,
-        food_locality: row.food_locality,
-      });
+        delivery_boy_id: row.delivery_boy_id,
+        order_status_id: row.order_status_id,
+        tax: row.tax,
+        delivery_fee: row.delivery_fee,
+        hint: row.hint,
+        active: row.active,
+        driver_id: row.driver_id,
+        delivery_address_id: row.delivery_address_id,
+        payment_id: row.payment_id,
+        is_wallet_deduct: row.is_wallet_deduct,
+        delivery_status: row.delivery_status,
+        created_at: row.order_created_at,
+        updated_at: row.order_updated_at,
+        food_orders: [],
+        total_quantity: 0,
+        total_amount: 0,
+      };
     }
 
-    // Calculate total price of items
-    placeOrder.totalPriceItem = placeOrder.food_items.reduce(
-      (total, foodItem) => {
-        const itemPrice = foodItem.discount_price || foodItem.price;
-        return total + itemPrice;
-      },
-      0
-    );
+    const foodOriginalPrice = row.food_price * row.food_quantity;
 
-    return placeOrder;
-  } catch (error) {
-    console.error("SQL Error:", error);
-    throw new Error("Failed to fetch place order by ID.");
-  }
+    // Add food order to the existing order
+    order.food_orders.push({
+      food_order_id: row.food_order_id,
+      foods_id: row.food_id,
+      price: row.food_price,
+      quantity: row.food_quantity,
+      name: row.food_name,
+      created_at: row.food_order_created_at,
+      updated_at: row.food_order_updated_at,
+      discount_price: row.food_discount_price,
+      description: row.food_description,
+      perma_link: row.food_perma_link,
+      ingredients: row.food_ingredients,
+      package_items_count: row.food_package_items_count,
+      weight: row.food_weight,
+      unit: row.food_unit,
+      sku_code: row.food_sku_code,
+      barcode: row.food_barcode,
+      cgst: row.food_cgst,
+      sgst: row.food_sgst,
+      subscription_type: row.food_subscription_type,
+      track_inventory: row.food_track_inventory,
+      featured: row.food_featured,
+      deliverable: row.food_deliverable,
+      restaurant_id: row.food_restaurant_id,
+      category_id: row.food_category_id,
+      subcategory_id: row.food_subcategory_id,
+      product_type_id: row.food_product_type_id,
+      hub_id: row.food_hub_id,
+      locality_id: row.food_locality_id,
+      product_brand_id: row.food_product_brand_id,
+      weightage: row.food_weightage,
+      status: row.food_status,
+      foodOriginalPrice: foodOriginalPrice,
+      media: {
+        id: row.media_id,
+        model_type: row.model_type,
+        model_id: row.model_id,
+        uuid: row.uuid,
+        collection_name: row.collection_name,
+        media_name: row.media_name,
+        media_file_name: row.media_file_name,
+        mime_type: row.mime_type,
+        disk: row.disk,
+        conversions_disk: row.conversions_disk,
+        size: row.size,
+        manipulations: row.manipulations,
+        custom_properties: row.custom_properties,
+        generated_conversions: row.generated_conversions,
+        responsive_images: row.responsive_images,
+        order_column: row.order_column,
+        created_at: row.media_created_at,
+        updated_at: row.media_updated_at,
+        original_url: row.original_url,
+      },
+    });
+
+    order.total_amount += foodOriginalPrice;
+    order.total_quantity += row.food_quantity;
+
+    return order;
+  }, null as any);
+
+  return structuredOrder;
 };
+
 
 export const getCartItemsByUserId = async (userId: number): Promise<any[]> => {
   const query = `
