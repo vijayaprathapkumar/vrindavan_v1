@@ -4,6 +4,7 @@ import { RowDataPacket, OkPacket, ResultSetHeader } from "mysql2";
 export interface DealOfTheDay {
   id: number;
   food_id: string;
+  food_name:any;
   unit: string;
   price: number;
   offer_price: number;
@@ -13,6 +14,7 @@ export interface DealOfTheDay {
   weightage?: number;
   created_at?: Date;
   updated_at?: Date;
+  media?: any;
 }
 
 // Fetch all deals
@@ -25,7 +27,7 @@ export const getAllDeals = async (
 
   let query = `
     SELECT 
-      d.id,
+      d.id AS deal_id,
       d.food_id,
       f.name AS food_name,
       d.unit,
@@ -35,12 +37,31 @@ export const getAllDeals = async (
       d.description,
       d.status,
       d.weightage,
-      d.created_at,
-      d.updated_at
+      d.created_at AS deal_created_at,
+      d.updated_at AS deal_updated_at,
+      m.id AS media_id,
+      m.model_type,
+      m.uuid,
+      m.collection_name,
+      m.name AS media_name,
+      m.file_name,
+      m.mime_type,
+      m.disk,
+      m.conversions_disk,
+      m.size AS media_size,
+      m.manipulations,
+      m.custom_properties,
+      m.generated_conversions,
+      m.responsive_images,
+      m.order_column,
+      m.created_at AS media_created_at,
+      m.updated_at AS media_updated_at,
+      CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name) AS original_url
     FROM 
       deal_of_the_days d
     JOIN 
-      foods f ON d.food_id = f.id
+      foods f ON d.food_id = f.id 
+    LEFT JOIN media m ON f.id = m.model_id AND m.model_type = 'App\\\\Models\\\\Food'
     WHERE 
       d.id IS NOT NULL
   `;
@@ -52,15 +73,19 @@ export const getAllDeals = async (
     params.push(`%${searchTerm}%`);
   }
 
+  // Ensure the ORDER BY clause is specifying DESC
   query += ` ORDER BY d.created_at DESC LIMIT ? OFFSET ?;`;
   params.push(limit, offset);
 
-  const [rows]: [RowDataPacket[], any] = await db.promise().query(query, params);
+  const [rows]: [RowDataPacket[], any] = await db
+    .promise()
+    .query(query, params);
 
   const totalCountQuery = `
     SELECT COUNT(*) AS total 
     FROM deal_of_the_days d
     JOIN foods f ON d.food_id = f.id
+    LEFT JOIN media m ON f.id = m.model_id AND m.model_type = 'Food'
     ${searchTerm ? "WHERE f.name LIKE ?" : ""}
   `;
 
@@ -75,7 +100,7 @@ export const getAllDeals = async (
 
   return {
     deals: rows.map((row) => ({
-      id: row.id,
+      id: row.deal_id,
       food_id: row.food_id,
       food_name: row.food_name,
       unit: row.unit,
@@ -85,12 +110,33 @@ export const getAllDeals = async (
       description: row.description,
       status: row.status,
       weightage: row.weightage,
-      created_at: row.created_at,
-      updated_at: row.updated_at,
+      created_at: row.deal_created_at,
+      updated_at: row.deal_updated_at,
+      media: {
+        id: row.media_id,
+        model_type: row.model_type,
+        uuid: row.uuid,
+        collection_name: row.collection_name,
+        name: row.media_name,
+        file_name: row.file_name,
+        mime_type: row.mime_type,
+        disk: row.disk,
+        conversions_disk: row.conversions_disk,
+        size: row.media_size,
+        manipulations: row.manipulations,
+        custom_properties: row.custom_properties,
+        generated_conversions: row.generated_conversions,
+        responsive_images: row.responsive_images,
+        order_column: row.order_column,
+        created_at: row.media_created_at,
+        updated_at: row.media_updated_at,
+        original_url: row.original_url,
+      },
     })),
     total: totalCount,
   };
 };
+
 
 // Create a new deal
 export const createDeal = async (dealData: {
@@ -115,7 +161,9 @@ export const createDeal = async (dealData: {
   } = dealData;
 
   if (!food_id || !price || !offer_price || !quantity) {
-    throw new Error("Missing required fields: foodId, price, offerPrice, or quantity.");
+    throw new Error(
+      "Missing required fields: foodId, price, offerPrice, or quantity."
+    );
   }
 
   const sql = `
@@ -147,21 +195,44 @@ export const createDeal = async (dealData: {
 export const getDealById = async (id: number): Promise<DealOfTheDay | null> => {
   const query = `
     SELECT 
-      id,
-      food_id,
-      unit,
-      price,
-      offer_price,
-      quantity,
-      description,
-      status,
-      weightage,
-      created_at,
-      updated_at
+      d.id AS deal_id,
+      d.food_id,
+      f.name AS food_name,  -- Add the food name if needed
+      d.unit,
+      d.price,
+      d.offer_price,
+      d.quantity,
+      d.description,
+      d.status,
+      d.weightage,
+      d.created_at AS deal_created_at,
+      d.updated_at AS deal_updated_at,
+      m.id AS media_id,
+      m.model_type,
+      m.uuid,
+      m.collection_name,
+      m.name AS media_name,
+      m.file_name,
+      m.mime_type,
+      m.disk,
+      m.conversions_disk,
+      m.size AS media_size,
+      m.manipulations,
+      m.custom_properties,
+      m.generated_conversions,
+      m.responsive_images,
+      m.order_column,
+      m.created_at AS media_created_at,
+      m.updated_at AS media_updated_at,
+      CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name) AS original_url
     FROM 
-      deal_of_the_days
+      deal_of_the_days d
+    JOIN 
+      foods f ON d.food_id = f.id  -- Joining foods table to get food details
+    LEFT JOIN 
+      media m ON f.id = m.model_id AND m.model_type = 'App\\\\Models\\\\Food'
     WHERE 
-      id = ?;
+      d.id = ?;
   `;
 
   const [rows] = await db.promise().query<RowDataPacket[]>(query, [id]);
@@ -169,8 +240,9 @@ export const getDealById = async (id: number): Promise<DealOfTheDay | null> => {
   if (rows.length === 0) return null;
 
   return {
-    id: rows[0].id,
+    id: rows[0].deal_id,
     food_id: rows[0].food_id,
+    food_name: rows[0].food_name,  // Include food_name in the return value
     unit: rows[0].unit,
     price: rows[0].price,
     offer_price: rows[0].offer_price,
@@ -178,22 +250,47 @@ export const getDealById = async (id: number): Promise<DealOfTheDay | null> => {
     description: rows[0].description,
     status: rows[0].status,
     weightage: rows[0].weightage,
-    created_at: rows[0].created_at,
-    updated_at: rows[0].updated_at,
+    created_at: rows[0].deal_created_at,
+    updated_at: rows[0].deal_updated_at,
+    media: {
+      id: rows[0].media_id,
+      model_type: rows[0].model_type,
+      uuid: rows[0].uuid,
+      collection_name: rows[0].collection_name,
+      name: rows[0].media_name,
+      file_name: rows[0].file_name,
+      mime_type: rows[0].mime_type,
+      disk: rows[0].disk,
+      conversions_disk: rows[0].conversions_disk,
+      size: rows[0].media_size,
+      manipulations: rows[0].manipulations,
+      custom_properties: rows[0].custom_properties,
+      generated_conversions: rows[0].generated_conversions,
+      responsive_images: rows[0].responsive_images,
+      order_column: rows[0].order_column,
+      created_at: rows[0].media_created_at,
+      updated_at: rows[0].media_updated_at,
+      original_url: rows[0].original_url,
+    },
   };
 };
 
+
+
 // Update a deal
-export const updateDeals = async (id: number, dealData: {
-  foodId?: string;
-  unit?: string;
-  price?: number;
-  offerPrice?: number;
-  quantity?: number;
-  description?: string;
-  status?: number;
-  weightage?: number;
-}): Promise<ResultSetHeader> => {
+export const updateDeals = async (
+  id: number,
+  dealData: {
+    foodId?: string;
+    unit?: string;
+    price?: number;
+    offerPrice?: number;
+    quantity?: number;
+    description?: string;
+    status?: number;
+    weightage?: number;
+  }
+): Promise<ResultSetHeader> => {
   const {
     foodId,
     unit,
@@ -245,8 +342,8 @@ export const updateDeals = async (id: number, dealData: {
   sql += updates.join(", ") + " WHERE id = ?;";
   params.push(id);
 
-  const [result] = await db.promise().query<ResultSetHeader>(sql, params); 
-  return result; 
+  const [result] = await db.promise().query<ResultSetHeader>(sql, params);
+  return result;
 };
 
 // Delete a deal
@@ -254,5 +351,5 @@ export const updateDeals = async (id: number, dealData: {
 export const deleteDealById = async (id: number): Promise<ResultSetHeader> => {
   const sql = "DELETE FROM deal_of_the_days WHERE id = ?;";
   const [result] = await db.promise().query<ResultSetHeader>(sql, [id]);
-  return result; 
+  return result;
 };

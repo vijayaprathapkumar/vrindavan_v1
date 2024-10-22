@@ -8,10 +8,6 @@ const fetchDeals = async (req, res) => {
     const page = Number(req.query.page) || 1;
     const limit = Number(req.query.limit) || 10;
     const searchTerm = req.query.searchTerm || '';
-    const validLimits = [10, 25, 50, 100];
-    if (!validLimits.includes(limit)) {
-        return res.status(400).json((0, responseHandler_1.createResponse)(400, "Invalid limit value. Please choose from 10, 25, 50, or 100."));
-    }
     try {
         const { deals, total } = await (0, dealOfTheDayModel_1.getAllDeals)(page, limit, searchTerm);
         if (!deals || deals.length === 0 || total === 0) {
