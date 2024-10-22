@@ -125,6 +125,8 @@ const getAllPlaceOrders = async (userId, page, limit, startDate, endDate, search
 
     WHERE 
       o.user_id = ? ${dateCondition} ${searchCondition}
+    ORDER BY 
+      o.created_at DESC
     LIMIT ?, ?
   `;
     queryParams.push(offset, limit);
@@ -234,10 +236,10 @@ const getAllPlaceOrders = async (userId, page, limit, startDate, endDate, search
 exports.getAllPlaceOrders = getAllPlaceOrders;
 exports.orderTypes = {
     all: "All",
-    1: "Instant Order",
+    1: "One Time Order",
     2: "Subscription",
-    3: "One Day Order",
-    5: "App Order",
+    // 3: "One Day Order",
+    // 5: "App Order",
 };
 const addPlaceOrder = async (placeOrderData) => {
     const { price, description, userId, status, method } = placeOrderData;
@@ -355,15 +357,11 @@ const addPlaceOrder = async (placeOrderData) => {
         walletLogValues[1] = orderId;
         await databaseConnection_1.db.promise().query(walletLogSql, walletLogValues);
         const cartItems = await (0, exports.getCartItemsByUserId)(userId);
-        // Insert into food_orders
         for (const item of cartItems) {
-            // Use discount_price if available, otherwise fallback to price
-            console.log("item", item);
             const finalPrice = item.food.discountPrice !== null &&
                 item.food.discountPrice !== undefined
                 ? item.food.discountPrice
                 : item.food.price;
-            console.log("finalPrice", finalPrice);
             const foodOrderSql = `
     INSERT INTO food_orders (
       price,

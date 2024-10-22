@@ -147,6 +147,8 @@ export const getAllPlaceOrders = async (
 
     WHERE 
       o.user_id = ? ${dateCondition} ${searchCondition}
+    ORDER BY 
+      o.created_at DESC
     LIMIT ?, ?
   `;
 
@@ -267,10 +269,10 @@ export const getAllPlaceOrders = async (
 
 export const orderTypes = {
   all: "All",
-  1: "Instant Order",
+  1: "One Time Order",
   2: "Subscription",
-  3: "One Day Order",
-  5: "App Order",
+  // 3: "One Day Order",
+  // 5: "App Order",
 };
 
 export const addPlaceOrder = async (placeOrderData: {
@@ -423,17 +425,13 @@ export const addPlaceOrder = async (placeOrderData: {
 
     const cartItems = await getCartItemsByUserId(userId);
 
-    // Insert into food_orders
     for (const item of cartItems) {
-      // Use discount_price if available, otherwise fallback to price
-      console.log("item", item);
 
       const finalPrice =
         item.food.discountPrice !== null &&
         item.food.discountPrice !== undefined
           ? item.food.discountPrice
           : item.food.price;
-      console.log("finalPrice", finalPrice);
 
       const foodOrderSql = `
     INSERT INTO food_orders (
