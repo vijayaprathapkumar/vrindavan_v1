@@ -419,7 +419,7 @@ cron.schedule('0 0 * * *', async () => {
 
 //cron job subcribtions quntity
 
-cron.schedule('02 13 * * *', async () => {
+cron.schedule('09 14 * * *', async () => {
   console.log('Cron job running...');
 
   try {

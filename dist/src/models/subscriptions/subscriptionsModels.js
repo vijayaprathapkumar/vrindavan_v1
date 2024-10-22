@@ -294,7 +294,7 @@ node_cron_1.default.schedule('0 0 * * *', async () => {
     }
 });
 //cron job subcribtions quntity
-node_cron_1.default.schedule('02 13 * * *', async () => {
+node_cron_1.default.schedule('09 14 * * *', async () => {
     console.log('Cron job running...');
     try {
         await (0, cronjobModel_1.handleNextDayOrders)();
