@@ -14,11 +14,6 @@ export const fetchDeals = async (req: Request, res: Response): Promise<Response>
   const limit = Number(req.query.limit) || 10;
   const searchTerm = (req.query.searchTerm as string) || '';
 
-  const validLimits = [10, 25, 50, 100];
-  if (!validLimits.includes(limit)) {
-    return res.status(400).json(createResponse(400, "Invalid limit value. Please choose from 10, 25, 50, or 100."));
-  }
-
   try {
     const { deals, total } = await getAllDeals(page, limit, searchTerm);
 
