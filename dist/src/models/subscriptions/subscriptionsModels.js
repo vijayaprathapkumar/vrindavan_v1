@@ -6,7 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.updateSubscriptionPauseInfo = exports.getSubscriptionGetByIdModel = exports.updateCancelSubscriptionModel = exports.getSubscriptionByIdModel = exports.resumeSubscriptionModel = exports.pauseSubscriptionModel = exports.deleteSubscriptionModel = exports.updateSubscriptionModel = exports.getTotalSubscriptionsCountModel = exports.getAllSubscriptionsModel = exports.addSubscriptionQuantityChangeModel = exports.addSubscriptionModel = void 0;
 const databaseConnection_1 = require("../../config/databaseConnection");
 const node_cron_1 = __importDefault(require("node-cron"));
-const cronjobModel_1 = require("./cronjobModel");
+const subcriptionCron_1 = require("./subcriptionCron");
 const addSubscriptionModel = (subscription) => {
     const newSubscription = {
         ...subscription,
@@ -297,7 +297,7 @@ node_cron_1.default.schedule('0 0 * * *', async () => {
 node_cron_1.default.schedule('09 14 * * *', async () => {
     console.log('Cron job running...');
     try {
-        await (0, cronjobModel_1.handleNextDayOrders)();
+        await (0, subcriptionCron_1.handleNextDayOrders)();
     }
     catch (error) {
         console.error('Error running handleNextDayOrders:', error);

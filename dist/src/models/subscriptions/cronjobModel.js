@@ -4,7 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.deductFromWalletBalance = exports.addSubscriptionsPlaceOrder = exports.createOrder = void 0;
-exports.handleNextDayOrders = handleNextDayOrders;
+exports.handleNextDayOrdersDemo = handleNextDayOrdersDemo;
 const moment_1 = __importDefault(require("moment"));
 const databaseConnection_1 = require("../../config/databaseConnection");
 async function fetchSubscriptions(batchSize, offset) {
@@ -16,7 +16,7 @@ async function fetchSubscriptions(batchSize, offset) {
     return subscriptions;
 }
 // Handle the next day's orders based on user subscriptions
-async function handleNextDayOrders() {
+async function handleNextDayOrdersDemo() {
     const tomorrow = (0, moment_1.default)().add(1, "days");
     const dayOfWeek = tomorrow.format("dddd").toLowerCase();
     let offset = 0;
