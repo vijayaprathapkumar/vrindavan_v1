@@ -16,7 +16,7 @@ async function fetchSubscriptions(batchSize, offset) {
 
 
 // Handle the next day's orders based on user subscriptions
-export async function handleNextDayOrders() {
+export async function handleNextDayOrdersDemo() {
   const tomorrow = moment().add(1, "days");
   const dayOfWeek = tomorrow.format("dddd").toLowerCase();
   let offset = 0;

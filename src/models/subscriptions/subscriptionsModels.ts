@@ -1,7 +1,8 @@
 import { db } from "../../config/databaseConnection";
 import { RowDataPacket, OkPacket } from "mysql2";
 import cron from 'node-cron';
-import { handleNextDayOrders } from "./cronjobModel";
+import { handleNextDayOrders } from "./subcriptionCron";
+
 
 export interface Subscription {
   id?: number;
