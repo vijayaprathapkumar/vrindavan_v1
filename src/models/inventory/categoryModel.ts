@@ -36,7 +36,7 @@ export const getAllCategories = async (
     WHERE 
       (c.name LIKE ? OR c.weightage = ?) 
     ORDER BY 
-      c.created_at DESC 
+      CAST(c.weightage AS UNSIGNED) DESC 
     LIMIT ? OFFSET ?
   `;
   

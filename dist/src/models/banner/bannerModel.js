@@ -50,7 +50,7 @@ const getAllBanners = async (page, limit, searchTerm) => {
         query += ` AND b.banner_name LIKE ?`;
         params.push(`%${searchTerm}%`);
     }
-    query += ` ORDER BY b.created_at DESC LIMIT ? OFFSET ?;`;
+    query += ` ORDER BY CAST(b.banner_weightage AS UNSIGNED) DESC LIMIT ? OFFSET ?;`;
     params.push(limit, offset);
     const [rows] = await databaseConnection_1.db
         .promise()

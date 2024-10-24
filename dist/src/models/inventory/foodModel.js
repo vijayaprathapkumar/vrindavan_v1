@@ -49,7 +49,7 @@ const getAllFoods = async (filters, limit, offset) => {
     if (conditions.length > 0) {
         query += " WHERE " + conditions.join(" AND ");
     }
-    query += " ORDER BY f.created_at DESC";
+    query += " ORDER BY CAST(f.weightage AS UNSIGNED) DESC";
     const countQuery = `
     SELECT COUNT(*) as count 
     FROM foods f
@@ -59,67 +59,60 @@ const getAllFoods = async (filters, limit, offset) => {
     const totalCount = countResult[0].count;
     query += ` LIMIT ${limit} OFFSET ${offset}`;
     const [rows] = await databaseConnection_1.db.promise().execute(query, values);
-    const foodMap = {};
-    rows.forEach(row => {
-        const foodId = row.id;
-        if (!foodMap[foodId]) {
-            foodMap[foodId] = {
-                id: row.id,
-                name: row.name,
-                price: row.price,
-                discount_price: row.discount_price,
-                description: row.description,
-                ingredients: row.ingredients,
-                package_items_count: row.package_items_count,
-                weight: row.weight,
-                unit: row.unit,
-                sku_code: row.sku_code,
-                barcode: row.barcode,
-                cgst: row.cgst,
-                sgst: row.sgst,
-                subscription_type: row.subscription_type,
-                track_inventory: row.track_inventory,
-                featured: row.featured,
-                deliverable: row.deliverable,
-                restaurant_id: row.restaurant_id,
-                category_id: row.category_id,
-                subcategory_id: row.subcategory_id,
-                product_type_id: row.product_type_id,
-                hub_id: row.hub_id,
-                locality_id: row.locality_id,
-                product_brand_id: row.product_brand_id,
-                weightage: row.weightage,
-                status: row.status,
-                created_at: row.created_at,
-                updated_at: row.updated_at,
-                media: [],
-            };
-        }
-        if (row.media_id) {
-            foodMap[foodId].media.push({
-                id: row.media_id,
-                model_type: row.model_type,
-                model_id: row.model_id,
-                uuid: row.uuid,
-                collection_name: row.collection_name,
-                name: row.media_name,
-                file_name: row.media_file_name,
-                mime_type: row.media_mime_type,
-                disk: row.disk,
-                conversions_disk: row.conversions_disk,
-                size: row.size,
-                manipulations: row.manipulations,
-                custom_properties: row.custom_properties,
-                generated_conversions: row.generated_conversions,
-                responsive_images: row.responsive_images,
-                order_column: row.order_column,
-                created_at: row.media_created_at,
-                updated_at: row.media_updated_at,
-                original_url: row.original_url,
-            });
-        }
+    // Construct the final foods array
+    const foods = rows.map(row => {
+        return {
+            id: row.id,
+            name: row.name,
+            price: row.price,
+            discount_price: row.discount_price,
+            description: row.description,
+            ingredients: row.ingredients,
+            package_items_count: row.package_items_count,
+            weight: row.weight,
+            unit: row.unit,
+            sku_code: row.sku_code,
+            barcode: row.barcode,
+            cgst: row.cgst,
+            sgst: row.sgst,
+            subscription_type: row.subscription_type,
+            track_inventory: row.track_inventory,
+            featured: row.featured,
+            deliverable: row.deliverable,
+            restaurant_id: row.restaurant_id,
+            category_id: row.category_id,
+            subcategory_id: row.subcategory_id,
+            product_type_id: row.product_type_id,
+            hub_id: row.hub_id,
+            locality_id: row.locality_id,
+            product_brand_id: row.product_brand_id,
+            weightage: row.weightage,
+            status: row.status,
+            created_at: row.created_at,
+            updated_at: row.updated_at,
+            media: row.media_id ? [{
+                    id: row.media_id,
+                    model_type: row.model_type,
+                    model_id: row.model_id,
+                    uuid: row.uuid,
+                    collection_name: row.collection_name,
+                    name: row.media_name,
+                    file_name: row.media_file_name,
+                    mime_type: row.media_mime_type,
+                    disk: row.disk,
+                    conversions_disk: row.conversions_disk,
+                    size: row.size,
+                    manipulations: row.manipulations,
+                    custom_properties: row.custom_properties,
+                    generated_conversions: row.generated_conversions,
+                    responsive_images: row.responsive_images,
+                    order_column: row.order_column,
+                    created_at: row.media_created_at,
+                    updated_at: row.media_updated_at,
+                    original_url: row.original_url,
+                }] : [],
+        };
     });
-    const foods = Object.values(foodMap);
     return { foods, totalCount };
 };
 exports.getAllFoods = getAllFoods;

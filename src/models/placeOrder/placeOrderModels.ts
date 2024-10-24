@@ -281,8 +281,9 @@ export const addPlaceOrder = async (placeOrderData: {
   userId: number;
   status: string;
   method: string;
+  orderDate:Date;
 }) => {
-  const { price, description, userId, status, method } = placeOrderData;
+  const { price, description, userId, status, method,orderDate } = placeOrderData;
   const defaultDescription =
     description || `Default place order for user ${userId}`;
 
@@ -336,12 +337,13 @@ export const addPlaceOrder = async (placeOrderData: {
         created_at, 
         updated_at
       ) 
-      VALUES (?, ?, NOW(), ?, ?, ?, ?, ?, ?, NOW(), NOW());
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW());
     `;
 
     const walletLogValues = [
       userId,
       null,
+      orderDate,
       paymentResult.insertId,
       beforeBalance,
       price,
@@ -392,12 +394,13 @@ export const addPlaceOrder = async (placeOrderData: {
         created_at, 
         updated_at
       ) 
-      VALUES (?, ?, NOW(), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW());
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW());
     `;
 
     const orderValues = [
       userId,
       1, // Assuming order_type is 1
+      orderDate, // orderDate form payload
       route_id,
       hub_id,
       locality_id,
