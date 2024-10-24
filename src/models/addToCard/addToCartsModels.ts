@@ -43,7 +43,11 @@ interface CartItem {
 }
 
 // Fetch all cart items for a user with pagination
-export const getAllCartItems = async (userId: number, limit?: number, offset?: number): Promise<CartItem[]> => {
+export const getAllCartItems = async (
+  userId: number,
+  limit?: number,
+  offset?: number
+): Promise<CartItem[]> => {
   const query = `
     SELECT 
       c.created_at AS created_at,
@@ -106,8 +110,10 @@ export const getAllCartItems = async (userId: number, limit?: number, offset?: n
     LIMIT ? OFFSET ?; 
   `;
 
-  const [rows]: [RowDataPacket[], any] = await db.promise().query(query, [userId, limit, offset]);
-  return rows.map(row => ({
+  const [rows]: [RowDataPacket[], any] = await db
+    .promise()
+    .query(query, [userId, limit, offset]);
+  return rows.map((row) => ({
     id: row.cart_id,
     food_id: row.food_id,
     user_id: row.user_id,
@@ -142,32 +148,38 @@ export const getAllCartItems = async (userId: number, limit?: number, offset?: n
       weightage: row.weightage,
       status: row.status,
       foodLocality: row.food_locality,
-      media: row.media_id ? {
-        id: row.media_id,
-        model_type: row.model_type,
-        uuid: row.uuid,
-        collection_name: row.collection_name,
-        name: row.media_name,
-        file_name: row.file_name,
-        mime_type: row.mime_type,
-        disk: row.disk,
-        conversions_disk: row.conversions_disk,
-        size: row.size,
-        manipulations: row.manipulations,
-        custom_properties: row.custom_properties,
-        generated_conversions: row.generated_conversions,
-        responsive_images: row.responsive_images,
-        order_column: row.order_column,
-        created_at: row.media_created_at,
-        updated_at: row.media_updated_at,
-        original_url: row.original_url,
-      } : null
-    }
+      media: row.media_id
+        ? {
+            id: row.media_id,
+            model_type: row.model_type,
+            uuid: row.uuid,
+            collection_name: row.collection_name,
+            name: row.media_name,
+            file_name: row.file_name,
+            mime_type: row.mime_type,
+            disk: row.disk,
+            conversions_disk: row.conversions_disk,
+            size: row.size,
+            manipulations: row.manipulations,
+            custom_properties: row.custom_properties,
+            generated_conversions: row.generated_conversions,
+            responsive_images: row.responsive_images,
+            order_column: row.order_column,
+            created_at: row.media_created_at,
+            updated_at: row.media_updated_at,
+            original_url: row.original_url,
+          }
+        : null,
+    },
   }));
 };
 
 // Add a new cart item and handle all related table insertions
-export const addCartItem = async (itemData: { foodId: number; userId: number; quantity: number }) => {
+export const addCartItem = async (itemData: {
+  foodId: number;
+  userId: number;
+  quantity: number;
+}) => {
   const { foodId, userId, quantity } = itemData;
   const cartSql = `
     INSERT INTO carts (food_id, user_id, quantity, created_at, updated_at) 
@@ -176,7 +188,9 @@ export const addCartItem = async (itemData: { foodId: number; userId: number; qu
   const cartValues = [foodId, userId, quantity];
 
   try {
-    const [cartResult]: [OkPacket, any] = await db.promise().query(cartSql, cartValues);
+    const [cartResult]: [OkPacket, any] = await db
+      .promise()
+      .query(cartSql, cartValues);
 
     return cartResult;
   } catch (error) {
@@ -184,7 +198,6 @@ export const addCartItem = async (itemData: { foodId: number; userId: number; qu
     throw new Error("Failed to add cart item.");
   }
 };
-
 
 // Fetch a cart item by ID
 export const getCartItemById = async (id: number): Promise<CartItem | null> => {
@@ -232,106 +245,140 @@ export const getCartItemById = async (id: number): Promise<CartItem | null> => {
   `;
 
   const [rows]: [RowDataPacket[], any] = await db.promise().query(query, [id]);
-  
+
   if (rows.length === 0) {
     return null;
   }
 
   const row = rows[0];
+  const {
+    cart_id,
+    food_id,
+    user_id,
+    quantity,
+    created_at:createdAt,
+    updated_at:updatedAt,
+    food_name,
+    price,
+    discount_price,
+    description,
+    perma_link,
+    ingredients,
+    package_items_count,
+    weight,
+    unit,
+    sku_code,
+    barcode,
+    cgst,
+    sgst,
+    track_inventory,
+    featured,
+    deliverable,
+    restaurant_id,
+    category_id,
+    subcategory_id,
+    product_type_id,
+    hub_id,
+    locality_id,
+    product_brand_id,
+    weightage,
+    status,
+    food_locality,
+  } = row;
   return {
-    id: row.cart_id,
-    food_id: row.food_id,
-    user_id: row.user_id,
-    quantity: row.quantity,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
+    id: cart_id,
+    food_id,
+    user_id,
+    quantity,
+    createdAt,
+    updatedAt,
     food: {
-      id: row.food_id,
-      name: row.food_name,
-      price: row.price,
-      discountPrice: row.discount_price,
-      description: row.description,
-      permaLink: row.perma_link,
-      ingredients: row.ingredients,
-      packageItemsCount: row.package_items_count,
-      weight: row.weight,
-      unit: row.unit,
-      skuCode: row.sku_code,
-      barcode: row.barcode,
-      cgst: row.cgst,
-      sgst: row.sgst,
-      trackInventory: row.track_inventory,
-      featured: row.featured,
-      deliverable: row.deliverable,
-      restaurantId: row.restaurant_id,
-      categoryId: row.category_id,
-      subcategoryId: row.subcategory_id,
-      productTypeId: row.product_type_id,
-      hubId: row.hub_id,
-      localityId: row.locality_id,
-      productBrandId: row.product_brand_id,
-      weightage: row.weightage,
-      status: row.status,
-      foodLocality: row.food_locality
-    }
+      id: food_id,
+      name: food_name,
+      price: price,
+      discountPrice: discount_price,
+      description,
+      permaLink: perma_link,
+      ingredients,
+      packageItemsCount: package_items_count,
+      weight,
+      unit,
+      skuCode: sku_code,
+      barcode,
+      cgst,
+      sgst,
+      trackInventory: track_inventory,
+      featured,
+      deliverable,
+      restaurantId:restaurant_id,
+      categoryId: category_id,
+      subcategoryId: subcategory_id,
+      productTypeId:product_type_id,
+      hubId: hub_id,
+      localityId: locality_id,
+      productBrandId: product_brand_id,
+      weightage,
+      status,
+      foodLocality:food_locality,
+    },
   };
 };
 
 
-// Update a cart item
 export const updateCartItem = async (id: number, quantity: number): Promise<void> => {
+  if (quantity <= 0) {
+    throw new Error("Quantity must be greater than zero.");
+  }
+
+  if (!Number.isInteger(id) || id <= 0) {
+    throw new Error("Invalid cart item ID.");
+  }
+
   const sql = `
     UPDATE carts
     SET quantity = ?
     WHERE id = ?;
   `;
-  const [result]: [OkPacket, any] = await db.promise().query(sql, [quantity, id]);
 
-  if (result.affectedRows === 0) {
-    throw new Error("Failed to update cart item or item not found.");
+  try {
+    const [result]: [OkPacket, any] = await db.promise().query(sql, [quantity, id]);
+
+    if (result.affectedRows === 0) {
+      throw new Error("Failed to update cart item: Item not found.");
+    }
+
+    console.log(`Cart item with ID ${id} updated successfully.`);
+  } catch (error) {
+    console.error(`Error updating cart item with ID ${id}:`, error);
+    throw new Error("Database error: Failed to update cart item.");
   }
 };
 
-// Delete a cart item by ID
 export const deleteCartItemById = async (id: number): Promise<void> => {
+  // Validate the ID
+  if (!Number.isInteger(id) || id <= 0) {
+    throw new Error("Invalid cart item ID.");
+  }
+
   const sql = `
     DELETE FROM carts 
     WHERE id = ?;
   `;
-  await db.promise().query(sql, [id]);
-};
-
-export const updatePaymentByUserId = async (userId: number, totalAmount: number): Promise<void> => {
-  const selectSql = `
-    SELECT * FROM payments 
-    WHERE user_id = ?;
-  `;
-
-  const insertSql = `
-    INSERT INTO payments (user_id, price, updated_at) 
-    VALUES (?, ?, NOW());
-  `;
-
-  const updateSql = `
-    UPDATE payments
-    SET price = ?, updated_at = NOW()
-    WHERE user_id = ?;
-  `;
-
-  const [rows]: [RowDataPacket[], any] = await db.promise().query(selectSql, [userId]);
 
   try {
-    if (rows.length > 0) {
-      await db.promise().query(updateSql, [totalAmount, userId]);
-    } else {
-      await db.promise().query(insertSql, [userId, totalAmount]);
+    const [result]: [OkPacket, any] = await db.promise().query(sql, [id]);
+
+    // Check if the delete operation was successful
+    if (result.affectedRows === 0) {
+      throw new Error("Cart item not found or already deleted.");
     }
+
+    // Optionally, log the success (helpful for debugging)
+    console.log(`Cart item with ID ${id} deleted successfully.`);
   } catch (error) {
-    console.error("Error updating or inserting payment:", error);
-    throw new Error("Failed to update or insert payment.");
+    throw new Error("Failed to delete cart item.");
   }
 };
-
 
 export const getCountOfCartItems = async (userId: number): Promise<number> => {
   const query = `
@@ -340,6 +387,16 @@ export const getCountOfCartItems = async (userId: number): Promise<number> => {
     WHERE user_id = ?;
   `;
 
-  const [rows]: [RowDataPacket[], any] = await db.promise().query(query, [userId]);
-  return rows[0].total; 
+  try {
+    const [rows]: [RowDataPacket[], any] = await db.promise().query(query, [userId]);
+
+    if (rows.length === 0 || !rows[0].total) {
+      return 0; // Return 0 if no result is found (just as a fallback)
+    }
+
+    return rows[0].total as number;
+  } catch (error) {
+    console.error("Error fetching cart item count:", error);
+    throw new Error("Failed to retrieve cart item count.");
+  }
 };
