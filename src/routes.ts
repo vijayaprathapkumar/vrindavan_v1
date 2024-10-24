@@ -17,15 +17,16 @@ import routeOrdersRoutes from "./routes/orders/routeOrdersRoutes";
 import hubOrdersRoutes from "./routes/orders/hubOrdersRoutes";
 import devliveryBoyOrders from "./routes/orders/devliveryBoyOrders";
 import foodRoutes from "./routes/inventory/foodRoutes";
-import bannerRoutes from "./routes/banner/bannerRoutes"
+import bannerRoutes from "./routes/banner/bannerRoutes";
 import dealOfTheDayRoutes from "./routes/dealOfTheDay/dealOfTheDayRoutes";
 import addToCartsRoutes from "./routes/addToCard/addToCartsRoutes";
-import walletTransactionRoutes from "./routes/wallet/walletTransationsRoutes"
+import walletTransactionRoutes from "./routes/wallet/walletTransationsRoutes";
 import subscriptionsRoutes from "./routes/subscriptions/subscriptionsRoutes";
 import paymentsRoutes from "./routes/placeOrder/placeOrderRoutes";
 import ordersRoutes from "./routes/orders-v1/ordersRoutes";
 import placeOrderRoutes from "./routes/placeOrder/placeOrderRoutes";
 import notificationRoutes from "./routes/notification/notificationRoutes";
+import featureProductRoutes from "./routes/featureProduct/featureProductRoutes";
 
 const router = express.Router();
 
@@ -61,7 +62,6 @@ router.use("/route_orders", routeOrdersRoutes);
 router.use("/hub_orders", hubOrdersRoutes);
 router.use("/delivery_orders", devliveryBoyOrders);
 
-
 //Banners
 router.use("/banners", bannerRoutes);
 
@@ -70,7 +70,7 @@ router.use("/banners", bannerRoutes);
 router.use("/deals", dealOfTheDayRoutes);
 
 //AddToCarts
-router.use("/cart",addToCartsRoutes );
+router.use("/cart", addToCartsRoutes);
 
 //walletTransations
 router.use("/wallet", walletTransactionRoutes);
@@ -79,12 +79,15 @@ router.use("/wallet", walletTransactionRoutes);
 router.use("/subscriptions", subscriptionsRoutes);
 
 //placeOrder
-router.use('/placeOrder', placeOrderRoutes);
+router.use("/placeOrder", placeOrderRoutes);
 
 //order-v1
 router.use("/orders", ordersRoutes);
 
 //notifications
 router.use("/notifications", notificationRoutes);
+
+// feature_products
+router.use("/feature_products", featureProductRoutes);
 
 export default router;

@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.updateSubscriptionPauseInfo = exports.getSubscriptionGetByIdModel = exports.updateCancelSubscriptionModel = exports.getSubscriptionByIdModel = exports.resumeSubscriptionModel = exports.pauseSubscriptionModel = exports.deleteSubscriptionModel = exports.updateSubscriptionModel = exports.getTotalSubscriptionsCountModel = exports.getAllSubscriptionsModel = exports.addSubscriptionQuantityChangeModel = exports.addSubscriptionModel = void 0;
+exports.updateSubscriptionPauseInfo = exports.getSubscriptionGetByIdModel = exports.updateCancelSubscriptionModel = exports.resumeSubscriptionModel = exports.pauseSubscriptionModel = exports.deleteSubscriptionModel = exports.updateSubscriptionModel = exports.getTotalSubscriptionsCountModel = exports.getAllSubscriptionsModel = exports.addSubscriptionQuantityChangeModel = exports.addSubscriptionModel = void 0;
 const databaseConnection_1 = require("../../config/databaseConnection");
 const node_cron_1 = __importDefault(require("node-cron"));
 const subcriptionCron_1 = require("./subcriptionCron");
@@ -91,9 +91,28 @@ const getAllSubscriptionsModel = (userId, page, limit, searchTerm) => {
              foods.status, 
              foods.created_at, 
              foods.updated_at, 
-             foods.food_locality
+             foods.food_locality,
+             m.id AS media_id,
+             m.model_type,
+             m.uuid,
+             m.collection_name,
+             m.name AS media_name,
+             m.file_name,
+             m.mime_type,
+             m.disk,
+             m.conversions_disk,
+             m.size AS media_size,
+             m.manipulations,
+             m.custom_properties,
+             m.generated_conversions,
+             m.responsive_images,
+             m.order_column,
+             m.created_at AS media_created_at,
+             m.updated_at AS media_updated_at,
+             CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name) AS original_url
       FROM user_subscriptions 
       LEFT JOIN foods ON user_subscriptions.product_id = foods.id 
+      LEFT JOIN media m ON foods.id = m.model_id AND m.model_type = 'App\\\\Models\\\\Food'
       WHERE user_subscriptions.user_id = ?
     `;
         if (searchQuery) {
@@ -105,7 +124,16 @@ const getAllSubscriptionsModel = (userId, page, limit, searchTerm) => {
         }
         query += ` ORDER BY user_subscriptions.created_at DESC LIMIT ?, ?`;
         const params = searchQuery
-            ? [userId, searchQuery, searchQuery, searchQuery, searchQuery, searchQuery, offset, limit]
+            ? [
+                userId,
+                searchQuery,
+                searchQuery,
+                searchQuery,
+                searchQuery,
+                searchQuery,
+                offset,
+                limit,
+            ]
             : [userId, offset, limit];
         databaseConnection_1.db.query(query, params, (error, results) => {
             if (error) {
@@ -184,31 +212,6 @@ const resumeSubscriptionModel = (id) => {
     });
 };
 exports.resumeSubscriptionModel = resumeSubscriptionModel;
-// Model to get a subscription by ID
-const getSubscriptionByIdModel = (id) => {
-    return new Promise((resolve, reject) => {
-        databaseConnection_1.db.query(`SELECT user_subscriptions.*, 
-              foods.id as food_id, foods.name, foods.price, foods.discount_price, 
-              foods.description, foods.perma_link, foods.ingredients, 
-              foods.package_items_count, foods.weight, foods.unit, foods.sku_code, 
-              foods.barcode, foods.cgst, foods.sgst, foods.subscription_type, 
-              foods.track_inventory, foods.featured, foods.deliverable, 
-              foods.restaurant_id, foods.category_id, foods.subcategory_id, 
-              foods.product_type_id, foods.hub_id, foods.locality_id, 
-              foods.product_brand_id, foods.weightage, foods.status, 
-              foods.created_at as food_created_at, foods.updated_at as food_updated_at, 
-              foods.food_locality
-      FROM user_subscriptions
-      JOIN foods ON user_subscriptions.product_id = foods.id
-      WHERE user_subscriptions.id = ?`, [id], (error, results) => {
-            if (error) {
-                return reject(error);
-            }
-            resolve(results.length > 0 ? results[0] : null);
-        });
-    });
-};
-exports.getSubscriptionByIdModel = getSubscriptionByIdModel;
 const updateCancelSubscriptionModel = (id, cancel_subscription, cancel_subscription_date) => {
     return new Promise((resolve, reject) => {
         databaseConnection_1.db.query("UPDATE user_subscriptions SET cancel_subscription = ?, updated_at = NOW() WHERE id = ?", [cancel_subscription, id], (error, results) => {
@@ -227,7 +230,59 @@ const updateCancelSubscriptionModel = (id, cancel_subscription, cancel_subscript
 exports.updateCancelSubscriptionModel = updateCancelSubscriptionModel;
 const getSubscriptionGetByIdModel = (id) => {
     return new Promise((resolve, reject) => {
-        databaseConnection_1.db.query("SELECT * FROM user_subscriptions WHERE id = ?", [id], (error, results) => {
+        databaseConnection_1.db.query(`SELECT user_subscriptions.*, 
+      foods.id as food_id, 
+      foods.name, 
+      foods.price, 
+      foods.discount_price, 
+      foods.description, 
+      foods.perma_link, 
+      foods.ingredients, 
+      foods.package_items_count, 
+      foods.weight, 
+      foods.unit, 
+      foods.sku_code, 
+      foods.barcode, 
+      foods.cgst, 
+      foods.sgst, 
+      foods.subscription_type, 
+      foods.track_inventory, 
+      foods.featured, 
+      foods.deliverable, 
+      foods.restaurant_id, 
+      foods.category_id, 
+      foods.subcategory_id, 
+      foods.product_type_id, 
+      foods.hub_id, 
+      foods.locality_id, 
+      foods.product_brand_id, 
+      foods.weightage, 
+      foods.status, 
+      foods.created_at as food_created_at, 
+      foods.updated_at as food_updated_at, 
+      foods.food_locality,
+      m.id AS media_id,
+      m.model_type,
+      m.uuid,
+      m.collection_name,
+      m.name AS media_name,
+      m.file_name,
+      m.mime_type,
+      m.disk,
+      m.conversions_disk,
+      m.size AS media_size,
+      m.manipulations,
+      m.custom_properties,
+      m.generated_conversions,
+      m.responsive_images,
+      m.order_column,
+      m.created_at AS media_created_at,
+      m.updated_at AS media_updated_at,
+      CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name) AS original_url
+FROM user_subscriptions
+JOIN foods ON user_subscriptions.product_id = foods.id
+LEFT JOIN media m ON foods.id = m.model_id AND m.model_type = 'App\\\\Models\\\\Food'
+WHERE user_subscriptions.id = ?`, [id], (error, results) => {
             if (error) {
                 console.log("Query Results:", error);
                 return reject(error);
@@ -267,10 +322,10 @@ const updateSubscriptionPauseInfo = async (userId, isPauseSubscription, pauseUnt
     }
 };
 exports.updateSubscriptionPauseInfo = updateSubscriptionPauseInfo;
-// cron job pause subscription 
-node_cron_1.default.schedule('0 0 * * *', async () => {
+// cron job pause subscription
+node_cron_1.default.schedule("0 0 * * *", async () => {
     const currentDate = new Date().toISOString();
-    console.log('currentDate', currentDate);
+    console.log("currentDate", currentDate);
     const sql = `
     UPDATE user_subscriptions
     SET
@@ -286,7 +341,9 @@ node_cron_1.default.schedule('0 0 * * *', async () => {
       (pause_specific_period_endDate <= ?);
   `;
     try {
-        const [result] = await databaseConnection_1.db.promise().query(sql, [currentDate]);
+        const [result] = await databaseConnection_1.db
+            .promise()
+            .query(sql, [currentDate]);
         console.log(`Updated ${result.affectedRows} subscriptions that reached their end date`);
     }
     catch (error) {
@@ -294,12 +351,12 @@ node_cron_1.default.schedule('0 0 * * *', async () => {
     }
 });
 //cron job subcribtions quntity
-node_cron_1.default.schedule('09 14 * * *', async () => {
-    console.log('Cron job running...');
+node_cron_1.default.schedule("09 14 * * *", async () => {
+    console.log("Cron job running...");
     try {
         await (0, subcriptionCron_1.handleNextDayOrders)();
     }
     catch (error) {
-        console.error('Error running handleNextDayOrders:', error);
+        console.error("Error running handleNextDayOrders:", error);
     }
 });

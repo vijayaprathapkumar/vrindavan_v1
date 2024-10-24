@@ -29,6 +29,7 @@ const getSubcategories = async (req, res) => {
                     media_id: subcategory.media_id,
                     file_name: subcategory.file_name,
                     mime_type: subcategory.mime_type,
+                    model_id: subcategory.model_id,
                     disk: subcategory.disk,
                     conversions_disk: subcategory.conversions_disk,
                     size: subcategory.size,

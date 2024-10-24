@@ -242,7 +242,7 @@ exports.orderTypes = {
     // 5: "App Order",
 };
 const addPlaceOrder = async (placeOrderData) => {
-    const { price, description, userId, status, method } = placeOrderData;
+    const { price, description, userId, status, method, orderDate } = placeOrderData;
     const defaultDescription = description || `Default place order for user ${userId}`;
     const paymentSql = `
     INSERT INTO payments (price, description, user_id, status, method, created_at, updated_at) 
@@ -285,11 +285,12 @@ const addPlaceOrder = async (placeOrderData) => {
         created_at, 
         updated_at
       ) 
-      VALUES (?, ?, NOW(), ?, ?, ?, ?, ?, ?, NOW(), NOW());
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW());
     `;
         const walletLogValues = [
             userId,
             null,
+            orderDate,
             paymentResult.insertId,
             beforeBalance,
             price,
@@ -331,11 +332,12 @@ const addPlaceOrder = async (placeOrderData) => {
         created_at, 
         updated_at
       ) 
-      VALUES (?, ?, NOW(), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW());
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW());
     `;
         const orderValues = [
             userId,
             1, // Assuming order_type is 1
+            orderDate, // orderDate form payload
             route_id,
             hub_id,
             locality_id,
