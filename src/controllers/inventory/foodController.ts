@@ -9,7 +9,6 @@ import {
 import { createResponse } from "../../utils/responseHandler";
 
 // Get all foods
-// Get all foods
 export const fetchAllFoods = async (
   req: Request,
   res: Response

@@ -47,13 +47,15 @@ export const getAllCustomers = async (
       da.created_at AS address_created_at,
       da.updated_at AS address_updated_at,
       l.id AS locality_id,
-      l.name AS locality_name
+      l.name AS locality_name,
+      wb.balance AS wallet_balance
     FROM 
       users u
     LEFT JOIN 
       delivery_addresses da ON u.id = da.user_id
     LEFT JOIN 
       localities l ON da.locality_id = l.id
+    LEFT JOIN wallet_balances wb ON u.id = wb.user_id
     WHERE 
       u.id IS NOT NULL
   `;
@@ -176,6 +178,7 @@ export const getAllCustomers = async (
       is_deactivated_at: row.is_deactivated_at,
       created_at: row.created_at,
       updated_at: row.updated_at,
+      wallet_balance: row.wallet_balance, 
       address: {
         address_id: row.address_id,
         description: row.description,

@@ -52,7 +52,7 @@ export const addPlaceOrderController = async (
   req: Request,
   res: Response
 ): Promise<Response> => {
-  const { userId } = req.body;
+  const { userId,orderDate } = req.body;
 
   try {
     const cartItems = await getCartItemsByUserId(userId);
@@ -68,7 +68,7 @@ export const addPlaceOrderController = async (
     const status = "active";
     const method = "wallet";
 
-    const orderResult = await addPlaceOrder({ price: totalPrice, userId, status, method });
+    const orderResult = await addPlaceOrder({ price: totalPrice, userId, status, method,orderDate });
     
     if (orderResult.affectedRows > 0) {
       await deleteAllCartItemsByUserId(userId);

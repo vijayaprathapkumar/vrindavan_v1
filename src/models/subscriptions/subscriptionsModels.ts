@@ -1,8 +1,7 @@
 import { db } from "../../config/databaseConnection";
 import { RowDataPacket, OkPacket } from "mysql2";
-import cron from 'node-cron';
+import cron from "node-cron";
 import { handleNextDayOrders } from "./subcriptionCron";
-
 
 export interface Subscription {
   id?: number;
@@ -77,14 +76,14 @@ export const addSubscriptionQuantityChangeModel = (
       start_date: start_date || null,
       end_date: end_date || null,
       cancel_subscription: cancel_subscription || null,
-      pause_date: pause_subscription ? pause_date : null, 
+      pause_date: pause_subscription ? pause_date : null,
       cancel_order_date: cancel_order_date || null,
       cancel_subscription_date: cancel_subscription_date || null,
       cancel_order: cancel_order || null,
       today_order: today_order || null,
       previous_order: previous_order || null,
       pause_subscription: pause_subscription ? "1" : "0",
-      reason: null, 
+      reason: null,
       other_reason: null,
       created_at: new Date(),
       updated_at: new Date(),
@@ -102,7 +101,6 @@ export const addSubscriptionQuantityChangeModel = (
     );
   });
 };
-
 
 export const getAllSubscriptionsModel = (
   userId: number,
@@ -145,9 +143,28 @@ export const getAllSubscriptionsModel = (
              foods.status, 
              foods.created_at, 
              foods.updated_at, 
-             foods.food_locality
+             foods.food_locality,
+             m.id AS media_id,
+             m.model_type,
+             m.uuid,
+             m.collection_name,
+             m.name AS media_name,
+             m.file_name,
+             m.mime_type,
+             m.disk,
+             m.conversions_disk,
+             m.size AS media_size,
+             m.manipulations,
+             m.custom_properties,
+             m.generated_conversions,
+             m.responsive_images,
+             m.order_column,
+             m.created_at AS media_created_at,
+             m.updated_at AS media_updated_at,
+             CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name) AS original_url
       FROM user_subscriptions 
       LEFT JOIN foods ON user_subscriptions.product_id = foods.id 
+      LEFT JOIN media m ON foods.id = m.model_id AND m.model_type = 'App\\\\Models\\\\Food'
       WHERE user_subscriptions.user_id = ?
     `;
 
@@ -162,7 +179,16 @@ export const getAllSubscriptionsModel = (
     query += ` ORDER BY user_subscriptions.created_at DESC LIMIT ?, ?`;
 
     const params: any[] = searchQuery
-      ? [userId, searchQuery, searchQuery, searchQuery, searchQuery, searchQuery, offset, limit]
+      ? [
+          userId,
+          searchQuery,
+          searchQuery,
+          searchQuery,
+          searchQuery,
+          searchQuery,
+          offset,
+          limit,
+        ]
       : [userId, offset, limit];
 
     db.query<RowDataPacket[]>(query, params, (error, results) => {
@@ -173,6 +199,7 @@ export const getAllSubscriptionsModel = (
     });
   });
 };
+
 
 export const getTotalSubscriptionsCountModel = (
   userId: number
@@ -233,7 +260,6 @@ export const deleteSubscriptionModel = (id: number): Promise<OkPacket> => {
 // Model to pause a subscription by ID
 export const pauseSubscriptionModel = (id: number): Promise<OkPacket> => {
   return new Promise((resolve, reject) => {
-  
     db.query<OkPacket>(
       "UPDATE user_subscriptions SET is_pause_subscription = 1 WHERE id = ?",
       [id],
@@ -242,11 +268,10 @@ export const pauseSubscriptionModel = (id: number): Promise<OkPacket> => {
           return reject(error);
         }
 
-      
         const pauseDate = new Date();
         db.query<OkPacket>(
           "UPDATE subscription_quantity_changes SET pause_subscription=1, pause_date = ?, updated_at = NOW() WHERE user_subscription_id = ?",
-          [pauseDate, id], 
+          [pauseDate, id],
           (err, result) => {
             if (err) {
               return reject(err);
@@ -275,39 +300,10 @@ export const resumeSubscriptionModel = (id: number): Promise<OkPacket> => {
   });
 };
 
-// Model to get a subscription by ID
-export const getSubscriptionByIdModel = (id: number): Promise<any | null> => {
-  return new Promise((resolve, reject) => {
-    db.query<RowDataPacket[]>(
-      `SELECT user_subscriptions.*, 
-              foods.id as food_id, foods.name, foods.price, foods.discount_price, 
-              foods.description, foods.perma_link, foods.ingredients, 
-              foods.package_items_count, foods.weight, foods.unit, foods.sku_code, 
-              foods.barcode, foods.cgst, foods.sgst, foods.subscription_type, 
-              foods.track_inventory, foods.featured, foods.deliverable, 
-              foods.restaurant_id, foods.category_id, foods.subcategory_id, 
-              foods.product_type_id, foods.hub_id, foods.locality_id, 
-              foods.product_brand_id, foods.weightage, foods.status, 
-              foods.created_at as food_created_at, foods.updated_at as food_updated_at, 
-              foods.food_locality
-      FROM user_subscriptions
-      JOIN foods ON user_subscriptions.product_id = foods.id
-      WHERE user_subscriptions.id = ?`,
-      [id],
-      (error, results) => {
-        if (error) {
-          return reject(error);
-        }
-        resolve(results.length > 0 ? results[0] : null);
-      }
-    );
-  });
-};
-
 export const updateCancelSubscriptionModel = (
   id: number,
   cancel_subscription: number,
-  cancel_subscription_date: Date 
+  cancel_subscription_date: Date
 ): Promise<OkPacket> => {
   return new Promise((resolve, reject) => {
     db.query<OkPacket>(
@@ -337,7 +333,59 @@ export const getSubscriptionGetByIdModel = (
 ): Promise<Subscription | null> => {
   return new Promise((resolve, reject) => {
     db.query<RowDataPacket[]>(
-      "SELECT * FROM user_subscriptions WHERE id = ?",
+     `SELECT user_subscriptions.*, 
+      foods.id as food_id, 
+      foods.name, 
+      foods.price, 
+      foods.discount_price, 
+      foods.description, 
+      foods.perma_link, 
+      foods.ingredients, 
+      foods.package_items_count, 
+      foods.weight, 
+      foods.unit, 
+      foods.sku_code, 
+      foods.barcode, 
+      foods.cgst, 
+      foods.sgst, 
+      foods.subscription_type, 
+      foods.track_inventory, 
+      foods.featured, 
+      foods.deliverable, 
+      foods.restaurant_id, 
+      foods.category_id, 
+      foods.subcategory_id, 
+      foods.product_type_id, 
+      foods.hub_id, 
+      foods.locality_id, 
+      foods.product_brand_id, 
+      foods.weightage, 
+      foods.status, 
+      foods.created_at as food_created_at, 
+      foods.updated_at as food_updated_at, 
+      foods.food_locality,
+      m.id AS media_id,
+      m.model_type,
+      m.uuid,
+      m.collection_name,
+      m.name AS media_name,
+      m.file_name,
+      m.mime_type,
+      m.disk,
+      m.conversions_disk,
+      m.size AS media_size,
+      m.manipulations,
+      m.custom_properties,
+      m.generated_conversions,
+      m.responsive_images,
+      m.order_column,
+      m.created_at AS media_created_at,
+      m.updated_at AS media_updated_at,
+      CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name) AS original_url
+FROM user_subscriptions
+JOIN foods ON user_subscriptions.product_id = foods.id
+LEFT JOIN media m ON foods.id = m.model_id AND m.model_type = 'App\\\\Models\\\\Food'
+WHERE user_subscriptions.id = ?`,
       [id],
       (error, results) => {
         if (error) {
@@ -351,7 +399,6 @@ export const getSubscriptionGetByIdModel = (
   });
 };
 
-
 export const updateSubscriptionPauseInfo = async (
   userId: number,
   isPauseSubscription: number,
@@ -359,7 +406,6 @@ export const updateSubscriptionPauseInfo = async (
   startDate?: string,
   endDate?: string
 ) => {
-
   const shouldPause = pauseUntilComeBack === 1 || startDate || endDate;
   isPauseSubscription = shouldPause ? 1 : 0;
 
@@ -375,7 +421,7 @@ export const updateSubscriptionPauseInfo = async (
 
   const values = [
     isPauseSubscription,
-    pauseUntilComeBack || 0,  
+    pauseUntilComeBack || 0,
     startDate || null,
     endDate || null,
     userId,
@@ -390,10 +436,10 @@ export const updateSubscriptionPauseInfo = async (
   }
 };
 
-// cron job pause subscription 
-cron.schedule('0 0 * * *', async () => {
+// cron job pause subscription
+cron.schedule("0 0 * * *", async () => {
   const currentDate = new Date().toISOString();
-  console.log('currentDate', currentDate);
+  console.log("currentDate", currentDate);
 
   const sql = `
     UPDATE user_subscriptions
@@ -411,8 +457,12 @@ cron.schedule('0 0 * * *', async () => {
   `;
 
   try {
-    const [result]: [OkPacket, any] = await db.promise().query(sql, [currentDate]);
-    console.log(`Updated ${result.affectedRows} subscriptions that reached their end date`);
+    const [result]: [OkPacket, any] = await db
+      .promise()
+      .query(sql, [currentDate]);
+    console.log(
+      `Updated ${result.affectedRows} subscriptions that reached their end date`
+    );
   } catch (error) {
     console.error("Error updating subscriptions:", error);
   }
@@ -420,12 +470,12 @@ cron.schedule('0 0 * * *', async () => {
 
 //cron job subcribtions quntity
 
-cron.schedule('09 14 * * *', async () => {
-  console.log('Cron job running...');
+cron.schedule("09 14 * * *", async () => {
+  console.log("Cron job running...");
 
   try {
-      await handleNextDayOrders();
+    await handleNextDayOrders();
   } catch (error) {
-      console.error('Error running handleNextDayOrders:', error);
+    console.error("Error running handleNextDayOrders:", error);
   }
 });
