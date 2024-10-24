@@ -33,7 +33,7 @@ const getAllCategories = async (limit, offset, searchTerm) => {
     WHERE 
       (c.name LIKE ? OR c.weightage = ?) 
     ORDER BY 
-      c.created_at DESC 
+      CAST(c.weightage AS UNSIGNED) DESC 
     LIMIT ? OFFSET ?
   `;
     const params = [`%${searchTerm}%`, parseInt(searchTerm) || -1, limit, offset];

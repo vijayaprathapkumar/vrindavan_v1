@@ -30,6 +30,7 @@ const subscriptionsRoutes_1 = __importDefault(require("./routes/subscriptions/su
 const ordersRoutes_1 = __importDefault(require("./routes/orders-v1/ordersRoutes"));
 const placeOrderRoutes_1 = __importDefault(require("./routes/placeOrder/placeOrderRoutes"));
 const notificationRoutes_1 = __importDefault(require("./routes/notification/notificationRoutes"));
+const featureProductRoutes_1 = __importDefault(require("./routes/featureProduct/featureProductRoutes"));
 const router = express_1.default.Router();
 // Auth Login
 router.use("/auth", authLoginRoute_1.default);
@@ -67,9 +68,11 @@ router.use("/wallet", walletTransationsRoutes_1.default);
 //subscriptions
 router.use("/subscriptions", subscriptionsRoutes_1.default);
 //placeOrder
-router.use('/placeOrder', placeOrderRoutes_1.default);
+router.use("/placeOrder", placeOrderRoutes_1.default);
 //order-v1
 router.use("/orders", ordersRoutes_1.default);
 //notifications
 router.use("/notifications", notificationRoutes_1.default);
+// feature_products
+router.use("/feature_products", featureProductRoutes_1.default);
 exports.default = router;

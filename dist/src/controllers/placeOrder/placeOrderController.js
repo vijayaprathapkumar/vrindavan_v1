@@ -32,7 +32,7 @@ const fetchPlaceOrders = async (req, res) => {
 exports.fetchPlaceOrders = fetchPlaceOrders;
 // Add a place order and clear the cart
 const addPlaceOrderController = async (req, res) => {
-    const { userId } = req.body;
+    const { userId, orderDate } = req.body;
     try {
         const cartItems = await (0, placeOrderModels_1.getCartItemsByUserId)(userId);
         if (!cartItems.length) {
@@ -44,7 +44,7 @@ const addPlaceOrderController = async (req, res) => {
         }, 0);
         const status = "active";
         const method = "wallet";
-        const orderResult = await (0, placeOrderModels_1.addPlaceOrder)({ price: totalPrice, userId, status, method });
+        const orderResult = await (0, placeOrderModels_1.addPlaceOrder)({ price: totalPrice, userId, status, method, orderDate });
         if (orderResult.affectedRows > 0) {
             await (0, placeOrderModels_1.deleteAllCartItemsByUserId)(userId);
             return res.status(201).json((0, responseHandler_1.createResponse)(201, "Place order added successfully, cart cleared, and wallet updated.", null));

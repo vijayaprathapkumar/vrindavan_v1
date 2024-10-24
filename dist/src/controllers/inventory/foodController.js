@@ -4,7 +4,6 @@ exports.removeFood = exports.modifyFood = exports.addFood = exports.fetchFoodByI
 const foodModel_1 = require("../../models/inventory/foodModel");
 const responseHandler_1 = require("../../utils/responseHandler");
 // Get all foods
-// Get all foods
 const fetchAllFoods = async (req, res) => {
     try {
         const { status, categoryId, subcategoryId, searchTerm } = req.query;
