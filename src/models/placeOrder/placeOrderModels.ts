@@ -201,7 +201,6 @@ export const getAllPlaceOrders = async (
         : row.food_price;
     const totalFoodItemPrice = foodOriginalPrice * row.food_quantity;
 
-
     // Add food order to the existing order
     existingOrder.food_orders.push({
       food_order_id: row.food_order_id,
@@ -275,197 +274,197 @@ export const orderTypes = {
   // 5: "App Order",
 };
 
-export const addPlaceOrder = async (placeOrderData: {
-  price: number;
-  description?: string;
-  userId: number;
-  status: string;
-  method: string;
-  orderDate:Date;
-}) => {
-  const { price, description, userId, status, method,orderDate } = placeOrderData;
-  const defaultDescription =
-    description || `Default place order for user ${userId}`;
+// export const addPlaceOrder = async (placeOrderData: {
+//   price: number;
+//   description?: string;
+//   userId: number;
+//   status: string;
+//   method: string;
+//   orderDate:Date;
+// }) => {
+//   const { price, description, userId, status, method,orderDate } = placeOrderData;
+//   const defaultDescription =
+//     description || `Default place order for user ${userId}`;
 
-  const paymentSql = `
-    INSERT INTO payments (price, description, user_id, status, method, created_at, updated_at) 
-    VALUES (?, ?, ?, ?, ?, NOW(), NOW());
-  `;
+//   const paymentSql = `
+//     INSERT INTO payments (price, description, user_id, status, method, created_at, updated_at)
+//     VALUES (?, ?, ?, ?, ?, NOW(), NOW());
+//   `;
 
-  const paymentValues = [price, defaultDescription, userId, status, method];
+//   const paymentValues = [price, defaultDescription, userId, status, method];
 
-  try {
-    const [paymentResult]: [OkPacket, any] = await db
-      .promise()
-      .query(paymentSql, paymentValues);
+//   try {
+//     const [paymentResult]: [OkPacket, any] = await db
+//       .promise()
+//       .query(paymentSql, paymentValues);
 
-    if (paymentResult.affectedRows === 0) {
-      throw new Error("Payment insertion failed.");
-    }
+//     if (paymentResult.affectedRows === 0) {
+//       throw new Error("Payment insertion failed.");
+//     }
 
-    const walletBalanceSql = `
-      SELECT balance FROM wallet_balances WHERE user_id = ?;
-    `;
+//     const walletBalanceSql = `
+//       SELECT balance FROM wallet_balances WHERE user_id = ?;
+//     `;
 
-    const [walletRows]: [RowDataPacket[], any] = await db
-      .promise()
-      .query(walletBalanceSql, [userId]);
+//     const [walletRows]: [RowDataPacket[], any] = await db
+//       .promise()
+//       .query(walletBalanceSql, [userId]);
 
-    if (walletRows.length === 0) {
-      throw new Error(`No wallet balance found for user ${userId}.`);
-    }
+//     if (walletRows.length === 0) {
+//       throw new Error(`No wallet balance found for user ${userId}.`);
+//     }
 
-    const beforeBalance = walletRows[0].balance;
-    const afterBalance = (beforeBalance - price).toFixed(2);
+//     const beforeBalance = walletRows[0].balance;
+//     const afterBalance = (beforeBalance - price).toFixed(2);
 
-    const deductionSuccess = await deductFromWalletBalance(userId, price);
-    if (!deductionSuccess) {
-      throw new Error("Failed to deduct from wallet balance.");
-    }
+//     const deductionSuccess = await deductFromWalletBalance(userId, price);
+//     if (!deductionSuccess) {
+//       throw new Error("Failed to deduct from wallet balance.");
+//     }
 
-    const walletLogSql = `
-      INSERT INTO wallet_logs (
-        user_id, 
-        order_id, 
-        order_date, 
-        order_item_id, 
-        before_balance, 
-        amount, 
-        after_balance, 
-        wallet_type, 
-        description, 
-        created_at, 
-        updated_at
-      ) 
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW());
-    `;
+//     const walletLogSql = `
+//       INSERT INTO wallet_logs (
+//         user_id,
+//         order_id,
+//         order_date,
+//         order_item_id,
+//         before_balance,
+//         amount,
+//         after_balance,
+//         wallet_type,
+//         description,
+//         created_at,
+//         updated_at
+//       )
+//       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW());
+//     `;
 
-    const walletLogValues = [
-      userId,
-      null,
-      orderDate,
-      paymentResult.insertId,
-      beforeBalance,
-      price,
-      afterBalance,
-      "deduction",
-      `Rs ${price} deducted from Rs ${beforeBalance}`,
-    ];
+//     const walletLogValues = [
+//       userId,
+//       null,
+//       orderDate,
+//       paymentResult.insertId,
+//       beforeBalance,
+//       price,
+//       afterBalance,
+//       "deduction",
+//       `Rs ${price} deducted from Rs ${beforeBalance}`,
+//     ];
 
-    const addressSql = `
-      SELECT da.id AS delivery_address_id, da.*, l.route_id, l.hub_id, l.name AS locality_name
-      FROM delivery_addresses da
-      LEFT JOIN localities l ON da.locality_id = l.id
-      WHERE da.user_id = ?;
-    `;
+//     const addressSql = `
+//       SELECT da.id AS delivery_address_id, da.*, l.route_id, l.hub_id, l.name AS locality_name
+//       FROM delivery_addresses da
+//       LEFT JOIN localities l ON da.locality_id = l.id
+//       WHERE da.user_id = ?;
+//     `;
 
-    const [addressRows]: [RowDataPacket[], any] = await db
-      .promise()
-      .query(addressSql, [userId]);
+//     const [addressRows]: [RowDataPacket[], any] = await db
+//       .promise()
+//       .query(addressSql, [userId]);
 
-    if (
-      addressRows.length === 0 ||
-      !addressRows[0].locality_id ||
-      !addressRows[0].hub_id
-    ) {
-      throw new Error(
-        `Missing locality or hub information for user ${userId}. Please add the correct address details.`
-      );
-    }
+//     if (
+//       addressRows.length === 0 ||
+//       !addressRows[0].locality_id ||
+//       !addressRows[0].hub_id
+//     ) {
+//       throw new Error(
+//         `Missing locality or hub information for user ${userId}. Please add the correct address details.`
+//       );
+//     }
 
-    const addressData = addressRows[0];
-    const { route_id, hub_id, locality_id, delivery_address_id } = addressData;
+//     const addressData = addressRows[0];
+//     const { route_id, hub_id, locality_id, delivery_address_id } = addressData;
 
-    const orderSql = `
-      INSERT INTO orders (
-        user_id, 
-        order_type, 
-        order_date, 
-        route_id, 
-        hub_id, 
-        locality_id, 
-        delivery_boy_id, 
-        order_status_id, 
-        tax, 
-        delivery_fee, 
-        payment_id, 
-        delivery_address_id,
-        is_wallet_deduct, 
-        created_at, 
-        updated_at
-      ) 
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW());
-    `;
+//     const orderSql = `
+//       INSERT INTO orders (
+//         user_id,
+//         order_type,
+//         order_date,
+//         route_id,
+//         hub_id,
+//         locality_id,
+//         delivery_boy_id,
+//         order_status_id,
+//         tax,
+//         delivery_fee,
+//         payment_id,
+//         delivery_address_id,
+//         is_wallet_deduct,
+//         created_at,
+//         updated_at
+//       )
+//       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW());
+//     `;
 
-    const orderValues = [
-      userId,
-      1, // Assuming order_type is 1
-      orderDate, // orderDate form payload
-      route_id,
-      hub_id,
-      locality_id,
-      null, // delivery_boy_id
-      1, // order_status_id
-      0.0, // tax
-      0.0, // delivery_fee
-      paymentResult.insertId,
-      delivery_address_id,
-      1, // is_wallet_deduct
-    ];
+//     const orderValues = [
+//       userId,
+//       1, // Assuming order_type is 1
+//       orderDate, // orderDate form payload
+//       route_id,
+//       hub_id,
+//       locality_id,
+//       null, // delivery_boy_id
+//       1, // order_status_id
+//       0.0, // tax
+//       0.0, // delivery_fee
+//       paymentResult.insertId,
+//       delivery_address_id,
+//       1, // is_wallet_deduct
+//     ];
 
-    const [orderResult]: [OkPacket, any] = await db
-      .promise()
-      .query(orderSql, orderValues);
+//     const [orderResult]: [OkPacket, any] = await db
+//       .promise()
+//       .query(orderSql, orderValues);
 
-    if (orderResult.affectedRows === 0) {
-      throw new Error("Failed to create order.");
-    }
+//     if (orderResult.affectedRows === 0) {
+//       throw new Error("Failed to create order.");
+//     }
 
-    const orderId = orderResult.insertId;
+//     const orderId = orderResult.insertId;
 
-    walletLogValues[1] = orderId;
-    await db.promise().query(walletLogSql, walletLogValues);
+//     walletLogValues[1] = orderId;
+//     await db.promise().query(walletLogSql, walletLogValues);
 
-    const cartItems = await getCartItemsByUserId(userId);
+//     const cartItems = await getCartItemsByUserId(userId);
 
-    for (const item of cartItems) {
+//     for (const item of cartItems) {
 
-      const finalPrice =
-        item.food.discountPrice !== null &&
-        item.food.discountPrice !== undefined
-          ? item.food.discountPrice
-          : item.food.price;
+//       const finalPrice =
+//         item.food.discountPrice !== null &&
+//         item.food.discountPrice !== undefined
+//           ? item.food.discountPrice
+//           : item.food.price;
 
-      const foodOrderSql = `
-    INSERT INTO food_orders (
-      price,
-      quantity,
-      food_id,
-      order_id,
-      created_at,
-      updated_at
-    ) 
-    VALUES (?, ?, ?, ?, NOW(), NOW());
-  `;
+//       const foodOrderSql = `
+//     INSERT INTO food_orders (
+//       price,
+//       quantity,
+//       food_id,
+//       order_id,
+//       created_at,
+//       updated_at
+//     )
+//     VALUES (?, ?, ?, ?, NOW(), NOW());
+//   `;
 
-      const foodOrderValues = [
-        finalPrice,
-        item.quantity,
-        item.food_id,
-        orderId,
-      ];
+//       const foodOrderValues = [
+//         finalPrice,
+//         item.quantity,
+//         item.food_id,
+//         orderId,
+//       ];
 
-      await db.promise().query(foodOrderSql, foodOrderValues);
-    }
+//       await db.promise().query(foodOrderSql, foodOrderValues);
+//     }
 
-    await insertIntoOrderPayment(userId, paymentResult.insertId);
+//     await insertIntoOrderPayment(userId, paymentResult.insertId);
 
-    return paymentResult;
-  } catch (error) {
-    console.error("SQL Error in addPlaceOrder:", error);
-    throw new Error("Failed to add place order.");
-  }
-};
+//     return paymentResult;
+//   } catch (error) {
+//     console.error("SQL Error in addPlaceOrder:", error);
+//     throw new Error("Failed to add place order.");
+//   }
+// };
 
 export const getPriceForNextOrder = async (
   userId: number
@@ -745,9 +744,9 @@ export const getPlaceOrderById = async (orderId: number): Promise<any> => {
     }
 
     const foodOriginalPrice =
-    row.food_discount_price !== null
-      ? row.food_discount_price
-      : row.food_price;
+      row.food_discount_price !== null
+        ? row.food_discount_price
+        : row.food_price;
 
     const totalFoodItemPrice = foodOriginalPrice * row.food_quantity;
     const totaloodItemPrice = row.food_price * row.food_quantity;
@@ -819,92 +818,105 @@ export const getPlaceOrderById = async (orderId: number): Promise<any> => {
   return structuredOrder;
 };
 
-export const getCartItemsByUserId = async (userId: number): Promise<any[]> => {
-  const query = `
+export const getCartItemsByUserId = async (userId: number): Promise<RowDataPacket[]> => {
+  const sql = `
     SELECT 
-      c.created_at AS created_at,
-      c.id AS cart_id, 
-      c.food_id, 
-      c.user_id, 
-      c.quantity, 
-      c.updated_at,
-      f.id AS food_id,
-      f.name AS food_name,
-      f.price,
-      f.discount_price,
-      f.description,
-      f.perma_link,
-      f.ingredients,
-      f.package_items_count,
-      f.weight,
-      f.unit,
-      f.sku_code,
-      f.barcode,
-      f.cgst,
-      f.sgst,
-      f.track_inventory,
-      f.featured,
-      f.deliverable,
-      f.restaurant_id,
-      f.category_id,
-      f.subcategory_id,
-      f.product_type_id,
-      f.hub_id,
-      f.locality_id,
-      f.product_brand_id,
-      f.weightage,
-      f.status,
-      f.food_locality
+      c.*, 
+      f.* 
     FROM 
-      carts c
+      carts c 
     JOIN 
-      foods f ON c.food_id = f.id
+      foods f ON c.food_id = f.id 
     WHERE 
-      c.user_id = ?
-    ORDER BY c.created_at DESC
-
+      c.user_id = ? 
+    ORDER BY 
+      c.created_at DESC;
   `;
+  
+  const [rows] = await db.promise().query<RowDataPacket[]>(sql, [userId]);
+  return rows;
+};
 
-  const [rows]: [RowDataPacket[], any] = await db
-    .promise()
-    .query(query, [userId]);
-  return rows.map((row) => ({
-    id: row.cart_id,
-    food_id: row.food_id,
-    user_id: row.user_id,
-    quantity: row.quantity,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
-    food: {
-      id: row.food_id,
-      name: row.food_name,
-      price: row.price,
-      discountPrice: row.discount_price,
-      description: row.description
-        ? row.description.replace(/<\/?[^>]+(>|$)/g, "")
-        : null,
-      permaLink: row.perma_link,
-      ingredients: row.ingredients,
-      packageItemsCount: row.package_items_count,
-      weight: row.weight,
-      unit: row.unit,
-      skuCode: row.sku_code,
-      barcode: row.barcode,
-      cgst: row.cgst,
-      sgst: row.sgst,
-      trackInventory: row.track_inventory,
-      featured: row.featured,
-      deliverable: row.deliverable,
-      restaurantId: row.restaurant_id,
-      categoryId: row.category_id,
-      subcategoryId: row.subcategory_id,
-      productTypeId: row.product_type_id,
-      hubId: row.hub_id,
-      localityId: row.locality_id,
-      productBrandId: row.product_brand_id,
-      weightage: row.weightage,
-      status: row.status,
-      foodLocality: row.food_locality,
-    },
-  }));
+
+
+// try work
+export const addOrdersEntry = async (userId,orderDate) => {
+  const addressSql = `
+      SELECT da.id AS delivery_address_id, da.*, l.route_id, l.hub_id
+      FROM delivery_addresses da
+      LEFT JOIN localities l ON da.locality_id = l.id
+      WHERE da.user_id = ?;
+    `;
+
+  try {
+    const [addressRows] = await db.promise().query(addressSql, [userId]);
+    const addressData = addressRows[0];
+
+    if (!addressData || !addressData.locality_id || !addressData.hub_id) {
+      console.warn(
+        `Skipping order creation for user ${userId} due to missing hub or locality.`
+      );
+      return null;
+    }
+
+    const { route_id, hub_id, locality_id, delivery_address_id } = addressData;
+
+    const orderSql = `
+        INSERT INTO orders (
+          user_id, order_type, order_date, route_id, hub_id, locality_id, 
+          order_status_id, tax, delivery_fee, delivery_address_id, is_wallet_deduct, 
+          created_at, updated_at
+        ) 
+        VALUES (?, 2, ?, ?, ?, ?, 1, 0.0, 0.0, ?, 1, NOW(), NOW());
+      `;
+
+    const [orderResult]: any = await db
+      .promise()
+      .query(orderSql, [
+        userId,
+        orderDate,
+        route_id,
+        hub_id,
+        locality_id,
+        delivery_address_id,
+      ]);
+
+    if (!orderResult?.insertId) {
+      console.error(`Order creation failed for user ${userId}.`);
+      return null; // Return null to indicate a failed order creation
+    }
+
+    return {
+      status: true,
+      orderId: orderResult.insertId,
+      message: "Order created successfully",
+    };
+  } catch (error) {
+    console.error(`Error creating order for user ${userId}:`, error);
+    throw new Error("Error creating order.");
+  }
+};
+
+
+
+export const addFoodOrderEntry = async (
+  productAmount,
+  quantity,
+  productId,
+  orderId
+) => {
+  const foodOrderSql = `
+      INSERT INTO food_orders (
+        price, quantity, food_id, order_id, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, NOW(), NOW());
+    `;
+
+  try {
+    await db
+      .promise()
+      .query(foodOrderSql, [productAmount, quantity, productId, orderId]);
+  } catch (error) {
+    console.error(`Error creating food order for order ${orderId}:`, error);
+    throw new Error("Error creating food order.");
+  }
 };

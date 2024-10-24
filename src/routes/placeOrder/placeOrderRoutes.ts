@@ -1,8 +1,8 @@
 import express from "express";
 import {
   fetchPlaceOrders,
-  addPlaceOrderController,
-  updatePlaceOrderController,
+  placeOneTimeOrder,
+  updateOneTimeOrder,
   removePlaceOrder,
   fetchPlaceOrderById,
 } from "../../controllers/placeOrder/placeOrderController";
@@ -12,8 +12,8 @@ const router = express.Router();
 
 router.get("/:userId",verifyDeviceToken, fetchPlaceOrders);
 router.get("/byId/:id", verifyDeviceToken, fetchPlaceOrderById);
-router.post("/",verifyDeviceToken, addPlaceOrderController);
-router.put("/:id",verifyDeviceToken, updatePlaceOrderController);
+router.post("/",verifyDeviceToken, placeOneTimeOrder);
+router.put("/:id",verifyDeviceToken, updateOneTimeOrder);
 router.delete("/:id",verifyDeviceToken, removePlaceOrder);
 
 export default router;
