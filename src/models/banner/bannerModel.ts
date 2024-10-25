@@ -74,7 +74,7 @@ export const getAllBanners = async (
     params.push(`%${searchTerm}%`);
   }
 
-  query += ` ORDER BY CAST(b.banner_weightage AS UNSIGNED) DESC LIMIT ? OFFSET ?;`;
+  query += ` ORDER BY CAST(b.banner_weightage AS UNSIGNED) ASC LIMIT ? OFFSET ?;`;
   params.push(limit, offset);
 
   const [rows]: [RowDataPacket[], any] = await db
