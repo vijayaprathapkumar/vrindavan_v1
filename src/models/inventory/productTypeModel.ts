@@ -6,7 +6,6 @@ export const getAllProductTypes = async (
   limit: number,
   offset: number
 ): Promise<{ total: number; rows: RowDataPacket[] }> => {
-  // Query to get the total count of records
   const countQuery = `
     SELECT COUNT(*) as total FROM product_types
     WHERE Name LIKE ? OR Weightage LIKE ? OR Active LIKE ?

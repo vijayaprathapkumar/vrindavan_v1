@@ -2,10 +2,9 @@ import { db } from "../../config/databaseConnection";
 import { Food, Media } from "../../types/inventory/foodTypes";
 import { RowDataPacket, ResultSetHeader } from "mysql2";
 
-// Fetch all foods with filters, pagination, and total items count
 export const getAllFoods = async (
   filters: {
-    status?: boolean;
+    status?: number;
     categoryId?: number;
     subcategoryId?: number;
     searchTerm?: string;
@@ -41,17 +40,17 @@ export const getAllFoods = async (
   const conditions: string[] = [];
   const values: (string | number)[] = [];
 
-  if (filters.status !== undefined) {
+  if (filters.status) {
     conditions.push("f.status = ?");
     values.push(filters.status ? 1 : 0);
   }
 
-  if (filters.categoryId !== undefined) {
+  if (filters.categoryId) {
     conditions.push("f.category_id = ?");
     values.push(filters.categoryId);
   }
 
-  if (filters.subcategoryId !== undefined) {
+  if (filters.subcategoryId) {
     conditions.push("f.subcategory_id = ?");
     values.push(filters.subcategoryId);
   }

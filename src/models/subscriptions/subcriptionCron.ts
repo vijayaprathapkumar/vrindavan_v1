@@ -1,6 +1,7 @@
 import moment from "moment";
 import { db } from "../../config/databaseConnection";
 import { FieldPacket, OkPacket, RowDataPacket } from "mysql2";
+import cron from "node-cron";
 
 async function fetchSubscriptions(lastId = 0, batchSize) {
   const [subscriptions]: [RowDataPacket[], FieldPacket[]] = await db
@@ -16,7 +17,6 @@ async function fetchSubscriptions(lastId = 0, batchSize) {
   return subscriptions;
 }
 
-// Handle the next day's orders based on user subscriptions
 export async function handleNextDayOrders() {
   const tomorrow = moment().add(1, "days");
   const dayOfWeek = tomorrow.format("dddd").toLowerCase();
@@ -67,17 +67,18 @@ export async function handleNextDayOrders() {
     lastId = subscriptions[subscriptions.length - 1].id;
   }
 }
-// Create an order based on subscription
+
 export const createOrder = async (orderItem, quantityToOrder) => {
   const { product_id, user_id } = orderItem || {};
-
 
   try {
     const productData = await getProductById(product_id);
 
     if (!productData || productData.length === 0) {
-        console.warn(`Product with ID ${product_id} not found. Skipping order for user ${user_id}.`);
-       return;
+      console.warn(
+        `Product with ID ${product_id} not found. Skipping order for user ${user_id}.`
+      );
+      return;
     }
 
     const { discount_price, price } = productData[0];
@@ -131,8 +132,10 @@ const addOrdersEntry = async (userId) => {
     const addressData = addressRows[0];
 
     if (!addressData || !addressData.locality_id || !addressData.hub_id) {
-        console.warn(`Skipping order creation for user ${userId} due to missing hub or locality.`);
-        return null; 
+      console.warn(
+        `Skipping order creation for user ${userId} due to missing hub or locality.`
+      );
+      return null;
     }
 
     const { route_id, hub_id, locality_id, delivery_address_id } = addressData;
@@ -157,8 +160,8 @@ const addOrdersEntry = async (userId) => {
       ]);
 
     if (!orderResult?.insertId) {
-        console.error(`Order creation failed for user ${userId}.`);
-        return null; // Return null to indicate a failed order creation
+      console.error(`Order creation failed for user ${userId}.`);
+      return null;
     }
 
     return {
@@ -192,4 +195,49 @@ const addFoodOrderEntry = async (
     console.error(`Error creating food order for order ${orderId}:`, error);
     throw new Error("Error creating food order.");
   }
+};
+
+export const subcribtionsJob = () => {
+  cron.schedule("12 15 * * *", async () => {
+    console.log("Cron job running...");
+    console.time("subProcessing");
+    try {
+      await handleNextDayOrders();
+      console.timeEnd("subProcessing"); 
+      console.log("Today's subcription processed successfully.");
+    } catch (error) {
+      console.error("Error running handleNextDayOrders:", error);
+    }
+  });
+};
+
+export const pauseSubscriptionsJobs = async () => {
+  cron.schedule("0 0 * * *", async () => {
+    const currentDate = new Date().toISOString();
+    const sql = `
+    UPDATE user_subscriptions
+    SET
+      is_pause_subscription = 0,
+      pause_until_i_come_back = 0,
+      pause_specific_period_startDate = NULL,
+      pause_specific_period_endDate = NULL
+    WHERE
+      (is_pause_subscription = 1 OR 
+      pause_until_i_come_back = 1 OR 
+      pause_specific_period_startDate IS NOT NULL OR 
+      pause_specific_period_endDate IS NOT NULL) AND 
+      (pause_specific_period_endDate <= ?);
+  `;
+
+    try {
+      const [result]: [OkPacket, any] = await db
+        .promise()
+        .query(sql, [currentDate]);
+      console.log(
+        `Updated ${result.affectedRows} subscriptions that reached their end date`
+      );
+    } catch (error) {
+      console.error("Error updating subscriptions:", error);
+    }
+  });
 };
