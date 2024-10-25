@@ -1,5 +1,7 @@
 import { db } from "../../config/databaseConnection";
 import { RowDataPacket, OkPacket } from "mysql2";
+import cron from "node-cron";
+import { getAllPlaceOrdersUsers, handlePaymentsOrders, processTodaysOrders } from "../payments/paymentsModels";
 
 interface PlaceOrder {
   id: number;
@@ -818,7 +820,9 @@ export const getPlaceOrderById = async (orderId: number): Promise<any> => {
   return structuredOrder;
 };
 
-export const getCartItemsByUserId = async (userId: number): Promise<RowDataPacket[]> => {
+export const getCartItemsByUserId = async (
+  userId: number
+): Promise<RowDataPacket[]> => {
   const sql = `
     SELECT 
       c.*, 
@@ -832,15 +836,13 @@ export const getCartItemsByUserId = async (userId: number): Promise<RowDataPacke
     ORDER BY 
       c.created_at DESC;
   `;
-  
+
   const [rows] = await db.promise().query<RowDataPacket[]>(sql, [userId]);
   return rows;
 };
 
-
-
 // try work
-export const addOrdersEntry = async (userId,orderDate) => {
+export const addOrdersEntry = async (userId, orderDate) => {
   const addressSql = `
       SELECT da.id AS delivery_address_id, da.*, l.route_id, l.hub_id
       FROM delivery_addresses da
@@ -897,8 +899,6 @@ export const addOrdersEntry = async (userId,orderDate) => {
   }
 };
 
-
-
 export const addFoodOrderEntry = async (
   productAmount,
   quantity,
@@ -920,3 +920,13 @@ export const addFoodOrderEntry = async (
     throw new Error("Error creating food order.");
   }
 };
+
+///test cron orders
+
+// Cron job for payments deduction
+
+cron.schedule("24 10 * * *", async () => {
+  console.log("Cron job running...");
+
+  await processTodaysOrders();
+});
