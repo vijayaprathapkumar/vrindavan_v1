@@ -22,8 +22,6 @@ import dealOfTheDayRoutes from "./routes/dealOfTheDay/dealOfTheDayRoutes";
 import addToCartsRoutes from "./routes/addToCard/addToCartsRoutes";
 import walletTransactionRoutes from "./routes/wallet/walletTransationsRoutes";
 import subscriptionsRoutes from "./routes/subscriptions/subscriptionsRoutes";
-import paymentsRoutes from "./routes/placeOrder/placeOrderRoutes";
-import ordersRoutes from "./routes/orders-v1/ordersRoutes";
 import placeOrderRoutes from "./routes/placeOrder/placeOrderRoutes";
 import notificationRoutes from "./routes/notification/notificationRoutes";
 import featureProductRoutes from "./routes/featureProduct/featureProductRoutes";
@@ -57,7 +55,7 @@ router.use("/delivery_boys", deliveryBoyRoutes);
 router.use("/commissions", commissionRoutes);
 
 // orders
-router.use("/orderss", orderRoutes); //dummy
+router.use("/orders", orderRoutes); 
 router.use("/route_orders", routeOrdersRoutes);
 router.use("/hub_orders", hubOrdersRoutes);
 router.use("/delivery_orders", devliveryBoyOrders);
@@ -80,9 +78,6 @@ router.use("/subscriptions", subscriptionsRoutes);
 
 //placeOrder
 router.use("/placeOrder", placeOrderRoutes);
-
-//order-v1
-router.use("/orders", ordersRoutes);
 
 //notifications
 router.use("/notifications", notificationRoutes);
