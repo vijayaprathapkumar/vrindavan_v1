@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.fetchPlaceOrderById = exports.removePlaceOrder = exports.updatePlaceOrderController = exports.addPlaceOrderController = exports.fetchPlaceOrders = void 0;
+exports.fetchPlaceOrderById = exports.removePlaceOrder = exports.updateOneTimeOrder = exports.placeOneTimeOrder = exports.fetchPlaceOrders = void 0;
 const placeOrderModels_1 = require("../../models/placeOrder/placeOrderModels");
 const responseHandler_1 = require("../../utils/responseHandler");
 // Fetch all place orders for a user
@@ -11,6 +11,13 @@ const fetchPlaceOrders = async (req, res) => {
     const searchTerm = req.query.searchTerm ? req.query.searchTerm : null;
     const startDate = req.query.startDate ? new Date(req.query.startDate) : undefined;
     const endDate = req.query.endDate ? new Date(req.query.endDate) : undefined;
+    // Input validation
+    if (isNaN(page) || page < 1) {
+        return res.status(400).json((0, responseHandler_1.createResponse)(400, "Invalid page number."));
+    }
+    if (isNaN(limit) || limit < 1) {
+        return res.status(400).json((0, responseHandler_1.createResponse)(400, "Invalid limit number."));
+    }
     try {
         const { total, placeOrders } = await (0, placeOrderModels_1.getAllPlaceOrders)(userId, page, limit, startDate, endDate, searchTerm);
         const totalPages = Math.ceil(total / limit);
@@ -24,43 +31,55 @@ const fetchPlaceOrders = async (req, res) => {
     }
     catch (error) {
         console.error("Error fetching place orders:", error);
-        return res
-            .status(500)
-            .json((0, responseHandler_1.createResponse)(500, "Failed to fetch place orders."));
+        return res.status(500).json((0, responseHandler_1.createResponse)(500, "Failed to fetch place orders."));
     }
 };
 exports.fetchPlaceOrders = fetchPlaceOrders;
 // Add a place order and clear the cart
-const addPlaceOrderController = async (req, res) => {
+const placeOneTimeOrder = async (req, res) => {
     const { userId, orderDate } = req.body;
     try {
         const cartItems = await (0, placeOrderModels_1.getCartItemsByUserId)(userId);
         if (!cartItems.length) {
             return res.status(400).json((0, responseHandler_1.createResponse)(400, "No items in cart."));
         }
-        const totalPrice = cartItems.reduce((total, item) => {
-            const itemPrice = item.food.discountPrice || item.food.price;
-            return total + itemPrice * item.quantity;
-        }, 0);
-        const status = "active";
-        const method = "wallet";
-        const orderResult = await (0, placeOrderModels_1.addPlaceOrder)({ price: totalPrice, userId, status, method, orderDate });
-        if (orderResult.affectedRows > 0) {
-            await (0, placeOrderModels_1.deleteAllCartItemsByUserId)(userId);
-            return res.status(201).json((0, responseHandler_1.createResponse)(201, "Place order added successfully, cart cleared, and wallet updated.", null));
-        }
-        else {
-            return res.status(400).json((0, responseHandler_1.createResponse)(400, "Failed to add place order."));
-        }
+        const orderPromises = cartItems.map(async (item) => {
+            if (item.quantity > 0) {
+                await plcaeOrder(item, userId, orderDate);
+            }
+            else {
+                console.log("Failed to add place order.");
+            }
+        });
+        await Promise.all(orderPromises);
+        await (0, placeOrderModels_1.deleteAllCartItemsByUserId)(userId);
+        return res
+            .status(201)
+            .json((0, responseHandler_1.createResponse)(201, "Place order added successfully, cart cleared, and wallet updated.", null));
     }
     catch (error) {
         console.error("Error adding place order:", error);
-        return res.status(500).json((0, responseHandler_1.createResponse)(500, "Failed to add place order."));
+        return res
+            .status(500)
+            .json((0, responseHandler_1.createResponse)(500, "Failed to add place order."));
     }
 };
-exports.addPlaceOrderController = addPlaceOrderController;
+exports.placeOneTimeOrder = placeOneTimeOrder;
+const plcaeOrder = async (productData, user_id, orderDate) => {
+    const { discount_price, price, food_id, quantity } = productData;
+    const productAmount = discount_price ? discount_price : price;
+    if (productAmount > 0) {
+        const orderData = await (0, placeOrderModels_1.addOrdersEntry)(user_id, orderDate);
+        if (orderData?.orderId) {
+            await (0, placeOrderModels_1.addFoodOrderEntry)(productAmount, quantity, food_id, orderData.orderId);
+            return;
+        }
+    }
+    console.log("Failed to place order for item: " + food_id);
+    return null;
+};
 // Update a place order
-const updatePlaceOrderController = async (req, res) => {
+const updateOneTimeOrder = async (req, res) => {
     const { id } = req.params;
     const { price, description } = req.body;
     const status = "active";
@@ -76,7 +95,7 @@ const updatePlaceOrderController = async (req, res) => {
             .json((0, responseHandler_1.createResponse)(500, "Failed to update place order."));
     }
 };
-exports.updatePlaceOrderController = updatePlaceOrderController;
+exports.updateOneTimeOrder = updateOneTimeOrder;
 // Delete a place order by ID
 const removePlaceOrder = async (req, res) => {
     const { id } = req.params;
