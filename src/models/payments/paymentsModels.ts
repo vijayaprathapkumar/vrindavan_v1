@@ -1,7 +1,7 @@
 import { OkPacket, RowDataPacket } from "mysql2";
 import { db } from "../../config/databaseConnection";
+import cron from "node-cron";
 
-// Handle payments and orders
 export const handlePaymentsOrders = async (placeOrderData) => {
   const { user_id, food_price, quantity, order_id, status } = placeOrderData;
 
@@ -49,7 +49,7 @@ export const handlePaymentsOrders = async (placeOrderData) => {
       afterBalance,
       `Rs ${totalOrderValue} deducted for user ID ${user_id}`
     );
-
+   
     return true;
   } catch (error) {
     console.error("Error creating order:", error);
@@ -57,7 +57,6 @@ export const handlePaymentsOrders = async (placeOrderData) => {
   }
 };
 
-// Log wallet transaction
 const logWalletTransaction = async (
   userId,
   orderId,
@@ -99,7 +98,6 @@ const logWalletTransaction = async (
   }
 };
 
-// Deduct from wallet balance
 export const deductFromWalletBalance = async (userId, amount) => {
   const sql = `
         UPDATE wallet_balances 
@@ -122,13 +120,12 @@ export const deductFromWalletBalance = async (userId, amount) => {
   }
 };
 
-// Get all place orders for a user
 export const getAllPlaceOrdersUsers = async () => {
   const query = `
       SELECT 
         o.id AS order_id,
         o.user_id,
-        fo.price AS food_price
+        fo.price AS food_price,
         fo.quantity
       FROM 
         orders o
@@ -144,15 +141,27 @@ export const getAllPlaceOrdersUsers = async () => {
   return placeOrderRows;
 };
 
-export const processTodaysOrders = async () => {
+export const processTodayOrderPayments = async () => {
   try {
+    console.time("paymentProcessing");
     const orders = await getAllPlaceOrdersUsers();
     if (orders.length === 0) {
       console.log("No orders to process for today.");
       return;
     }
     await Promise.all(orders.map((order) => handlePaymentsOrders(order)));
+    console.timeEnd("paymentProcessing"); 
+    console.log("Today's payment processed successfully.");
   } catch (error) {
     console.error("Error processing today's orders:", error);
   }
 };
+
+export const everyDayPaymentProcessJob =() => {
+  cron.schedule("08 15 * * *", async () => {
+    console.log("Cron job running...");
+  
+    await processTodayOrderPayments();
+  });
+}
+

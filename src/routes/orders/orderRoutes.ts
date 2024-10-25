@@ -1,18 +1,17 @@
-import { Router } from 'express';
-import { getOrders, getOrder, createOrder, updateOrder, deleteOrder } from '../../controllers/orders/orderController';
-import { orderValidation, orderIdValidation, validate } from '../../validation/orders/ordersValidation';
-import { verifyDeviceToken } from '../../middlewares/authMiddleware';
+import { Router } from "express";
+import {
+  fetchAllOrders,
+  fetchOrderById,
+  removeOrder,
+} from "../../controllers/orders/orderController";
+import { verifyDeviceToken } from "../../middlewares/authMiddleware";
 
 const router = Router();
 
-router.get('/',verifyDeviceToken, getOrders);
+router.get("/:userId", verifyDeviceToken, fetchAllOrders);
 
-router.get('/:id',verifyDeviceToken, orderIdValidation, validate, getOrder);
+router.get("/byId/:id", verifyDeviceToken, fetchOrderById);
 
-router.post('/',verifyDeviceToken, orderValidation, validate, createOrder);
-
-router.put('/:id',verifyDeviceToken, orderIdValidation, orderValidation, validate, updateOrder);
-
-router.delete('/:id', verifyDeviceToken,orderIdValidation, validate, deleteOrder);
+router.delete("/:id", verifyDeviceToken, removeOrder);
 
 export default router;

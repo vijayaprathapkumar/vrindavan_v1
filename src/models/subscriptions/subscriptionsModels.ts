@@ -1,7 +1,6 @@
 import { db } from "../../config/databaseConnection";
 import { RowDataPacket, OkPacket } from "mysql2";
 import cron from "node-cron";
-import { handleNextDayOrders } from "./subcriptionCron";
 
 export interface Subscription {
   id?: number;
@@ -241,7 +240,6 @@ export const updateSubscriptionModel = (
   });
 };
 
-// Model to delete a subscription by ID
 export const deleteSubscriptionModel = (id: number): Promise<OkPacket> => {
   return new Promise((resolve, reject) => {
     db.query<OkPacket>(
@@ -257,7 +255,6 @@ export const deleteSubscriptionModel = (id: number): Promise<OkPacket> => {
   });
 };
 
-// Model to pause a subscription by ID
 export const pauseSubscriptionModel = (id: number): Promise<OkPacket> => {
   return new Promise((resolve, reject) => {
     db.query<OkPacket>(
@@ -284,7 +281,6 @@ export const pauseSubscriptionModel = (id: number): Promise<OkPacket> => {
   });
 };
 
-// Model to resume a subscription by ID
 export const resumeSubscriptionModel = (id: number): Promise<OkPacket> => {
   return new Promise((resolve, reject) => {
     db.query<OkPacket>(
@@ -436,46 +432,7 @@ export const updateSubscriptionPauseInfo = async (
   }
 };
 
-// cron job pause subscription
-cron.schedule("0 0 * * *", async () => {
-  const currentDate = new Date().toISOString();
-  console.log("currentDate", currentDate);
 
-  const sql = `
-    UPDATE user_subscriptions
-    SET
-      is_pause_subscription = 0,
-      pause_until_i_come_back = 0,
-      pause_specific_period_startDate = NULL,
-      pause_specific_period_endDate = NULL
-    WHERE
-      (is_pause_subscription = 1 OR 
-      pause_until_i_come_back = 1 OR 
-      pause_specific_period_startDate IS NOT NULL OR 
-      pause_specific_period_endDate IS NOT NULL) AND 
-      (pause_specific_period_endDate <= ?);
-  `;
 
-  try {
-    const [result]: [OkPacket, any] = await db
-      .promise()
-      .query(sql, [currentDate]);
-    console.log(
-      `Updated ${result.affectedRows} subscriptions that reached their end date`
-    );
-  } catch (error) {
-    console.error("Error updating subscriptions:", error);
-  }
-});
 
-//cron job subcribtions quntity
 
-cron.schedule("09 14 * * *", async () => {
-  console.log("Cron job running...");
-
-  try {
-    await handleNextDayOrders();
-  } catch (error) {
-    console.error("Error running handleNextDayOrders:", error);
-  }
-});

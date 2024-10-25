@@ -7,7 +7,6 @@ import {
   TransactionsResponse,
 } from "../../models/wallet/walletTransactionModel";
 
-
 export const walletRecharges = async (req: Request, res: Response) => {
   const {
     transaction_id,
@@ -26,6 +25,8 @@ export const walletRecharges = async (req: Request, res: Response) => {
   } = req.body;
 
   try {
+    await updateWalletBalance(user_id, transaction_amount);
+
     await insertWalletTransaction({
       transaction_id,
       rp_payment_id,
@@ -42,21 +43,16 @@ export const walletRecharges = async (req: Request, res: Response) => {
       description,
     });
 
-    await updateWalletBalance(user_id, transaction_amount);
-
-    return res
-      .status(200)
-      .json(
-        createResponse(200, "Transaction stored successfully", {
-         
-          transaction_id,
-          user_id,
-          plan_amount,
-          extra_percentage,
-          transaction_amount,
-          status
-        })
-      );
+    return res.status(200).json(
+      createResponse(200, "Transaction stored successfully", {
+        transaction_id,
+        user_id,
+        plan_amount,
+        extra_percentage,
+        transaction_amount,
+        status,
+      })
+    );
   } catch (error) {
     console.error("Error processing wallet recharge:", error);
     return res
@@ -78,7 +74,7 @@ export const getTransactionsByUserId = async (req: Request, res: Response) => {
     return res.status(200).json(
       createResponse(200, "Transactions retrieved successfully", {
         transactions,
-        totalRecord:total,
+        totalRecord: total,
         currentPage: Number(page),
         limit: Number(limit),
         totalPages,
