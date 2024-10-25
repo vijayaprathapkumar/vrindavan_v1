@@ -61,44 +61,23 @@ export const insertWalletTransaction = (transaction: WalletTransaction): Promise
 export const updateWalletBalance = async (userId: string, amount: number): Promise<void> => {
     const checkQuery = `SELECT * FROM wallet_balances WHERE user_id = ?`;
 
-    return new Promise((resolve, reject) => {
-        db.query<RowDataPacket[]>(checkQuery, [userId], (err, results) => {
-            if (err) {
-                return reject(err);
-            }
+    const [results]: any = await db.query(checkQuery, [userId]);
 
-            if (results.length > 0) {
-                // User exists, update the balance and updated_at timestamp
-                const updateQuery = `
-                    UPDATE wallet_balances
-                    SET balance = balance + ?, updated_at = NOW()
-                    WHERE user_id = ?
-                `;
-
-                db.query<OkPacket>(updateQuery, [amount, userId], (err) => {
-                    if (err) {
-                        return reject(err);
-                    }
-                    resolve();
-                });
-            } else {
-                // User doesn't exist, insert a new wallet balance record with created_at and updated_at
-                const insertQuery = `
-                    INSERT INTO wallet_balances (user_id, balance, created_at, updated_at)
-                    VALUES (?, ?, NOW(), NOW())
-                `;
-
-                db.query<OkPacket>(insertQuery, [userId, amount], (err) => {
-                    if (err) {
-                        return reject(err);
-                    }
-                    resolve();
-                });
-            }
-        });
-    });
+    if (results.length > 0) {
+        const updateQuery = `
+            UPDATE wallet_balances
+            SET balance = balance + ?, updated_at = NOW()
+            WHERE user_id = ?
+        `;
+        await db.query(updateQuery, [amount, userId]);
+    } else {
+        const insertQuery = `
+            INSERT INTO wallet_balances (user_id, balance, created_at, updated_at)
+            VALUES (?, ?, NOW(), NOW())
+        `;
+        await db.query(insertQuery, [userId, amount]);
+    }
 };
-
 
 
 export const getTransactionsByUserId = (userId: string, page: number, limit: number): Promise<TransactionsResponse> => {

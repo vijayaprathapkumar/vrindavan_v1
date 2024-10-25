@@ -1,70 +1,110 @@
-import { Request, Response } from 'express';
-import { getAllOrders, getOrderById, createOrderInDb, updateOrderInDb, deleteOrderInDb } from '../../models/orders/orderModel';
-import { createResponse } from '../../utils/responseHandler';
+import { Request, Response } from "express";
+import { createResponse } from "../../utils/responseHandler";
+import {
+  deletePlaceOrderById,
+  getAllOrders,
+  getPlaceOrderById,
+} from "../../models/orders/orderModel";
 
-// Get all orders
-export const getOrders = async (req: Request, res: Response) => {
+export const fetchAllOrders = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  const userId = parseInt(req.params.userId);
+  console.log("userId", userId);
+  const page = parseInt(req.query.page as string) || 1;
+  const limit = parseInt(req.query.limit as string) || 10;
+  const searchTerm: string | null = req.query.searchTerm
+    ? (req.query.searchTerm as string)
+    : null;
+
+  const startDate = req.query.startDate
+    ? new Date(req.query.startDate as string)
+    : undefined;
+  const endDate = req.query.endDate
+    ? new Date(req.query.endDate as string)
+    : undefined;
+
+  // Input validation
+  if (isNaN(page) || page < 1) {
+    return res.status(400).json(createResponse(400, "Invalid page number."));
+  }
+  if (isNaN(limit) || limit < 1) {
+    return res.status(400).json(createResponse(400, "Invalid limit number."));
+  }
+
   try {
-    const orders = await getAllOrders();
-    res.status(200).json(createResponse(200, 'Orders fetched successfully', orders));
+    const { total, placeOrders } = await getAllOrders(
+      userId,
+      page,
+      limit,
+      startDate,
+      endDate,
+      searchTerm
+    );
+
+    const totalPages = Math.ceil(total / limit);
+
+    return res.json(
+      createResponse(200, "Place orders fetched successfully.", {
+        placeOrders,
+        currentPage: page,
+        limit,
+        totalPages,
+        totalRecords: total,
+      })
+    );
   } catch (error) {
-    res.status(500).json(createResponse(500, 'Error fetching orders', error));
+    console.error("Error fetching place orders:", error);
+    return res
+      .status(500)
+      .json(createResponse(500, "Failed to fetch place orders."));
   }
 };
 
 
-// Get a single order by ID
-export const getOrder = async (req: Request, res: Response) => {
-  const { id } = req.params;
+export const fetchOrderById = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  const id = parseInt(req.params.id);
+
   try {
-    const order = await getOrderById(parseInt(id));
-    if (!order) {
-      res.status(404).json(createResponse(404, 'Order not found'));
-    } else {
-      res.status(200).json(createResponse(200, 'Order fetched successfully', order));
+    const placeOrder = await getPlaceOrderById(Number(id));
+
+    if (!placeOrder) {
+      return res
+        .status(404)
+        .json(createResponse(404, "Place order not found."));
     }
+
+    return res.json(
+      createResponse(200, "Place order fetched successfully.", { placeOrder })
+    );
   } catch (error) {
-    res.status(500).json(createResponse(500, 'Error fetching order', error));
+    console.error("Error fetching place order:", error);
+    return res
+      .status(500)
+      .json(createResponse(500, "Failed to fetch place order."));
   }
 };
 
-
-// Create a new order
-export const createOrder = async (req: Request, res: Response) => {
-  try {
-    const newOrder = await createOrderInDb(req.body);
-    res.status(201).json(createResponse(201, 'Order created successfully', newOrder));
-  } catch (error) {
-    res.status(500).json(createResponse(500, 'Error creating order', error));
-  }
-};
-
-// Update an existing order
-export const updateOrder = async (req: Request, res: Response) => {
+// Delete a place order by ID
+export const removeOrder = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
   const { id } = req.params;
-  try {
-    const updatedOrder = await updateOrderInDb(parseInt(id), req.body);
-    if (updatedOrder.affectedRows === 0) {
-      res.status(404).json(createResponse(404, 'Order not found'));
-    } else {
-      res.status(200).json(createResponse(200, 'Order updated successfully', updatedOrder));
-    }
-  } catch (error) {
-    res.status(500).json(createResponse(500, 'Error updating order', error));
-  }
-};
 
-// Delete an order by ID
-export const deleteOrder = async (req: Request, res: Response) => {
-  const { id } = req.params;
   try {
-    const result = await deleteOrderInDb(parseInt(id));
-    if (result.affectedRows === 0) {
-      res.status(404).json(createResponse(404, 'Order not found'));
-    } else {
-      res.status(200).json(createResponse(200, 'Order deleted successfully'));
-    }
+    await deletePlaceOrderById(Number(id));
+    return res.json(
+      createResponse(200, "Place order deleted successfully.", null)
+    );
   } catch (error) {
-    res.status(500).json(createResponse(500, 'Error deleting order', error));
+    console.error("Error deleting place order:", error);
+    return res
+      .status(500)
+      .json(createResponse(500, "Failed to delete place order."));
   }
 };

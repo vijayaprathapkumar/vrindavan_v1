@@ -2,6 +2,7 @@ import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 import routes from "./src/routes";
+import { initializeCronJobs } from "./src/cron-jobs";
 
 dotenv.config();
 
@@ -16,6 +17,8 @@ const corsOptions = {
 }
 
 app.use(cors(corsOptions))
+
+initializeCronJobs();
 
 app.get("/", (req, res) => {
   res.send("Welcome to our vrindavan");

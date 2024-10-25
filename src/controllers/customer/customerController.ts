@@ -7,11 +7,8 @@ import {
   deleteCustomerById,
 } from "../../models/customer/customerModel";
 import { createResponse } from "../../utils/responseHandler";
-import { RowDataPacket } from "mysql2";
-import { db } from "../../config/databaseConnection";
 import { checkUserProfileStatus } from "../../models/authLogin/authLoginModel";
 
-// Fetch all customers with pagination and filters
 export const getCustomers = async (
   req: Request,
   res: Response
@@ -47,40 +44,47 @@ export const getCustomers = async (
       .json(createResponse(500, "Error fetching customers", error));
   }
 };
-export const addCustomer = async (req: Request, res: Response): Promise<Response> => {
-  const { localityId, name, email, mobile, houseNo, completeAddress, status } = req.body;
+
+export const addCustomer = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  const { localityId, name, email, mobile, houseNo, completeAddress, status } =
+    req.body;
 
   try {
-    const existingUserQuery = `SELECT id FROM users WHERE email = ?;`;
-    const [existingUsers] = await db.promise().query<RowDataPacket[]>(existingUserQuery, [email]);
+    const userId = await createCustomer(
+      localityId,
+      name,
+      email,
+      mobile,
+      houseNo,
+      completeAddress,
+      status
+    );
 
-    if (existingUsers.length > 0) {
-      const userId = existingUsers[0].id;
-      const { status: userProfileStatus } = await checkUserProfileStatus(mobile);
-      
-      return res.status(400).json(createResponse(400, "This email is already registered.", {
-        user_profile: userProfileStatus,
-        user_id: userId
-      }));
+    if (userId === null) {
+      return res
+        .status(400)
+        .json(createResponse(400, "This email is already registered."));
     }
-
-    const userId = await createCustomer(localityId, name, email, mobile, houseNo, completeAddress, status);
 
     const { status: userProfileStatus } = await checkUserProfileStatus(mobile);
 
-    return res.status(201).json(createResponse(201, "Customer created successfully.", {
-      user_profile: userProfileStatus,
-      user_id: userId
-    }));
+    return res.status(201).json(
+      createResponse(201, "Customer created successfully.", {
+        user_profile: userProfileStatus,
+        user_id: userId,
+      })
+    );
   } catch (error) {
     console.error("Error creating customer:", error);
-    return res.status(500).json(createResponse(500, "Error creating customer", error.message));
+    return res
+      .status(500)
+      .json(createResponse(500, "Error creating customer", error.message));
   }
 };
 
-
-
-// Get customer by ID
 export const getCustomer = async (
   req: Request,
   res: Response
@@ -96,15 +100,15 @@ export const getCustomer = async (
           customer: null,
         },
       });
-    } else {
-      res.status(200).json({
-        statusCode: 200,
-        message: "Customer fetched successfully",
-        data: {
-          customer: [customer],
-        },
-      });
+      return;
     }
+    res.status(200).json({
+      statusCode: 200,
+      message: "Customer fetched successfully",
+      data: {
+        customer: [customer],
+      },
+    });
   } catch (error) {
     res.status(500).json(createResponse(500, "Error fetching customer", error));
   }
