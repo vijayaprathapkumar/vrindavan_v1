@@ -51,7 +51,7 @@ const getAllDeals = async (page, limit, searchTerm) => {
         params.push(`%${searchTerm}%`);
     }
     // Ensure the ORDER BY clause is specifying DESC
-    query += ` ORDER BY CAST(d.weightage AS UNSIGNED) DESC`;
+    query += ` ORDER BY CAST(d.weightage AS UNSIGNED) ASC`;
     params.push(limit, offset);
     const [rows] = await databaseConnection_1.db
         .promise()
