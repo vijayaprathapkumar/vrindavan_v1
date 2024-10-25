@@ -88,7 +88,7 @@ const createOrder = async (orderItem, quantityToOrder) => {
 exports.createOrder = createOrder;
 const getProductById = async (product_id) => {
     const query = `
-      SELECT f.id AS food_id, f.name AS food_name, f.price, f.discount_price
+      SELECT f.price, f.discount_price
       FROM foods f
       WHERE f.id = ?;
     `;
