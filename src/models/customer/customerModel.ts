@@ -1,5 +1,5 @@
 import { db } from "../../config/databaseConnection";
-import { RowDataPacket, OkPacket } from "mysql2";
+import { RowDataPacket, OkPacket, ResultSetHeader } from "mysql2";
 
 // Fetch all customers
 export const getAllCustomers = async (
@@ -125,7 +125,7 @@ export const getAllCustomers = async (
     statuses.forEach((s) => {
       const mappedStatus = statusMap[s.trim()];
       if (mappedStatus) {
-        totalCountConditions.push(`u.is_deactivated = ${mappedStatus - 1}`); 
+        totalCountConditions.push(`u.is_deactivated = ${mappedStatus - 1}`);
       }
     });
 
@@ -178,7 +178,7 @@ export const getAllCustomers = async (
       is_deactivated_at: row.is_deactivated_at,
       created_at: row.created_at,
       updated_at: row.updated_at,
-      wallet_balance: row.wallet_balance, 
+      wallet_balance: row.wallet_balance,
       address: {
         address_id: row.address_id,
         description: row.description,
@@ -200,7 +200,6 @@ export const getAllCustomers = async (
   };
 };
 
-// Create a new customer
 export const createCustomer = async (
   localityId: number,
   name: string,
@@ -209,65 +208,74 @@ export const createCustomer = async (
   houseNo: string,
   completeAddress: string,
   status?: string,
-  password: string = 'defaultPassword' 
-): Promise<number> => {  // Return the userId
+  password?: string
+): Promise<number | null> => {
+  if (
+    !localityId ||
+    !name ||
+    !email ||
+    !mobile ||
+    !houseNo ||
+    !completeAddress
+  ) {
+    throw new Error("All fields are required.");
+  }
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    throw new Error("Invalid email format.");
+  }
+
   try {
-    const existingUserQuery = `
-      SELECT id FROM users WHERE email = ?;
-    `;
-    const [existingUsers] = await db.promise().query<RowDataPacket[]>(existingUserQuery, [email]);
+    const existingUserQuery = `SELECT id FROM users WHERE email = ?;`;
+    const [existingUsers] = await db
+      .promise()
+      .query<RowDataPacket[]>(existingUserQuery, [email]);
 
-    let userId: number;
-    
-    if (existingUsers.length > 0) {
-      userId = existingUsers[0].id; // Existing user, return the ID
-    } else {
-      const insertUserQuery = `
-        INSERT INTO users (name, email, phone, password, status, created_at, updated_at) 
-        VALUES (?, ?, ?, ?, ?, NOW(), NOW());
-      `;
-      const [userResult] = await db.promise().query<OkPacket>(insertUserQuery, [name, email, mobile, password, status]);
-      
-      userId = userResult.insertId;  // Newly created user, return the new ID
-
-      // Insert user address into delivery_addresses table
-      const insertAddressQuery = `
-        INSERT INTO delivery_addresses (user_id, locality_id, house_no, complete_address, created_at, updated_at) 
-        VALUES (?, ?, ?, ?, NOW(), NOW());
-      `;
-      const addressValues = [userId, localityId, houseNo, completeAddress];
-      await db.promise().query<OkPacket>(insertAddressQuery, addressValues);
+    if (existingUsers.length !== 0) {
+      return null;
     }
 
-    // Handle wallet creation/update
-    const existingWalletQuery = `
-      SELECT id FROM wallet_balances WHERE user_id = ?;
+    // Insert new user
+    const insertUserQuery = `
+      INSERT INTO users (name, email, phone, status,password, created_at, updated_at) 
+      VALUES (?, ?, ?, ?, ?, NOW(), NOW());
     `;
-    const [existingWallet] = await db.promise().query<RowDataPacket[]>(existingWalletQuery, [userId]);
+    const [userResult] = await db
+      .promise()
+      .query<ResultSetHeader>(insertUserQuery,  [name, email, mobile, status, password || ""]);
 
-    if (existingWallet.length > 0) {
-      const updateWalletQuery = `
-        UPDATE wallet_balances 
-        SET balance = 0.00, updated_at = NOW() 
-        WHERE user_id = ?;
-      `;
-      await db.promise().query(updateWalletQuery, [userId]);
-    } else {
-      const insertWalletQuery = `
-        INSERT INTO wallet_balances (user_id, balance, created_at, updated_at) 
-        VALUES (?, 0, NOW(), NOW());
-      `;
-      await db.promise().query(insertWalletQuery, [userId]);
-    }
+    const userId = userResult.insertId;
 
-    return userId;  // Return the userId whether it was newly created or already existing
+    // Insert user address into delivery_addresses table
+    const insertAddressQuery = `
+      INSERT INTO delivery_addresses (user_id, locality_id, house_no, complete_address, created_at, updated_at) 
+      VALUES (?, ?, ?, ?, NOW(), NOW());
+    `;
+    await db
+      .promise()
+      .query<ResultSetHeader>(insertAddressQuery, [
+        userId,
+        localityId,
+        houseNo,
+        completeAddress,
+      ]);
+
+    // Insert wallet balance
+    const insertWalletQuery = `
+      INSERT INTO wallet_balances (user_id, balance, created_at, updated_at) 
+      VALUES (?, 0, NOW(), NOW());
+    `;
+    await db.promise().query(insertWalletQuery, [userId]);
+
+    return userId;
   } catch (error) {
     console.error("Error creating customer:", error);
-    throw new Error("Error creating customer: " + (error.message || "Unknown error"));
+    throw new Error(
+      "Error creating customer: " + (error.message || "Unknown error")
+    );
   }
 };
-
-
 
 // Fetch customer by ID
 export const getCustomerById = async (id: number): Promise<any | null> => {
@@ -344,14 +352,13 @@ export const getCustomerById = async (id: number): Promise<any | null> => {
     card_last_four: row.card_last_four,
     trial_ends_at: row.trial_ends_at,
     braintree_id: row.braintree_id,
-    paypal_email: row.paypal_email,
     remember_token: row.remember_token,
     status: row.status,
     is_deactivated: row.is_deactivated,
     is_deactivated_at: row.is_deactivated_at,
     created_at: row.created_at,
     updated_at: row.updated_at,
-    wallet_balance: row.wallet_balance, 
+    wallet_balance: row.wallet_balance,
     address: {
       address_id: row.address_id,
       description: row.description,
@@ -375,7 +382,7 @@ export const getCustomerById = async (id: number): Promise<any | null> => {
     },
   };
 };
-// Update customer by ID
+
 export const updateCustomerById = async (
   id: number,
   localityId?: number,
@@ -387,26 +394,13 @@ export const updateCustomerById = async (
   status?: string
 ): Promise<void> => {
   try {
-    const existingUserQuery = `SELECT id, email FROM users WHERE id = ?;`;
+    const existingUserQuery = `SELECT id FROM users WHERE email = ?;`;
     const [existingUsers] = await db
       .promise()
-      .query<RowDataPacket[]>(existingUserQuery, [id]);
+      .query<RowDataPacket[]>(existingUserQuery, [email]);
 
     if (existingUsers.length === 0) {
-      throw new Error(`User with ID ${id} does not exist`);
-    }
-
-    const existingEmail = existingUsers[0].email; 
-
-    if (email && existingEmail !== email) {
-      const duplicateEmailQuery = `SELECT id FROM users WHERE email = ? AND id != ?;`;
-      const [duplicateEmails] = await db
-        .promise()
-        .query<RowDataPacket[]>(duplicateEmailQuery, [email, id]);
-
-      if (duplicateEmails.length > 0) {
-        throw new Error(`Email ${email} is already in use by another customer`);
-      }
+      return null;
     }
 
     const updateUserQuery = `
@@ -446,8 +440,6 @@ export const updateCustomerById = async (
   }
 };
 
-
-// Delete customer by ID
 export const deleteCustomerById = async (customerId: number): Promise<void> => {
   const connection = await db.promise().getConnection();
   await connection.beginTransaction();

@@ -110,8 +110,6 @@ export const getSubCategoryById = async (
     `
         SELECT 
   sub_categories.*, 
-  categories.name AS category_name, 
-  categories.description AS category_description, 
   m.id AS media_id,
   m.model_type,
   m.model_id,
