@@ -271,7 +271,8 @@ const getCustomerById = async (id) => {
       cf.id AS custom_field_id,
       cf.name AS custom_field_name,
       cp.id AS priority_id,
-      cp.mark_priority
+      cp.mark_priority,
+      wb.balance AS wallet_balance
     FROM 
       users u
     LEFT JOIN 
@@ -282,6 +283,7 @@ const getCustomerById = async (id) => {
       custom_fields cf ON u.id = cf.custom_field_model
     LEFT JOIN 
       customer_priorities cp ON u.id = cp.id 
+    LEFT JOIN wallet_balances wb ON u.id = wb.user_id
     WHERE 
       u.id = ?;
   `;
@@ -310,6 +312,7 @@ const getCustomerById = async (id) => {
         is_deactivated_at: row.is_deactivated_at,
         created_at: row.created_at,
         updated_at: row.updated_at,
+        wallet_balance: row.wallet_balance,
         address: {
             address_id: row.address_id,
             description: row.description,

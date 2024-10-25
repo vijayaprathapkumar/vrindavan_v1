@@ -49,7 +49,7 @@ const getAllFoods = async (filters, limit, offset) => {
     if (conditions.length > 0) {
         query += " WHERE " + conditions.join(" AND ");
     }
-    query += " ORDER BY CAST(f.weightage AS UNSIGNED) DESC";
+    query += " ORDER BY CAST(f.weightage AS UNSIGNED) ASC";
     const countQuery = `
     SELECT COUNT(*) as count 
     FROM foods f

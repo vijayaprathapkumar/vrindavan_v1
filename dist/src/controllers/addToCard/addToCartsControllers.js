@@ -9,6 +9,16 @@ const fetchCartItems = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const offset = (page - 1) * limit;
+    // Validate inputs
+    if (isNaN(userId) || userId <= 0) {
+        return res.status(400).json((0, responseHandler_1.createResponse)(400, "Invalid user ID."));
+    }
+    if (isNaN(page) || page <= 0) {
+        return res.status(400).json((0, responseHandler_1.createResponse)(400, "Invalid page number."));
+    }
+    if (isNaN(limit) || limit <= 0) {
+        return res.status(400).json((0, responseHandler_1.createResponse)(400, "Invalid limit number."));
+    }
     try {
         const cartItems = await (0, addToCartsModels_1.getAllCartItems)(userId, limit, offset);
         const totalPrice = cartItems.reduce((total, item) => {
@@ -26,16 +36,17 @@ const fetchCartItems = async (req, res) => {
         }));
     }
     catch (error) {
-        console.error("Error fetching cart items or updating payment:", error);
-        return res
-            .status(500)
-            .json((0, responseHandler_1.createResponse)(500, "Failed to fetch cart items or update payment."));
+        console.error(`Error fetching cart items for user ID ${userId} (page: ${page}, limit: ${limit}):`, error);
+        return res.status(500).json((0, responseHandler_1.createResponse)(500, "Failed to fetch cart items."));
     }
 };
 exports.fetchCartItems = fetchCartItems;
-// Add a new item to the cart 
+// Add a new item to the cart
 const addCart = async (req, res) => {
     const { userId, foodId, quantity } = req.body;
+    if ((!userId && !foodId) || typeof quantity !== "number") {
+        return res.status(400).json((0, responseHandler_1.createResponse)(400, "Invalid input data."));
+    }
     if (quantity <= 0) {
         return res
             .status(400)
@@ -43,36 +54,38 @@ const addCart = async (req, res) => {
     }
     try {
         await (0, addToCartsModels_1.addCartItem)({ userId, foodId, quantity });
-        const cartItems = await (0, addToCartsModels_1.getAllCartItems)(userId, 10, 0);
-        const totalPrice = cartItems.reduce((total, item) => {
-            const itemPrice = item.food.discountPrice || item.food.price;
-            return total + itemPrice * item.quantity;
-        }, 0);
         return res
             .status(201)
-            .json((0, responseHandler_1.createResponse)(201, "Item added to cart successfully.", { totalPrice }));
+            .json((0, responseHandler_1.createResponse)(201, "Item added to cart successfully."));
     }
     catch (error) {
         console.error("Error adding cart item:", error);
+        if (error.code === "ER_DUP_ENTRY") {
+            return res
+                .status(409)
+                .json((0, responseHandler_1.createResponse)(409, "Item already exists in the cart."));
+        }
         return res
             .status(500)
             .json((0, responseHandler_1.createResponse)(500, "Failed to add item to cart."));
     }
 };
 exports.addCart = addCart;
-// Fetch a cart item by its ID
 const fetchCartItemById = async (req, res) => {
     const { id } = req.params;
+    // Validate the ID
+    if (isNaN(Number(id))) {
+        return res.status(400).json((0, responseHandler_1.createResponse)(400, "Invalid cart item ID."));
+    }
     try {
         const cartItem = await (0, addToCartsModels_1.getCartItemById)(Number(id));
         if (!cartItem) {
             return res.status(404).json((0, responseHandler_1.createResponse)(404, "Cart item not found."));
         }
-        const responseCarts = { carts: [cartItem] };
-        return res.status(200).json((0, responseHandler_1.createResponse)(200, "Cart item fetched successfully.", responseCarts));
+        return res.status(200).json((0, responseHandler_1.createResponse)(200, "Cart item fetched successfully.", cartItem));
     }
     catch (error) {
-        console.error("Error fetching cart item:", error);
+        console.error(`Error fetching cart item with ID ${id}:`, error);
         return res.status(500).json((0, responseHandler_1.createResponse)(500, "Failed to fetch cart item."));
     }
 };
@@ -80,51 +93,37 @@ exports.fetchCartItemById = fetchCartItemById;
 // Update an item in the cart and recalculate the total price
 const updateCart = async (req, res) => {
     const { id } = req.params;
-    const { quantity, userId } = req.body;
+    const { quantity } = req.body;
+    if (isNaN(Number(id)) || Number(id) <= 0) {
+        return res.status(400).json((0, responseHandler_1.createResponse)(400, "Invalid cart item ID."));
+    }
     if (quantity <= 0) {
-        return res
-            .status(400)
-            .json((0, responseHandler_1.createResponse)(400, "Quantity must be at least 1."));
+        return res.status(400).json((0, responseHandler_1.createResponse)(400, "Quantity must be at least 1."));
     }
     try {
         await (0, addToCartsModels_1.updateCartItem)(Number(id), quantity);
-        const cartItems = await (0, addToCartsModels_1.getAllCartItems)(userId, 10, 0);
-        const totalPrice = cartItems.reduce((total, item) => {
-            const itemPrice = item.food.discountPrice || item.food.price;
-            return total + itemPrice * item.quantity;
-        }, 0);
-        // await updatePaymentByUserId(userId, totalPrice);
         return res.status(200).json((0, responseHandler_1.createResponse)(200, "Cart item updated successfully.", null));
     }
     catch (error) {
         console.error("Error updating cart item:", error);
-        return res
-            .status(500)
-            .json((0, responseHandler_1.createResponse)(500, "Failed to update cart item."));
+        return res.status(500).json((0, responseHandler_1.createResponse)(500, "Failed to update cart item."));
     }
 };
 exports.updateCart = updateCart;
 // Delete a cart item and update the payment total price
 const removeCart = async (req, res) => {
     const { id } = req.params;
-    const { userId } = req.body;
+    // Validate input
+    if (isNaN(Number(id)) || Number(id) <= 0) {
+        return res.status(400).json((0, responseHandler_1.createResponse)(400, "Invalid cart item ID."));
+    }
     try {
         await (0, addToCartsModels_1.deleteCartItemById)(Number(id));
-        const cartItems = await (0, addToCartsModels_1.getAllCartItems)(userId, 10, 0);
-        const totalPrice = cartItems.reduce((total, item) => {
-            const itemPrice = item.food.discountPrice || item.food.price;
-            return total + itemPrice * item.quantity;
-        }, 0);
-        // await updatePaymentByUserId(userId, totalPrice);
-        return res
-            .status(200)
-            .json((0, responseHandler_1.createResponse)(200, "Cart item removed successfully.", null));
+        return res.status(200).json((0, responseHandler_1.createResponse)(200, "Cart item removed successfully.", null));
     }
     catch (error) {
         console.error("Error removing cart item:", error);
-        return res
-            .status(500)
-            .json((0, responseHandler_1.createResponse)(500, "Failed to remove cart item."));
+        return res.status(500).json((0, responseHandler_1.createResponse)(500, "Failed to remove cart item."));
     }
 };
 exports.removeCart = removeCart;

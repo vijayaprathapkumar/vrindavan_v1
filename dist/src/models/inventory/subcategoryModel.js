@@ -46,7 +46,7 @@ const getAllSubCategoriesWithCategory = async (limit, offset, searchTerm, catego
     }
     query += `
     ORDER BY 
-       CAST(sub_categories.weightage AS UNSIGNED) DESC 
+       CAST(sub_categories.weightage AS UNSIGNED) ASC 
     LIMIT ? 
     OFFSET ?;
   `;
