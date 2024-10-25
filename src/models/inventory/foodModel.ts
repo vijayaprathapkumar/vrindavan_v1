@@ -65,7 +65,7 @@ export const getAllFoods = async (
     query += " WHERE " + conditions.join(" AND ");
   }
 
-  query += " ORDER BY CAST(f.weightage AS UNSIGNED) DESC";
+  query += " ORDER BY CAST(f.weightage AS UNSIGNED) ASC";
 
   const countQuery = `
     SELECT COUNT(*) as count 
