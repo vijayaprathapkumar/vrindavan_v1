@@ -371,27 +371,21 @@ export const updateSubscriptionOrders = async (
 };
 
 export const deletePlaceOrderById = async (id: number) => {
-  if (typeof id !== "number" || id <= 0) {
-    throw new Error("Invalid ID. It must be a positive number.");
-  }
+  const deleteFoodOrderSql = `
+    DELETE FROM food_orders 
+    WHERE order_id = ?;
+  `;
 
   const sql = `
-    DELETE FROM payments 
+    DELETE FROM orders 
     WHERE id = ?;
   `;
 
-  try {
-    const [result]: [ResultSetHeader, any] = await db
-      .promise()
-      .query(sql, [id]);
+  await db.promise().query(deleteFoodOrderSql, [id]);
 
-    if (result.affectedRows === 0) {
-      throw new Error("Place order not found.");
-    }
+  const [result]: [ResultSetHeader, any] = await db.promise().query(sql, [id]);
 
-    console.log(`Successfully deleted place order with ID: ${id}`);
-  } catch (error) {
-    console.error("SQL Error:", error);
-    throw new Error("Failed to delete place order.");
+  if (result.affectedRows === 0) {
+    throw new Error("Order not found.");
   }
 };
