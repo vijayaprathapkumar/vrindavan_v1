@@ -25,6 +25,7 @@ import subscriptionsRoutes from "./routes/subscriptions/subscriptionsRoutes";
 import placeOrderRoutes from "./routes/placeOrder/placeOrderRoutes";
 import notificationRoutes from "./routes/notification/notificationRoutes";
 import featureProductRoutes from "./routes/featureProduct/featureProductRoutes";
+import similarProductsRoutes from "./routes/similarProducts/similarProductRoute";
 
 const router = express.Router();
 
@@ -84,5 +85,9 @@ router.use("/notifications", notificationRoutes);
 
 // feature_products
 router.use("/feature_products", featureProductRoutes);
+
+
+//similarProduct
+router.use("/similarProduct", similarProductsRoutes);
 
 export default router;
