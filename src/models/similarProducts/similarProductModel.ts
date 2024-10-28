@@ -1,7 +1,7 @@
 import { RowDataPacket } from "mysql2";
 import { db } from "../../config/databaseConnection";
 
-// Get subcategory ID by food ID
+
 export const getSubcategoryId = async (
   foodId: number
 ): Promise<number | null> => {
@@ -12,7 +12,7 @@ export const getSubcategoryId = async (
   return rows.length ? rows[0].subcategory_id : null;
 };
 
-// Get similar products
+
 export const getSimilarProductsWithCount = async (
   subcategoryId: number,
   limit: number,
@@ -46,24 +46,4 @@ export const getSimilarProductsWithCount = async (
     })),
     totalProducts: countRows[0]?.totalProducts || 0,
   };
-};
-
-// Get product by ID
-export const getProductById = async (productId: number) => {
-  const query = `
-      SELECT 
-        f.*,
-        CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name) AS original_url
-      FROM 
-        foods f
-      LEFT JOIN 
-        media m ON f.id = m.model_id AND m.model_type = 'App\\\\Models\\\\Food'
-      WHERE 
-        f.id = ?;`;
-
-  const [rows]: [RowDataPacket[], any] = await db
-    .promise()
-    .query(query, [productId]);
-
-  return rows[0] || null;
 };

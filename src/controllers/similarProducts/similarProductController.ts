@@ -1,12 +1,10 @@
 import { Request, Response } from "express";
 import { createResponse } from "../../utils/responseHandler";
 import {
-  getProductById,
   getSimilarProductsWithCount,
   getSubcategoryId,
 } from "../../models/similarProducts/similarProductModel";
 
-// Fetch similar products based on food ID
 export const fetchSimilarProducts = async (req: Request, res: Response): Promise<Response> => {
   const foodId = parseInt(req.params.foodId);
   const page = parseInt(req.query.page as string) || 1;
@@ -39,25 +37,4 @@ export const fetchSimilarProducts = async (req: Request, res: Response): Promise
     return res.status(500).json(createResponse(500, "Failed to fetch similar products."));
   }
 };
-
-// Fetch single product by ID
-export const fetchProductById = async (req: Request, res: Response): Promise<Response> => {
-    const productId = parseInt(req.params.id);
-  
-    if (isNaN(productId) || productId <= 0) {
-      return res.status(400).json(createResponse(400, "Invalid product ID."));
-    }
-  
-    try {
-      const product = await getProductById(productId);
-      if (!product) {
-        return res.status(404).json(createResponse(404, "Product not found."));
-      }
-  
-      return res.status(200).json(createResponse(200, "Product fetched successfully.", product));
-    } catch (error) {
-      console.error(`Error fetching product by ID ${productId}:`, error);
-      return res.status(500).json(createResponse(500, "Failed to fetch product."));
-    }
-  };
   
