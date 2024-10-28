@@ -1,3 +1,4 @@
+import moment from "moment";
 import { db } from "../../config/databaseConnection"; // Ensure this file is set up correctly
 import { ResultSetHeader, RowDataPacket } from "mysql2"; // Ensure RowDataPacket is imported
 
@@ -292,6 +293,81 @@ export const getPlaceOrderById = async (orderId: number): Promise<any> => {
     ).values(),
   ];
   return orderData;
+};
+
+// Update Order
+export const updateOneTimeOrders = async (
+  orderId: number,
+  quantity?: number,
+  orderDate?: string
+): Promise<void> => {
+  try {
+    const updates: string[] = [];
+    const params: (number | string)[] = [];
+
+    // Prepare updates based on provided values
+    if (quantity !== undefined) {
+      updates.push("quantity = ?");
+      params.push(quantity);
+    }
+
+    if (orderDate !== undefined) {
+      updates.push("order_date = ?");
+      params.push(orderDate);
+    }
+
+    if (updates.length > 0) {
+      const sql = `UPDATE food_orders SET ${updates.join(", ")} WHERE order_id = ?`;
+      params.push(orderId);
+
+      await db.promise().query(sql, params);
+    } else {
+      console.log("No updates provided.");
+    }
+  } catch (error) {
+    console.error("Error updating order:", error);
+  }
+};
+
+export const updateSubscriptionOrders = async (
+  subscriptionId: number,
+  quantity: number,
+  orderDate?: string
+): Promise<void> => {
+  try {
+    const [subscriptionItems]: [RowDataPacket[], any] = await db
+      .promise()
+      .query(`SELECT user_id, product_id FROM user_subscriptions WHERE id = ?`, [subscriptionId]);
+
+    if (subscriptionItems.length === 0) {
+      console.log("No subscription items found.");
+      return;
+    }
+
+    const { user_id, product_id } = subscriptionItems[0];
+
+    // Attempt to update subscription quantity
+    const [updateResult]: [ResultSetHeader,any] = await db
+      .promise()
+      .query(
+        `UPDATE subscription_quantity_changes 
+         SET quantity = ?, order_date = ? 
+         WHERE user_subscription_id = ?`,
+        [quantity, orderDate, subscriptionId]
+      );
+
+    // If no rows were updated, insert a new record
+    if (updateResult.affectedRows === 0) {
+      await db.promise().query(
+        `INSERT INTO subscription_quantity_changes (
+          user_subscription_id, order_type, user_id, product_id, quantity, order_date
+        ) VALUES (?, ?, ?, ?, ?, ?)`,
+        [subscriptionId, 2, user_id, product_id, quantity, orderDate]
+      );
+    }
+  } catch (error) {
+    console.error("Error updating subscription quantities:", error);
+  }
 };
 
 export const deletePlaceOrderById = async (id: number) => {
