@@ -89,22 +89,22 @@ export const fetchOrderById = async (
   }
 };
 
-// Delete a place order by ID
+// Delete a order by ID
 export const removeOrder = async (
   req: Request,
   res: Response
 ): Promise<Response> => {
   const { id } = req.params;
 
+  if (isNaN(Number(id)) || Number(id) <= 0) {
+    return res.status(400).json(createResponse(400, "Invalid ID. It must be a positive number."));
+  }
+
   try {
     await deletePlaceOrderById(Number(id));
-    return res.json(
-      createResponse(200, "Place order deleted successfully.", null)
-    );
+    return res.json(createResponse(200, "Order deleted successfully.", null));
   } catch (error) {
     console.error("Error deleting place order:", error);
-    return res
-      .status(500)
-      .json(createResponse(500, "Failed to delete place order."));
+    return res.status(500).json(createResponse(500, "Failed to delete place order."));
   }
 };
