@@ -53,5 +53,6 @@ export interface Food {
   created_at?: Date;   // Add these properties if needed
   updated_at?: Date;   // Add these properties if needed
   food_locality?: string | null;
+  outOfStock?:string | null;
   media?: Media[];  // Ensure this property is present
 }
