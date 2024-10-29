@@ -61,7 +61,7 @@ export const insertWalletTransaction = (transaction: WalletTransaction): Promise
 export const updateWalletBalance = async (userId: string, amount: number): Promise<void> => {
     const checkQuery = `SELECT * FROM wallet_balances WHERE user_id = ?`;
 
-    const [results]: any = await db.query(checkQuery, [userId]);
+    const [results]: any = await db.promise().query(checkQuery, [userId]);
 
     if (results.length > 0) {
         const updateQuery = `
@@ -69,13 +69,13 @@ export const updateWalletBalance = async (userId: string, amount: number): Promi
             SET balance = balance + ?, updated_at = NOW()
             WHERE user_id = ?
         `;
-        await db.query(updateQuery, [amount, userId]);
+        await  db.promise().query(updateQuery, [amount, userId]);
     } else {
         const insertQuery = `
             INSERT INTO wallet_balances (user_id, balance, created_at, updated_at)
             VALUES (?, ?, NOW(), NOW())
         `;
-        await db.query(insertQuery, [userId, amount]);
+        await db.promise().query(insertQuery, [userId, amount]);
     }
 };
 
