@@ -317,7 +317,9 @@ export const updateOneTimeOrders = async (
     }
 
     if (updates.length > 0) {
-      const sql = `UPDATE food_orders SET ${updates.join(", ")} WHERE order_id = ?`;
+      const sql = `UPDATE food_orders SET ${updates.join(
+        ", "
+      )} WHERE order_id = ?`;
       params.push(orderId);
 
       await db.promise().query(sql, params);
@@ -337,7 +339,10 @@ export const updateSubscriptionOrders = async (
   try {
     const [subscriptionItems]: [RowDataPacket[], any] = await db
       .promise()
-      .query(`SELECT user_id, product_id FROM user_subscriptions WHERE id = ?`, [subscriptionId]);
+      .query(
+        `SELECT user_id, product_id FROM user_subscriptions WHERE id = ?`,
+        [subscriptionId]
+      );
 
     if (subscriptionItems.length === 0) {
       console.log("No subscription items found.");
@@ -347,14 +352,12 @@ export const updateSubscriptionOrders = async (
     const { user_id, product_id } = subscriptionItems[0];
 
     // Attempt to update subscription quantity
-    const [updateResult]: [ResultSetHeader,any] = await db
-      .promise()
-      .query(
-        `UPDATE subscription_quantity_changes 
+    const [updateResult]: [ResultSetHeader, any] = await db.promise().query(
+      `UPDATE subscription_quantity_changes 
          SET quantity = ?, order_date = ? 
          WHERE user_subscription_id = ?`,
-        [quantity, orderDate, subscriptionId]
-      );
+      [quantity, orderDate, subscriptionId]
+    );
 
     // If no rows were updated, insert a new record
     if (updateResult.affectedRows === 0) {
@@ -371,6 +374,16 @@ export const updateSubscriptionOrders = async (
 };
 
 export const deletePlaceOrderById = async (id: number) => {
+  
+  const updateSubscriptionSql = `
+    UPDATE subscription_quantity_changes 
+    SET 
+      cancel_order_date = NOW(), cancel_subscription = 1
+    WHERE user_subscription_id = (
+      SELECT user_subscription_id FROM orders WHERE id=?
+    );
+  `;
+
   const deleteFoodOrderSql = `
     DELETE FROM food_orders 
     WHERE order_id = ?;
@@ -380,6 +393,8 @@ export const deletePlaceOrderById = async (id: number) => {
     DELETE FROM orders 
     WHERE id = ?;
   `;
+
+  await db.promise().query(updateSubscriptionSql, [id]);
 
   await db.promise().query(deleteFoodOrderSql, [id]);
 

@@ -14,7 +14,7 @@ router.get("/:userId", verifyDeviceToken, fetchAllOrders);
 
 router.get("/byId/:id", verifyDeviceToken, fetchOrderById);
 
-router.put("/", updateOrderqty);
+router.put("/",verifyDeviceToken, updateOrderqty);
 
 router.delete("/:id", verifyDeviceToken, removeOrder);
 

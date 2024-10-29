@@ -160,10 +160,31 @@ export const getAllSubscriptionsModel = (
              m.order_column,
              m.created_at AS media_created_at,
              m.updated_at AS media_updated_at,
-             CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name) AS original_url
+             CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name) AS original_url,
+             sqc.user_subscription_id,
+             sqc.order_type,
+             sqc.user_id,
+             sqc.product_id,
+             sqc.quantity AS subscription_quantity, 
+             sqc.order_date,
+             sqc.start_date,
+             sqc.end_date,
+             sqc.cancel_subscription,
+             sqc.pause_date,
+             sqc.cancel_order_date,
+             sqc.cancel_subscription_date,
+             sqc.cancel_order,
+             sqc.today_order,
+             sqc.previous_order,
+             sqc.pause_subscription,
+             sqc.reason,
+             sqc.other_reason,
+             sqc.created_at,
+             sqc.updated_at AS quantity_updated_at 
       FROM user_subscriptions 
       LEFT JOIN foods ON user_subscriptions.product_id = foods.id 
       LEFT JOIN media m ON foods.id = m.model_id AND m.model_type = 'App\\\\Models\\\\Food'
+      LEFT JOIN subscription_quantity_changes sqc ON user_subscriptions.id = sqc.user_subscription_id 
       WHERE user_subscriptions.user_id = ?
     `;
 
@@ -194,7 +215,12 @@ export const getAllSubscriptionsModel = (
       if (error) {
         return reject(error);
       }
-      resolve(results);
+      const transformedResults = results.map((change) => {
+        return {
+          ...change, 
+        };
+      });
+      resolve(transformedResults);
     });
   });
 };
@@ -377,10 +403,31 @@ export const getSubscriptionGetByIdModel = (
       m.order_column,
       m.created_at AS media_created_at,
       m.updated_at AS media_updated_at,
-      CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name) AS original_url
+      CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name) AS original_url,
+       sqc.user_subscription_id,
+             sqc.order_type,
+             sqc.user_id,
+             sqc.product_id,
+             sqc.quantity AS subscription_quantity, 
+             sqc.order_date,
+             sqc.start_date,
+             sqc.end_date,
+             sqc.cancel_subscription,
+             sqc.pause_date,
+             sqc.cancel_order_date,
+             sqc.cancel_subscription_date,
+             sqc.cancel_order,
+             sqc.today_order,
+             sqc.previous_order,
+             sqc.pause_subscription,
+             sqc.reason,
+             sqc.other_reason,
+             sqc.created_at,
+             sqc.updated_at AS quantity_updated_at 
 FROM user_subscriptions
 JOIN foods ON user_subscriptions.product_id = foods.id
 LEFT JOIN media m ON foods.id = m.model_id AND m.model_type = 'App\\\\Models\\\\Food'
+ LEFT JOIN subscription_quantity_changes sqc ON user_subscriptions.id = sqc.user_subscription_id 
 WHERE user_subscriptions.id = ?`,
       [id],
       (error, results) => {
