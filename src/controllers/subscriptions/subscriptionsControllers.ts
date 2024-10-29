@@ -337,12 +337,14 @@ export const updateSubscriptionPauseController = async (
     is_pause_subscription,
     pause_start_time,
     pause_end_time,
+    pause_until_come_back
   } = req.body;
 
   try {
     await updateSubscriptionPauseInfo(
       user_id,
       is_pause_subscription,
+      pause_until_come_back,
       pause_start_time,
       pause_end_time
     );
