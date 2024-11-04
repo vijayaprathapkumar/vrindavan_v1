@@ -12,15 +12,15 @@ export const fetchFeaturedCategories = async (req: Request, res: Response): Prom
     try {
         const featuredCategories = await getFeaturedCategories(limit, offset,searchTerm);
         
-        const totalFeaturedCategories = await getCountOfFeaturedCategories();
+        const { categoryCount, totalFoodCount } = await getCountOfFeaturedCategories();
 
         return res.status(200).json(
             createResponse(200, "Featured categories fetched successfully.", {
                 featuredCategories,
                 currentPage: page,
                 limit,
-                totalPages: Math.ceil(totalFeaturedCategories / limit),
-                totalItems: totalFeaturedCategories,
+                totalPages: Math.ceil(categoryCount / limit),
+                totalItems: categoryCount,
             })
         );
     } catch (error) {

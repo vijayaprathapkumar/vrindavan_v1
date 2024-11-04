@@ -18,6 +18,11 @@ export interface Banner {
   updated_at?: Date;
 }
 
+interface BannerWithMediaAndFood {
+  banner: Banner;
+  media: any | null;
+  food: any | null;
+}
 // Fetch all banners
 export const getAllBanners = async (
   page: number,
@@ -59,10 +64,38 @@ export const getAllBanners = async (
       m.order_column,
       m.created_at AS media_created_at,
       m.updated_at AS media_updated_at,
+       f.id AS food_id,
+      f.name AS food_name,
+      f.price AS food_price,
+      f.discount_price AS food_discount_price,
+      f.description AS food_description,
+      f.perma_link AS food_perma_link,
+      f.ingredients AS food_ingredients,
+      f.package_items_count AS food_package_items_count,
+      f.weight AS food_weight,
+      f.unit AS food_unit,
+      f.sku_code AS food_sku_code,
+      f.barcode AS food_barcode,
+      f.cgst AS food_cgst,
+      f.sgst AS food_sgst,
+      f.subscription_type AS food_subscription_type,
+      f.track_inventory AS food_track_inventory,
+      f.featured AS food_featured,
+      f.deliverable AS food_deliverable,
+      f.restaurant_id AS food_restaurant_id,
+      f.category_id AS food_category_id,
+      f.subcategory_id AS food_subcategory_id,
+      f.product_type_id AS food_product_type_id,
+      f.hub_id AS food_hub_id,
+      f.locality_id AS food_locality_id,
+      f.product_brand_id AS food_product_brand_id,
+      f.weightage AS food_weightage,
+      f.status AS food_status,
       CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name) AS original_url
     FROM
       banners b
     LEFT JOIN media m ON b.id = m.model_id AND m.model_type = 'App\\\\Models\\\\Banner'
+    LEFT JOIN foods f ON b.food_id = f.id
     WHERE
       b.id IS NOT NULL
   `;
@@ -132,6 +165,35 @@ export const getAllBanners = async (
         updated_at: row.media_updated_at,
         original_url: row.original_url,
       },
+      food: {
+        id: row.food_id,
+        name: row.food_name,
+        price: row.food_price,
+        discount_price: row.food_discount_price,
+        description: row.food_description,
+        perma_link: row.food_perma_link,
+        ingredients: row.food_ingredients,
+        package_items_count: row.food_package_items_count,
+        weight: row.food_weight,
+        unit: row.food_unit,
+        sku_code: row.food_sku_code,
+        barcode: row.food_barcode,
+        cgst: row.food_cgst,
+        sgst: row.food_sgst,
+        subscription_type: row.food_subscription_type,
+        track_inventory: row.food_track_inventory,
+        featured: row.food_featured,
+        deliverable: row.food_deliverable,
+        restaurant_id: row.food_restaurant_id,
+        category_id: row.food_category_id,
+        subcategory_id: row.food_subcategory_id,
+        product_type_id: row.food_product_type_id,
+        hub_id: row.food_hub_id,
+        locality_id: row.food_locality_id,
+        product_brand_id: row.food_product_brand_id,
+        weightage: row.food_weightage,
+        status: row.food_status,
+      },
     })),
     total: totalCount,
   };
@@ -187,14 +249,14 @@ export const createBanner = async (bannerData: {
     return result;
   } catch (error) {
     console.error("Error creating banner:", error);
-    throw error; 
+    throw error;
   }
 };
 
 // Fetch banner by ID
 export const getBannerById = async (
   id: number
-): Promise<{ banner: Banner; media: any | null } | null> => {
+): Promise<BannerWithMediaAndFood | null> => {
   const query = `
     SELECT 
       b.id AS banner_id,
@@ -228,10 +290,38 @@ export const getBannerById = async (
       m.order_column,
       m.created_at AS media_created_at,
       m.updated_at AS media_updated_at,
+      f.id AS food_id,
+      f.name AS food_name,
+      f.price AS food_price,
+      f.discount_price AS food_discount_price,
+      f.description AS food_description,
+      f.perma_link AS food_perma_link,
+      f.ingredients AS food_ingredients,
+      f.package_items_count AS food_package_items_count,
+      f.weight AS food_weight,
+      f.unit AS food_unit,
+      f.sku_code AS food_sku_code,
+      f.barcode AS food_barcode,
+      f.cgst AS food_cgst,
+      f.sgst AS food_sgst,
+      f.subscription_type AS food_subscription_type,
+      f.track_inventory AS food_track_inventory,
+      f.featured AS food_featured,
+      f.deliverable AS food_deliverable,
+      f.restaurant_id AS food_restaurant_id,
+      f.category_id AS food_category_id,
+      f.subcategory_id AS food_subcategory_id,
+      f.product_type_id AS food_product_type_id,
+      f.hub_id AS food_hub_id,
+      f.locality_id AS food_locality_id,
+      f.product_brand_id AS food_product_brand_id,
+      f.weightage AS food_weightage,
+      f.status AS food_status,
       CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name) AS original_url
     FROM 
       banners b
     LEFT JOIN media m ON b.id = m.model_id AND m.model_type = 'App\\\\Models\\\\Banner'
+    LEFT JOIN foods f ON b.food_id = f.id
     WHERE 
       b.id = ?;
   `;
@@ -279,6 +369,39 @@ export const getBannerById = async (
           created_at: row.media_created_at,
           updated_at: row.media_updated_at,
           original_url: row.original_url,
+        }
+      : null,
+      food: row.food_id
+      ? {
+          id: row.food_id,
+          name: row.food_name,
+          price: row.food_price,
+          discount_price: row.food_discount_price,
+          description: row.food_description,
+          perma_link: row.food_perma_link,
+          ingredients: row.food_ingredients,
+          package_items_count: row.food_package_items_count,
+          weight: row.food_weight,
+          unit: row.food_unit,
+          sku_code: row.food_sku_code,
+          barcode: row.food_barcode,
+          cgst: row.food_cgst,
+          sgst: row.food_sgst,
+          subscription_type: row.food_subscription_type,
+          track_inventory: row.food_track_inventory,
+          featured: row.food_featured,
+          deliverable: row.food_deliverable,
+          restaurant_id: row.food_restaurant_id,
+          category_id: row.food_category_id,
+          subcategory_id: row.food_subcategory_id,
+          product_type_id: row.food_product_type_id,
+          hub_id: row.food_hub_id,
+          locality_id: row.food_locality_id,
+          product_brand_id: row.food_product_brand_id,
+          weightage: row.food_weightage,
+          status: row.food_status,
+          created_at: row.food_created_at,
+          updated_at: row.food_updated_at,
         }
       : null,
   };

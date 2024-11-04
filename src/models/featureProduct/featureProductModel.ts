@@ -33,8 +33,17 @@ export const getFeaturedCategories = async (limit?: number, offset?: number, sea
 };
 
 
-export const getCountOfFeaturedCategories = async (): Promise<number> => {
-    const query = `SELECT COUNT(*) AS count FROM featured_categories;`;
+export const getCountOfFeaturedCategories = async (): Promise<{ categoryCount: number; totalFoodCount: number }> => {
+    const query = `
+        SELECT COUNT(DISTINCT fc.category_id) AS categoryCount, COUNT(f.id) AS totalFoodCount
+        FROM featured_categories AS fc
+        JOIN foods AS f ON fc.category_id = f.category_id;
+    `;
+
     const [rows]: [RowDataPacket[], any] = await db.promise().query(query);
-    return rows[0].count;
+    return {
+        categoryCount: rows[0].categoryCount,
+        totalFoodCount: rows[0].totalFoodCount
+    };
 };
+
