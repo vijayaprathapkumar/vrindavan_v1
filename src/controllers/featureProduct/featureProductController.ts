@@ -6,9 +6,11 @@ export const fetchFeaturedCategories = async (req: Request, res: Response): Prom
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
     const offset = (page - 1) * limit;
+    const searchTerm = req.query.searchTerm as string;
+
 
     try {
-        const featuredCategories = await getFeaturedCategories(limit, offset);
+        const featuredCategories = await getFeaturedCategories(limit, offset,searchTerm);
         
         const totalFeaturedCategories = await getCountOfFeaturedCategories();
 
