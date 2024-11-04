@@ -18,6 +18,6 @@ router.get("/:id",verifyDeviceToken, getCustomer);
 
 router.put("/:id",verifyDeviceToken, updateCustomer);
 
-router.delete("/:id",verifyDeviceToken, deleteCustomer);
+router.delete("/:id", deleteCustomer);
 
 export default router;
