@@ -96,8 +96,18 @@ export const getAllBanners = async (
 
   const totalCount = totalCountRows[0]?.total || 0;
 
-  return {
-    banners: rows.map((row) => ({
+  const banners = await Promise.all(rows.map(async (row) => {
+    const foodIds = row.food_id ? row.food_id.split(',').map((id: string) => parseInt(id.trim())) : [];
+
+    let foodItems = [];
+    if (foodIds.length > 0) {
+      const [foodRows]: [RowDataPacket[], any] = await db
+        .promise()
+        .query(`SELECT * FROM foods WHERE id IN (${foodIds.map(() => '?').join(',')})`, foodIds);
+      foodItems = foodRows;
+    }
+
+    return {
       id: row.banner_id,
       banner_name: row.banner_name,
       banner_type: row.banner_type,
@@ -132,7 +142,12 @@ export const getAllBanners = async (
         updated_at: row.media_updated_at,
         original_url: row.original_url,
       },
-    })),
+      foods: foodItems,
+    };
+  }));
+
+  return {
+    banners,
     total: totalCount,
   };
 };
@@ -194,7 +209,7 @@ export const createBanner = async (bannerData: {
 // Fetch banner by ID
 export const getBannerById = async (
   id: number
-): Promise<{ banner: Banner; media: any | null } | null> => {
+): Promise<{ banner: Banner; media: any | null; foods: any[] | null } | null>  => {
   const query = `
     SELECT 
       b.id AS banner_id,
@@ -242,6 +257,16 @@ export const getBannerById = async (
 
   const row = rows[0];
 
+  const foodIds = row.food_id ? row.food_id.split(',').map((id: string) => parseInt(id.trim())) : [];
+  let foodItems = [];
+
+  if (foodIds.length > 0) {
+    const [foodRows]: [RowDataPacket[], any] = await db
+      .promise()
+      .query(`SELECT * FROM foods WHERE id IN (${foodIds.map(() => '?').join(',')})`, foodIds);
+    foodItems = foodRows;
+  }
+
   return {
     banner: {
       id: row.banner_id,
@@ -281,6 +306,7 @@ export const getBannerById = async (
           original_url: row.original_url,
         }
       : null,
+      foods: foodItems.length > 0 ? foodItems : null,
   };
 };
 
