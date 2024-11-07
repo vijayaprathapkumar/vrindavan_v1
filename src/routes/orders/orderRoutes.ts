@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
   fetchAllOrders,
+  fetchAllOrdersWithOutUserID,
   fetchOrderById,
   removeOrder,
   updateOrderqty,
@@ -11,6 +12,8 @@ import { verifyDeviceToken } from "../../middlewares/authMiddleware";
 const router = Router();
 
 router.get("/:userId", verifyDeviceToken, fetchAllOrders);
+
+router.get("/", verifyDeviceToken, fetchAllOrdersWithOutUserID);
 
 router.get("/byId/:id", verifyDeviceToken, fetchOrderById);
 

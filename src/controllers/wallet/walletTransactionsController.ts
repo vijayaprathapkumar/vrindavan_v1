@@ -5,6 +5,7 @@ import {
   updateWalletBalance,
   getTransactionsByUserId as fetchTransactionsByUserId,
   TransactionsResponse,
+  fetchAllTransactions,
 } from "../../models/wallet/walletTransactionModel";
 
 export const walletRecharges = async (req: Request, res: Response) => {
@@ -71,6 +72,30 @@ export const getTransactionsByUserId = async (req: Request, res: Response) => {
 
     const totalPages = Math.ceil(total / Number(limit));
 
+    return res.status(200).json(
+      createResponse(200, "Transactions retrieved successfully", {
+        transactions,
+        totalRecord: total,
+        currentPage: Number(page),
+        limit: Number(limit),
+        totalPages,
+      })
+    );
+  } catch (error) {
+    console.error("Error retrieving transactions:", error);
+    return res
+      .status(500)
+      .json(createResponse(500, "Error retrieving transactions"));
+  }
+};
+
+export const getAllTransactions = async (req: Request, res: Response) => {
+  const { page = 1, limit = 10 } = req.query;
+
+  try {
+    const { transactions, total }: TransactionsResponse =
+      await fetchAllTransactions(Number(page), Number(limit));
+    const totalPages = Math.ceil(total / Number(limit));
     return res.status(200).json(
       createResponse(200, "Transactions retrieved successfully", {
         transactions,
