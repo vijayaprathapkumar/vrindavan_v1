@@ -108,3 +108,32 @@ export const getTransactionsByUserId = (userId: string, page: number, limit: num
         });
     });
 };
+
+
+export const fetchAllTransactions = (page: number, limit: number): Promise<TransactionsResponse> => {
+    const offset = (page - 1) * limit;
+    const query = `
+        SELECT * FROM wallet_transactions
+        ORDER BY updated_at DESC 
+        LIMIT ? OFFSET ?
+    `;
+  
+    return new Promise((resolve, reject) => {
+      db.query(query, [limit, offset], (err, results) => {
+        if (err) {
+          return reject(err);
+        }
+  
+        const transactions: WalletTransaction[] = results as WalletTransaction[];
+
+        const countQuery = `SELECT COUNT(*) AS total FROM wallet_transactions`;
+        db.query(countQuery, (err, countResults) => {
+          if (err) {
+            return reject(err);
+          }
+          const total = countResults[0]?.total || 0;
+          resolve({ transactions, total });
+        });
+      });
+    });
+  };
