@@ -1,6 +1,5 @@
-import moment from "moment";
-import { db } from "../../config/databaseConnection"; // Ensure this file is set up correctly
-import { ResultSetHeader, RowDataPacket } from "mysql2"; // Ensure RowDataPacket is imported
+import { db } from "../../config/databaseConnection"; 
+import { ResultSetHeader, RowDataPacket } from "mysql2";
 
 export const getAllOrders = async (
   userId: number,
@@ -195,8 +194,6 @@ export const getAllOrdersWithOutUserId = async (
   const countQuery = `
     SELECT COUNT(DISTINCT o.id) as total
     FROM orders o
-    LEFT JOIN food_orders fo ON o.id = fo.order_id
-    LEFT JOIN foods f ON fo.food_id = f.id
     WHERE 1=1 ${dateCondition} ${searchCondition}
   `;
   const [[{ total }]] = await db
