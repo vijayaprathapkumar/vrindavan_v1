@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { getFeaturedCategories, getCountOfFeaturedCategories } from "../../models/featureProduct/featureProductModel";
+import { getFeaturedCategories } from "../../models/featureProduct/featureProductModel";
 import { createResponse } from "../../utils/responseHandler";
 
 export const fetchFeaturedCategories = async (req: Request, res: Response): Promise<Response> => {
@@ -8,19 +8,16 @@ export const fetchFeaturedCategories = async (req: Request, res: Response): Prom
     const offset = (page - 1) * limit;
     const searchTerm = req.query.searchTerm as string;
 
-
     try {
-        const featuredCategories = await getFeaturedCategories(limit, offset,searchTerm);
-        
-        const totalFeaturedCategories = await getCountOfFeaturedCategories();
+        const featuredCategories = await getFeaturedCategories(limit, offset, searchTerm);
 
         return res.status(200).json(
             createResponse(200, "Featured categories fetched successfully.", {
-                featuredCategories,
+                featuredCategories: featuredCategories.data,
                 currentPage: page,
                 limit,
-                totalPages: Math.ceil(totalFeaturedCategories / limit),
-                totalItems: totalFeaturedCategories,
+                totalPages: Math.ceil(featuredCategories.totalItems / limit),
+                totalItems: featuredCategories.totalItems,
             })
         );
     } catch (error) {
