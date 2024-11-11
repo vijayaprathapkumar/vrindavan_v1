@@ -26,6 +26,7 @@ import placeOrderRoutes from "./routes/placeOrder/placeOrderRoutes";
 import notificationRoutes from "./routes/notification/notificationRoutes";
 import featureProductRoutes from "./routes/featureProduct/featureProductRoutes";
 import similarProductsRoutes from "./routes/similarProducts/similarProductRoute";
+import loginRoutes from "./routes/adminLogin/loginRoutes";
 
 const router = express.Router();
 
@@ -89,5 +90,10 @@ router.use("/feature_products", featureProductRoutes);
 
 //similarProduct
 router.use("/similarProduct", similarProductsRoutes);
+
+
+// admin Login
+router.use("/admin", loginRoutes);
+
 
 export default router;
