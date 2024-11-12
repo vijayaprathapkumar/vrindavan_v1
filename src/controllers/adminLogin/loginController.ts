@@ -6,10 +6,7 @@ import {
 } from "../../models/adminLogin/loginModel";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
-import {
-  validateEmail,
-  validatePassword,
-} from "../../validation/admin/adminLogin/loginValidation";
+import { validateEmailRegex, validatePassword } from "../../config/regex/regex";
 
 dotenv.config();
 
@@ -23,7 +20,7 @@ export const adminVerifyController = async (req: Request, res: Response) => {
       .json(createResponse(400, "Email and password are required"));
   }
 
-  if (!validateEmail(email)) {
+  if (!validateEmailRegex(email)) {
     return res.status(400).json(createResponse(400, "Invalid email format"));
   }
 
