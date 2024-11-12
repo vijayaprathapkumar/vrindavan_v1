@@ -30,6 +30,7 @@ interface FoodDetails {
   weightage: number;
   status: string;
   foodLocality: number;
+  media: MediaDetails;
 }
 
 interface CartItem {
@@ -40,6 +41,24 @@ interface CartItem {
   createdAt: Date;
   updatedAt: Date;
   food: FoodDetails;
+}
+
+interface MediaDetails {
+  media_id: number;
+  model_id: number;
+  file_name: string;
+  mime_type: string;
+  disk: string;
+  conversions_disk: string;
+  size: number;
+  manipulations: string;
+  custom_properties: string;
+  generated_conversions: string;
+  responsive_images: string;
+  order_column: number;
+  media_created_at: Date;
+  media_updated_at: Date;
+  original_url: string;
 }
 
 // Fetch all cart items for a user with pagination
@@ -111,8 +130,8 @@ export const getAllCartItems = async (
   `;
 
   const [rows]: [RowDataPacket[], any] = await db
-    .promise()
-    .query(query, [userId, limit, offset]);
+  .promise()
+  .query(query, [userId, limit, offset]);
   return rows.map((row) => ({
     id: row.cart_id,
     food_id: row.food_id,
@@ -150,11 +169,8 @@ export const getAllCartItems = async (
       foodLocality: row.food_locality,
       media: row.media_id
         ? {
-            id: row.media_id,
-            model_type: row.model_type,
-            uuid: row.uuid,
-            collection_name: row.collection_name,
-            name: row.media_name,
+            media_id: row.media_id,
+            model_id: row.model_id,
             file_name: row.file_name,
             mime_type: row.mime_type,
             disk: row.disk,
@@ -165,8 +181,8 @@ export const getAllCartItems = async (
             generated_conversions: row.generated_conversions,
             responsive_images: row.responsive_images,
             order_column: row.order_column,
-            created_at: row.media_created_at,
-            updated_at: row.media_updated_at,
+            media_created_at: row.media_created_at,
+            media_updated_at: row.media_updated_at,
             original_url: row.original_url,
           }
         : null,
@@ -235,11 +251,28 @@ export const getCartItemById = async (id: number): Promise<CartItem | null> => {
       f.product_brand_id,
       f.weightage,
       f.status,
-      f.food_locality
+      f.food_locality,
+      m.id AS media_id,
+      m.model_id,
+      m.file_name,
+      m.mime_type,
+      m.disk,
+      m.conversions_disk,
+      m.size,
+      m.manipulations,
+      m.custom_properties,
+      m.generated_conversions,
+      m.responsive_images,
+      m.order_column,
+      m.created_at AS media_created_at,
+      m.updated_at AS media_updated_at,
+      CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name) AS original_url 
     FROM 
       carts c
     JOIN 
       foods f ON c.food_id = f.id
+    LEFT JOIN 
+      media m ON f.id = m.model_id AND m.model_type = 'App\\\\Models\\\\Food'
     WHERE 
       c.id = ?;
   `;
@@ -284,6 +317,21 @@ export const getCartItemById = async (id: number): Promise<CartItem | null> => {
     weightage,
     status,
     food_locality,
+    media_id,
+    model_id,
+    file_name,
+    mime_type,
+    disk,
+    conversions_disk,
+    size,
+    manipulations,
+    custom_properties,
+    generated_conversions,
+    responsive_images,
+    order_column,
+    media_created_at,
+    media_updated_at,
+    original_url,
   } = row;
   return {
     id: cart_id,
@@ -320,6 +368,23 @@ export const getCartItemById = async (id: number): Promise<CartItem | null> => {
       weightage,
       status,
       foodLocality:food_locality,
+      media:{
+        media_id,
+        model_id,
+        file_name,
+        mime_type,
+        disk,
+        conversions_disk,
+        size,
+        manipulations,
+        custom_properties,
+        generated_conversions,
+        responsive_images,
+        order_column,
+        media_created_at,
+        media_updated_at,
+        original_url
+      }
     },
   };
 };
