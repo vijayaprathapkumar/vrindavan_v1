@@ -14,6 +14,7 @@ export const getAllCategories = async (
       c.description,
       c.weightage,
       c.created_at,
+      c.updated_at,
       m.id AS media_id,
       m.model_id,
       m.file_name,
