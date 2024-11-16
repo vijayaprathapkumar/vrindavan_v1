@@ -35,7 +35,7 @@ export const getCustomers = async (
         totalCount: total,
         currentPage: Number(page),
         limit: validLimit,
-        totalPage: totalPages,
+        totalPages: totalPages,
       },
     });
   } catch (error) {
