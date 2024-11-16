@@ -22,12 +22,15 @@ export const getCategories = async (req: Request, res: Response): Promise<void> 
     const totalPages = Math.ceil(totalCount / limit);
 
     const categoriesWithMedia = categories.map(category => {
+      console.log('category',category);
+      
       const categoryResponse = {
             category_id: category.category_id,
             category_name: category.category_name,
             description: category.description,
             weightage: category.weightage,
-            category_created_at: category.category_created_at,
+            created_at: category.created_at,
+            updated_at:category.updated_at,
         media: [] 
       };
 
