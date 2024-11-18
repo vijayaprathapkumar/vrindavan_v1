@@ -21,7 +21,7 @@ app.use(cors(corsOptions))
 initializeCronJobs();
 
 app.get("/", (req, res) => {
-  res.send("Welcome to our vrindavan");
+  res.send("Welcome to our vrindavan application");
 });
 
 app.use("/api", routes);
