@@ -1,0 +1,24 @@
+name: Deploy to Server via Webhook
+
+on:
+  push:
+    branches:
+      - main  # Trigger this workflow on pushes to the 'main' branch
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest  # This will run the job on an Ubuntu-based runner
+
+    steps:
+    # Step 1: Checkout the latest code from your repository
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    # Step 2: Install curl to make HTTP requests (it might already be installed on the runner)
+    - name: Install curl
+      run: sudo apt-get install -y curl
+
+    # Step 3: Trigger the webhook to start the deployment on your server
+    - name: Trigger AWS Webhook
+      run: |
+        curl -X POST "https://ap-south-1.webhooks.aws/trigger?t=eyJlbmNyeXB0ZWREYXRhIjoiVWtsQ1F3UE9lSndGS0xSRxh0U0U5U0JCcGxQY0pZeUdKQkFYalkxeXJBMTNIZkxPZldlc0hkV3RSS0FDVk1vMEpHeU1QblVtZkhqd2lLb2ZZS0ZUVlo0MCtIOWV3NHRIMGZBMjBpbDNRUEVnUjVTekNPNFBwOTkxR3R0VmJobXdFdE54d3ByZDBVMzB4bi9GaG96T1A5SUREaDJWQnN6eXR5M0NXTUVLZ2gzYU5nPT0iLCJpdlBhcmFtZXRlclNwZWMiOiJ5cXc3OGR4bGl6NDQ5NzV1IiwibWF0ZXJpYWxTZXRTZXJpYWwiOjF9&v=1"
