@@ -30,6 +30,7 @@ export const getSubcategories = async (req: Request, res: Response): Promise<voi
         description: subcategory.description,
         weightage: subcategory.weightage,
         subcategory_created_at: subcategory.created_at,
+        subcategory_updated_at: subcategory.updated_at,
         media: [],
       };
 
