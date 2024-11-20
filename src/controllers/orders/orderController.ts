@@ -71,9 +71,11 @@ export const fetchAllOrdersWithOutUserID = async (
 ): Promise<Response> => {
   const page = parseInt(req.query.page as string) || 1;
   const limit = parseInt(req.query.limit as string) || 10;
-  const searchTerm: string | null = req.query.searchTerm
-    ? (req.query.searchTerm as string)
-    : null;
+
+  const routeId = req.query.route_id ? parseInt(req.query.route_id as string) : null;
+  const hubId = req.query.hub_id ? parseInt(req.query.hub_id as string) : null;
+  const localityId = req.query.locality_id ? parseInt(req.query.locality_id as string) : null;
+  const searchTerm = req.query.searchTerm ? (req.query.searchTerm as string) : null;
 
   const startDate = req.query.startDate
     ? new Date(req.query.startDate as string)
@@ -96,13 +98,16 @@ export const fetchAllOrdersWithOutUserID = async (
       limit,
       startDate,
       endDate,
-      searchTerm
+      searchTerm,
+      routeId,
+      hubId,
+      localityId
     );
 
     const totalPages = Math.ceil(total / limit);
 
-    return res.json(
-      createResponse(200, "Place orders fetched successfully.", {
+    return res.status(200).json(
+      createResponse(200, "Orders fetched successfully.", {
         placeOrders,
         currentPage: page,
         limit,
@@ -111,12 +116,13 @@ export const fetchAllOrdersWithOutUserID = async (
       })
     );
   } catch (error) {
-    console.error("Error fetching place orders:", error);
+    console.error("Error fetching orders:", error);
     return res
       .status(500)
-      .json(createResponse(500, "Failed to fetch place orders."));
+      .json(createResponse(500, "An error occurred while fetching orders."));
   }
 };
+
 
 export const fetchOrderById = async (
   req: Request,
@@ -144,7 +150,6 @@ export const fetchOrderById = async (
   }
 };
 
-
 //update  Qnty Change
 export const updateOrderqty = async (
   req: Request,
@@ -154,17 +159,31 @@ export const updateOrderqty = async (
 
   // Validate orderId and subcriptionId presence and number
   if (isNaN(orderId) || (orderType === 2 && isNaN(subcriptionId))) {
-    return res.status(400).json(createResponse(400, "Order ID or Subscription ID is missing or incorrect."));
+    return res
+      .status(400)
+      .json(
+        createResponse(
+          400,
+          "Order ID or Subscription ID is missing or incorrect."
+        )
+      );
   }
 
   // Validate quantity and orderDate
-  if ((quantity === undefined || quantity === null) && (orderDate === undefined || orderDate === null)) {
-    return res.status(400).json(createResponse(400, "Quantity or Order Date is missing."));
+  if (
+    (quantity === undefined || quantity === null) &&
+    (orderDate === undefined || orderDate === null)
+  ) {
+    return res
+      .status(400)
+      .json(createResponse(400, "Quantity or Order Date is missing."));
   }
 
   // Check orderDate format
   if (orderDate && !moment(orderDate, "YYYY-MM-DD", true).isValid()) {
-    return res.status(400).json(createResponse(400, "Order date is incorrect."));
+    return res
+      .status(400)
+      .json(createResponse(400, "Order date is incorrect."));
   }
 
   // Check quantity type
@@ -174,7 +193,9 @@ export const updateOrderqty = async (
 
   // Check subcriptionId type for subscription orders
   if (orderType === 2 && isNaN(subcriptionId)) {
-    return res.status(400).json(createResponse(400, "Subscription ID is incorrect."));
+    return res
+      .status(400)
+      .json(createResponse(400, "Subscription ID is incorrect."));
   }
 
   try {
@@ -193,7 +214,6 @@ export const updateOrderqty = async (
   }
 };
 
-
 // Delete a place order by ID
 export const removeOrder = async (
   req: Request,
@@ -202,7 +222,9 @@ export const removeOrder = async (
   const { id } = req.params;
 
   if (isNaN(Number(id)) || Number(id) <= 0) {
-    return res.status(400).json(createResponse(400, "Invalid ID. It must be a positive number."));
+    return res
+      .status(400)
+      .json(createResponse(400, "Invalid ID. It must be a positive number."));
   }
 
   try {
@@ -210,6 +232,8 @@ export const removeOrder = async (
     return res.json(createResponse(200, "Order deleted successfully.", null));
   } catch (error) {
     console.error("Error deleting place order:", error);
-    return res.status(500).json(createResponse(500, "Failed to delete place order."));
+    return res
+      .status(500)
+      .json(createResponse(500, "Failed to delete place order."));
   }
 };
