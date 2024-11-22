@@ -14,8 +14,8 @@ export interface Notification {
   created_at?: Date;
   updated_at?: Date;
   original_url?: string;
-  notifications_log_ids?:string;
-  notification_sent_dates?:string;
+  notifications_log_ids?: string;
+  notification_sent_dates?: string;
 }
 
 // Get all notifications
@@ -33,10 +33,7 @@ export const getAllNotifications = async (
   const query = `
       SELECT
         un.id,
-        CASE un.notification_type
-          WHEN 1 THEN 'Text Notifications'
-          WHEN 2 THEN 'Product Notifications'
-        END AS notification_type,
+        un.notification_type,
         un.title,
         un.description,
         un.user_id,
@@ -56,7 +53,7 @@ export const getAllNotifications = async (
       ORDER BY un.created_at DESC
       LIMIT ? OFFSET ?;
     `;
-   
+
   // If searchTerm exists, use it in the query
   const queryParams = searchTerm
     ? [`%${searchTerm}%`, `%${searchTerm}%`, limit, offset]
@@ -141,7 +138,7 @@ export const createNotification = async (notificationData: {
     return result;
   } catch (error) {
     console.error("Error creating notification:", error);
-    throw error; 
+    throw error;
   }
 };
 
@@ -152,10 +149,7 @@ export const getNotificationById = async (
   const query = `
       SELECT
         un.id,
-        CASE un.notification_type
-          WHEN 1 THEN 'Notifications'
-          WHEN 2 THEN 'Product Notifications'
-        END AS notification_type,
+        un.notification_type,
         un.title,
         un.description,
         un.user_id,
