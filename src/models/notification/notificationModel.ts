@@ -34,7 +34,7 @@ export const getAllNotifications = async (
       SELECT
         un.id,
         CASE un.notification_type
-          WHEN 1 THEN 'Notifications'
+          WHEN 1 THEN 'Text Notifications'
           WHEN 2 THEN 'Product Notifications'
         END AS notification_type,
         un.title,
