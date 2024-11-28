@@ -15,7 +15,7 @@ router.get("/:userId", verifyDeviceToken, fetchAllOrders);
 
 router.get("/", verifyDeviceToken, fetchAllOrdersWithOutUserID);
 
-router.get("/byId/:id", verifyDeviceToken, fetchOrderById);
+router.get("/orderId/:id", verifyDeviceToken, fetchOrderById);
 
 router.put("/",verifyDeviceToken, updateOrderqty);
 
