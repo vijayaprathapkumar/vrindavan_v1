@@ -22,14 +22,21 @@ export const getHubs = async (req: Request, res: Response): Promise<void> => {
             statusCode: 200,
             message: "Hubs fetched successfully",
             data: {
-                hubs: hubs.map(hub => ({
+                hubs: hubs.map(hub => ({                    
                     id: hub.id,
                     route_id: hub.route_id,
                     name: hub.name,
                     other_details: hub.other_details,
                     active: hub.active,
                     created_at: hub.created_at,
-                    updated_at: hub.updated_at
+                    updated_at: hub.updated_at,
+                truckRoute:{
+                    id: hub.truckRoute_id,
+                    name: hub.truck_route_name,
+                    active: hub.truck_route_active,
+                    created_at: hub.truck_route_created_at,
+                    updated_at: hub.truck_route_updated_at
+                }
                 })), 
                 totalCount: totalRecords,
                 currentPage: page,

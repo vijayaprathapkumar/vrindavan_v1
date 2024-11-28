@@ -28,7 +28,7 @@ export const getAllTruckRoutes = async (page: number, limit: number, searchTerm:
 export const createTruckRoute = async (name: string, active: number): Promise<void> => {
   await db.promise().query<OkPacket>(
     "INSERT INTO truck_routes (name, active, created_at, updated_at) VALUES (?, ?, NOW(), NOW())",
-    [name, active] // active should be 0 or 1
+    [name, active] 
   );
 };
 
