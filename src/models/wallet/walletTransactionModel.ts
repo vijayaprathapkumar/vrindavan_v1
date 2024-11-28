@@ -113,9 +113,18 @@ export const getTransactionsByUserId = (userId: string, page: number, limit: num
 export const fetchAllTransactions = (page: number, limit: number): Promise<TransactionsResponse> => {
     const offset = (page - 1) * limit;
     const query = `
-        SELECT * FROM wallet_transactions
-        ORDER BY updated_at DESC 
-        LIMIT ? OFFSET ?
+      SELECT 
+        wt.*, 
+        u.id AS user_id, 
+        u.name AS user_name, 
+        u.email AS user_email, 
+        u.phone AS user_phone, 
+        u.credit_limit, 
+        u.status AS user_status
+      FROM wallet_transactions wt
+      LEFT JOIN users u ON wt.user_id = u.id
+      ORDER BY wt.updated_at DESC
+      LIMIT ? OFFSET ?
     `;
   
     return new Promise((resolve, reject) => {
@@ -125,7 +134,6 @@ export const fetchAllTransactions = (page: number, limit: number): Promise<Trans
         }
   
         const transactions: WalletTransaction[] = results as WalletTransaction[];
-
         const countQuery = `SELECT COUNT(*) AS total FROM wallet_transactions`;
         db.query(countQuery, (err, countResults) => {
           if (err) {
