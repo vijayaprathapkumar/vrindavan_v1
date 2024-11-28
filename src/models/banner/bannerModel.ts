@@ -103,9 +103,29 @@ export const getAllBanners = async (
     if (foodIds.length > 0) {
       const [foodRows]: [RowDataPacket[], any] = await db
         .promise()
-        .query(`SELECT * FROM foods WHERE id IN (${foodIds.map(() => '?').join(',')})`, foodIds);
+        .query(
+          `
+          SELECT 
+            f.*, 
+            m.id AS media_id,
+            m.model_type,
+            m.model_id,
+            m.uuid,
+            m.collection_name,
+            m.name AS media_name,
+            m.file_name AS media_file_name,
+            m.mime_type AS media_mime_type,
+            CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name) AS food_image_url
+          FROM foods f
+          LEFT JOIN media m ON f.id = m.model_id AND m.model_type = 'App\\\\Models\\\\Food'
+          WHERE f.id IN (${foodIds.map(() => '?').join(', ')})
+        `,
+          foodIds
+        );
+
       foodItems = foodRows;
     }
+
 
     return {
       id: row.banner_id,
@@ -263,10 +283,29 @@ export const getBannerById = async (
   if (foodIds.length > 0) {
     const [foodRows]: [RowDataPacket[], any] = await db
       .promise()
-      .query(`SELECT * FROM foods WHERE id IN (${foodIds.map(() => '?').join(',')})`, foodIds);
+      .query(
+        `
+        SELECT 
+          f.*, 
+          m.id AS media_id,
+          m.model_type,
+          m.model_id,
+          m.uuid,
+          m.collection_name,
+          m.name AS media_name,
+          m.file_name AS media_file_name,
+          m.mime_type AS media_mime_type,
+          CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name) AS food_image_url
+        FROM foods f
+        LEFT JOIN media m ON f.id = m.model_id AND m.model_type = 'App\\\\Models\\\\Food'
+        WHERE f.id IN (${foodIds.map(() => '?').join(', ')})
+      `,
+        foodIds
+      );
+
     foodItems = foodRows;
   }
-
+  
   return {
     banner: {
       id: row.banner_id,
