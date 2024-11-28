@@ -38,7 +38,7 @@ export const fetchDeals = async (req: Request, res: Response): Promise<Response>
 // Create a new deal
 export const addDeal = async (req: Request, res: Response): Promise<Response> => {
   const {
-    food_id,
+    foodId,
     unit,
     price,
     offer_price,
@@ -48,13 +48,13 @@ export const addDeal = async (req: Request, res: Response): Promise<Response> =>
     weightage,
   } = req.body;
 
-  if (!food_id || !price || !offer_price || !quantity) {
+  if (!foodId || !price || !offer_price || !quantity) {
     return res.status(400).json(createResponse(400, "Missing required fields."));
   }
 
   try {
     await createDeal({
-      food_id,
+      foodId,
       unit,
       price,
       offer_price,

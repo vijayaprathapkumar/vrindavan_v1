@@ -140,7 +140,7 @@ export const getAllDeals = async (
 
 // Create a new deal
 export const createDeal = async (dealData: {
-  food_id: string;
+  foodId: string;
   unit: string;
   price: number;
   offer_price: number;
@@ -150,7 +150,7 @@ export const createDeal = async (dealData: {
   weightage?: number;
 }) => {
   const {
-    food_id,
+    foodId,
     unit,
     price,
     offer_price,
@@ -160,7 +160,7 @@ export const createDeal = async (dealData: {
     weightage,
   } = dealData;
 
-  if (!food_id || !price || !offer_price || !quantity) {
+  if (!foodId || !price || !offer_price || !quantity) {
     throw new Error(
       "Missing required fields: foodId, price, offerPrice, or quantity."
     );
@@ -173,7 +173,7 @@ export const createDeal = async (dealData: {
   `;
 
   const values = [
-    food_id,
+    foodId,
     unit,
     price,
     offer_price,

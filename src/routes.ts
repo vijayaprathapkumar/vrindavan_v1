@@ -27,6 +27,7 @@ import notificationRoutes from "./routes/notification/notificationRoutes";
 import featureProductRoutes from "./routes/featureProduct/featureProductRoutes";
 import similarProductsRoutes from "./routes/similarProducts/similarProductRoute";
 import loginRoutes from "./routes/adminLogin/loginRoutes";
+import deliveryAddressesRoutes from "./routes/customer/deliveryAddressesRoutes";
 
 const router = express.Router();
 
@@ -42,6 +43,7 @@ router.use("/product_types", productTypeRoutes);
 
 // Customers
 router.use("/customers", customerRoutes);
+router.use("/deliveryAddresses", deliveryAddressesRoutes);
 
 // Localities
 router.use("/truck_routes", truckRoutes);

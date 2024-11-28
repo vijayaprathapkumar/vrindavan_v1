@@ -38,8 +38,7 @@ export const getTruckRoutes = async (req: Request, res: Response): Promise<void>
 export const addTruckRoute = async (req: Request, res: Response): Promise<void> => {
   const { name, active } = req.body;
   try {
-    const activeValue = active === "Active" ? 0 : 1;
-    await createTruckRoute(name, activeValue);
+    await createTruckRoute(name, active);
 
     res.status(201).json({
       statusCode: 201,
