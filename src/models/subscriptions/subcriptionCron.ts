@@ -198,7 +198,7 @@ const addFoodOrderEntry = async (
 };
 
 export const subcribtionsJob = () => {
-  cron.schedule("12 15 * * *", async () => {
+  cron.schedule("45 20 * * *", async () => {
     console.log("Cron job running...");
     console.time("subProcessing");
     try {

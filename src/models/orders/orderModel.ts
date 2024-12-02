@@ -69,7 +69,6 @@ export const getAllOrders = async (
     .promise()
     .query<RowDataPacket[]>(query, queryParams);
 
-  console.log("placeOrderRows", placeOrderRows);
   // Structure the result
   const orderData = [
     ...new Map(
@@ -831,7 +830,7 @@ export const getPlaceOrderById = async (orderId: number): Promise<any> => {
   LEFT JOIN order_statuses os ON o.order_status_id =os.id
   LEFT JOIN users u ON o.user_id = u.id
     WHERE 
-      o.id = ?
+      u.id = ?
   `;
 
   const [rows]: [RowDataPacket[], any] = await db
