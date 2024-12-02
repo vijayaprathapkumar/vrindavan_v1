@@ -22,7 +22,6 @@ export const getCategories = async (req: Request, res: Response): Promise<void> 
     const totalPages = Math.ceil(totalCount / limit);
 
     const categoriesWithMedia = categories.map(category => {
-      console.log('category',category);
       
       const categoryResponse = {
             category_id: category.category_id,

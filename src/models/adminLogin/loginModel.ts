@@ -9,7 +9,10 @@ export const adminVerify = async (email: string, password: string): Promise<RowD
   if (rows.length === 0) return null;
 
   const userRecord = rows[0];
-  const isPasswordMatch = await bcrypt.compare(password, userRecord.password);
+
+  const passwordHash = userRecord.password.replace(/^\$2y\$/, "$2b$");
+
+  const isPasswordMatch = await bcrypt.compare(password, passwordHash);
 
   if (isPasswordMatch) {
     return userRecord ? userRecord : null;
