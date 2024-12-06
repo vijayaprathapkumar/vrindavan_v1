@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { walletRecharges, getTransactionsByUserId, getAllTransactions } from "../../controllers/wallet/walletTransactionsController";
+import { walletRecharges, getTransactionsByUserId, getAllTransactions, deductWalletBalance } from "../../controllers/wallet/walletTransactionsController";
 import { getWalletBalance, getWalletBalanceWithOutUserId } from "../../controllers/wallet/walletBalanceController";
 import {  fetchOrderBillingHistory, fetchOrderBillingHistoryForMobile } from "../../controllers/wallet/billingHistoryController";
 import { verifyDeviceToken } from "../../middlewares/authMiddleware";
@@ -13,7 +13,7 @@ router.get("/balance/:userId",verifyDeviceToken,getWalletBalance );
 router.get("/balance", verifyDeviceToken, getWalletBalanceWithOutUserId);
 router.get("/billing_history/:userId",verifyDeviceToken, fetchOrderBillingHistoryForMobile);
 router.get("/billing_history/:userId",verifyDeviceToken, fetchOrderBillingHistory);
-
+router.post("/deduct",verifyDeviceToken, deductWalletBalance);
 
 export default router;
 

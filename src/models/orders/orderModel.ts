@@ -172,7 +172,9 @@ export const getAllOrdersWithOutUserId = async (
   searchTerm?: string | null,
   routeId?: number | null,
   hubId?: number | null,
-  localityId?: number | null
+  localityId?: number | null,
+  approveStatus?: string,
+  orderType?: string |number | null 
 ): Promise<{ total: number; placeOrders: any[] }> => {
   const offset = (page - 1) * limit;
 
@@ -208,11 +210,25 @@ export const getAllOrdersWithOutUserId = async (
     queryParams.push(localityId);
   }
 
+   // ApproveStatus condition (handle "All", "1", "0")
+   if (approveStatus !== "All") {
+    conditions += " AND da.is_approve = ?";
+    queryParams.push(parseInt(approveStatus, 10));
+  }
+
+  // OrderType condition
+  if (orderType && orderType !== "All") {
+    conditions += " AND o.order_type = ?";
+    queryParams.push(orderType);
+  }
+  
+
   const countQuery = `
-    SELECT COUNT(DISTINCT o.id) AS total
-    FROM orders o
-    WHERE 1=1 ${conditions}
-  `;
+  SELECT COUNT(DISTINCT o.id) AS total
+  FROM orders o
+  JOIN delivery_addresses da ON o.delivery_address_id = da.id 
+  WHERE 1=1 ${conditions} 
+`;
 
   const [[{ total }]] = await db
     .promise()

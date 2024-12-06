@@ -8,17 +8,20 @@ export const getAllDeliveryBoys = async (
 ): Promise<{ deliveryBoys: RowDataPacket[]; totalCount: number }> => {
   const searchCondition = searchTerm
     ? `WHERE name LIKE ? OR mobile LIKE ?`
-    : ''; 
+    : '';
   const searchParams = searchTerm ? [`%${searchTerm}%`, `%${searchTerm}%`] : [];
 
-  // Query for fetching delivery boys with LIMIT and OFFSET
+  // Query for fetching delivery boys with LIMIT, OFFSET, and ordering by most recent
   const [deliveryBoys] = await db
     .promise()
     .query<RowDataPacket[]>(
-      `SELECT * FROM delivery_boys ${searchCondition} LIMIT ? OFFSET ?`,
+      `SELECT * FROM delivery_boys ${searchCondition} 
+       ORDER BY created_at DESC 
+       LIMIT ? OFFSET ?`,
       [...searchParams, limit, offset]
     );
 
+  // Query for fetching total count of delivery boys with the same search condition
   const [[totalCountRow]] = await db
     .promise()
     .query<RowDataPacket[]>(
@@ -51,7 +54,7 @@ export const createDeliveryBoy = async (
   await db
     .promise()
     .query<OkPacket>(
-      "INSERT INTO delivery_boys (user_id, name, mobile, active, cash_collection, delivery_fee, total_orders, earning, available, addressPickup, latitudePickup, longitudePickup) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      "INSERT INTO delivery_boys (user_id, name, mobile, active, cash_collection, delivery_fee, total_orders, earning, available, addressPickup, latitudePickup, longitudePickup, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())",
       [userId, name, mobile, active ? 1 : 0, cashCollection ? 1 : 0, deliveryFee, totalOrders, earning, available ? 1 : 0, addressPickup, latitudePickup, longitudePickup]
     );
 };
