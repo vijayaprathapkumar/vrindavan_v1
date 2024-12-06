@@ -72,10 +72,22 @@ export const fetchAllOrdersWithOutUserID = async (
   const page = parseInt(req.query.page as string) || 1;
   const limit = parseInt(req.query.limit as string) || 10;
 
-  const routeId = req.query.route_id ? parseInt(req.query.route_id as string) : null;
+  const routeId = req.query.route_id
+    ? parseInt(req.query.route_id as string)
+    : null;
   const hubId = req.query.hub_id ? parseInt(req.query.hub_id as string) : null;
-  const localityId = req.query.locality_id ? parseInt(req.query.locality_id as string) : null;
-  const searchTerm = req.query.searchTerm ? (req.query.searchTerm as string) : null;
+  const localityId = req.query.locality_id
+    ? parseInt(req.query.locality_id as string)
+    : null;
+  const searchTerm = req.query.searchTerm
+    ? (req.query.searchTerm as string)
+    : null;
+  const approveStatus = req.query.approveStatus
+    ? (req.query.approveStatus as string)
+    : "All";
+  const orderType = req.query.orderType
+    ? (req.query.orderType as string)
+    : null;
 
   const startDate = req.query.startDate
     ? new Date(req.query.startDate as string)
@@ -101,7 +113,9 @@ export const fetchAllOrdersWithOutUserID = async (
       searchTerm,
       routeId,
       hubId,
-      localityId
+      localityId,
+      approveStatus,
+      orderType
     );
 
     const totalPages = Math.ceil(total / limit);
@@ -122,7 +136,6 @@ export const fetchAllOrdersWithOutUserID = async (
       .json(createResponse(500, "An error occurred while fetching orders."));
   }
 };
-
 
 export const fetchOrderById = async (
   req: Request,

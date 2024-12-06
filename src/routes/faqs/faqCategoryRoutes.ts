@@ -17,34 +17,9 @@ const router = express.Router();
 
 // Define routes for FAQ categories
 router.get("/", verifyDeviceToken, getFaqCategories);
-router.post(
-  "/",
-  faqCategoryValidation,
-  verifyDeviceToken,
-  validate,
-  addFaqCategory
-);
-router.get(
-  "/:id",
-  faqCategoryIdValidation,
-  verifyDeviceToken,
-  validate,
-  getFaqCategory
-);
-router.put(
-  "/:id",
-  faqCategoryIdValidation,
-  faqCategoryValidation,
-  validate,
-  updateFaqCategory,
-  verifyDeviceToken
-);
-router.delete(
-  "/:id",
-  verifyDeviceToken,
-  faqCategoryIdValidation,
-  validate,
-  deleteFaqCategory
-);
+router.post("/", verifyDeviceToken, addFaqCategory);
+router.get("/:id", verifyDeviceToken, getFaqCategory);
+router.put("/:id", updateFaqCategory, verifyDeviceToken);
+router.delete("/:id", verifyDeviceToken, deleteFaqCategory);
 
 export default router;

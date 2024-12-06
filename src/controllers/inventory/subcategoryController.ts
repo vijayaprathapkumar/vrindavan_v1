@@ -26,6 +26,7 @@ export const getSubcategories = async (req: Request, res: Response): Promise<voi
       const subcategoryResponse = {
         id: subcategory.id,
         category_id: subcategory.category_id,
+        categoryName:subcategory.category_name,
         subcategory_name: subcategory.name,
         description: subcategory.description,
         weightage: subcategory.weightage,
