@@ -41,10 +41,10 @@ export const getAllFoods = async (
   const conditions: string[] = [];
   const values: (string | number)[] = [];
 
-  if (filters.status) {
+  if (filters.status !== undefined && filters.status !== null) {
     conditions.push("f.status = ?");
-    values.push(filters.status ? 1 : 0);
-  }
+    values.push(filters.status);
+  }  
 
   if (filters.categoryId) {
     conditions.push("f.category_id = ?");

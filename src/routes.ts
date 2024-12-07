@@ -28,6 +28,7 @@ import featureProductRoutes from "./routes/featureProduct/featureProductRoutes";
 import similarProductsRoutes from "./routes/similarProducts/similarProductRoute";
 import loginRoutes from "./routes/adminLogin/loginRoutes";
 import deliveryAddressesRoutes from "./routes/customer/deliveryAddressesRoutes";
+import customerPrioritiesRoutes from "./routes/customer/customerPrioritiesRoutes";
 
 const router = express.Router();
 
@@ -97,5 +98,7 @@ router.use("/similarProduct", similarProductsRoutes);
 // admin Login
 router.use("/admin", loginRoutes);
 
+// customer-priorities
+router.use("/customer-priorities", customerPrioritiesRoutes);
 
 export default router;

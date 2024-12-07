@@ -69,6 +69,39 @@ const plcaeOrder = async (productData, user_id, orderDate) => {
   return null;
 };
 
+//admin panel One time order
 
+export const oneTimeOrdersInCustomer = async (req: any, res: any) => {
+  try {
+    const { user_id, orderDate, productData } = req.body; 
+    if (!user_id || !orderDate || !productData) {
+      return res.status(400).json({ message: "Missing required fields" });
+    }
+
+    const { discount_price, price, food_id, quantity } = productData;
+    const productAmount = discount_price > 0 ? discount_price : price;  
+
+    if (productAmount <= 0) {
+      return res.status(400).json({ message: "Invalid product amount" });
+    }
+
+    const orderData = await addOrdersEntry(user_id, orderDate);
+    if (orderData?.orderId) {
+      await addFoodOrderEntry(
+        productAmount,
+        quantity,
+        food_id,
+        orderData.orderId
+      );
+      return res.status(201).json({ message: "Order placed successfully", orderId: orderData.orderId });
+    } else {
+      console.error("Failed to create order entry");
+      return res.status(500).json({ message: "Failed to place order" });
+    }
+  } catch (error) {
+    console.error("Error placing order:", error);
+    return res.status(500).json({ message: "Internal server error", error: error.message });
+  }
+};
 
 

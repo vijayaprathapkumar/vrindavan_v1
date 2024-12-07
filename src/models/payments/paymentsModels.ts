@@ -6,6 +6,26 @@ export const handlePaymentsOrders = async (placeOrderData) => {
   const { user_id, food_price, quantity, order_id, status } = placeOrderData;
 
   const totalOrderValue = food_price * quantity || 0;
+
+  // Fetch current wallet balance
+  const [walletRows]: [RowDataPacket[], any] = await db
+    .promise()
+    .query(`SELECT balance FROM wallet_balances WHERE user_id = ?`, [user_id]);
+
+  const beforeBalance = walletRows[0]?.balance;
+
+  const afterBalance = (beforeBalance - totalOrderValue).toFixed(2);
+
+  // Log wallet transaction
+  await logWalletTransaction(
+    user_id,
+    order_id,
+    beforeBalance,
+    totalOrderValue,
+    afterBalance,
+    `Rs ${totalOrderValue} deducted for user ID ${user_id}`
+  );
+
   const deductionSuccess = await deductFromWalletBalance(
     user_id,
     totalOrderValue
@@ -29,27 +49,6 @@ export const handlePaymentsOrders = async (placeOrderData) => {
       throw new Error("Payment insertion failed.");
     }
 
-    // Fetch current wallet balance
-    const [walletRows]: [RowDataPacket[], any] = await db
-      .promise()
-      .query(`SELECT balance FROM wallet_balances WHERE user_id = ?`, [
-        user_id,
-      ]);
-
-    const beforeBalance = walletRows[0]?.balance;
-
-    const afterBalance = (beforeBalance - totalOrderValue).toFixed(2);
-
-    // Log wallet transaction
-    await logWalletTransaction(
-      user_id,
-      order_id,
-      beforeBalance,
-      totalOrderValue,
-      afterBalance,
-      `Rs ${totalOrderValue} deducted for user ID ${user_id}`
-    );
-   
     return true;
   } catch (error) {
     console.error("Error creating order:", error);
@@ -150,18 +149,17 @@ export const processTodayOrderPayments = async () => {
       return;
     }
     await Promise.all(orders.map((order) => handlePaymentsOrders(order)));
-    console.timeEnd("paymentProcessing"); 
+    console.timeEnd("paymentProcessing");
     console.log("Today's payment processed successfully.");
   } catch (error) {
     console.error("Error processing today's orders:", error);
   }
 };
 
-export const everyDayPaymentProcessJob =() => {
-  cron.schedule("30 15 * * *", async () => {
+export const everyDayPaymentProcessJob = () => {
+  cron.schedule("07 17 * * *", async () => {
     console.log("Cron job running...");
-  
+
     await processTodayOrderPayments();
   });
-}
-
+};

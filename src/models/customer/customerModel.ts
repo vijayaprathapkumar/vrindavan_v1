@@ -8,7 +8,6 @@ export const getAllCustomers = async (
   locality?: string,
   status?: string,
   searchTerm?: string,
-  isApproved?: string
 ): Promise<{ customers: any[]; total: number; statusCount: any }> => {
   const offset = (page - 1) * limit;
 
@@ -69,41 +68,8 @@ export const getAllCustomers = async (
   }
 
   if (locality && locality !== "All") {
-    query += ` AND l.name = ? `;
-    params.push(locality);
-  }
-
-  const statusMap: { [key: string]: number } = {
-    Active: 1,
-    Inactive: 2,
-    "Follow Up": 3,
-    Guest: 4,
-  };
-
-  if (status && status !== "All") {
-    const statusConditions = [];
-    const statuses = status.split(",");
-    statuses.forEach((s) => {
-      if (s === "1") {
-        statusConditions.push(`u.is_deactivated = 0`);
-      } else if (s === "2") {
-        statusConditions.push(`u.is_deactivated = 1`);
-      } else if (s === "3") {
-        statusConditions.push(`u.status = 'Follow Up'`);
-      } else if (s === "4") {
-        statusConditions.push(`u.status = 'Guest'`);
-      }
-    });
-
-    if (isApproved && isApproved !== "All") {
-      const isApprovedCondition =
-        isApproved === "Yes" ? `da.is_approve = 1` : `da.is_approve = 0`;
-      query += ` AND ${isApprovedCondition} `;
-    }
-
-    if (statusConditions.length > 0) {
-      query += ` AND (${statusConditions.join(" OR ")}) `;
-    }
+    query += ` AND l.id = ? `;
+    params.push(parseInt(locality));
   }
 
   let totalCountQuery = `
@@ -115,24 +81,15 @@ export const getAllCustomers = async (
   `;
 
   if (locality && locality !== "All") {
-    totalCountQuery += ` AND l.name = ?`;
-    params.push(locality);
+    totalCountQuery += ` AND l.id = ?`;
+    params.push(parseInt(locality));
   }
 
-  const totalCountConditions = [];
   if (status && status !== "All") {
-    const statuses = status.split(",");
-    statuses.forEach((s) => {
-      const mappedStatus = statusMap[s.trim()];
-      if (mappedStatus) {
-        totalCountConditions.push(`u.is_deactivated = ${mappedStatus - 1}`);
-      }
-    });
-
-    if (totalCountConditions.length > 0) {
-      totalCountQuery += ` AND (${totalCountConditions.join(" OR ")}) `;
-    }
+    query += ` AND u.status = ? `;
+    params.push(status);
   }
+
 
   const [[totalCount]] = await db
     .promise()
@@ -146,16 +103,14 @@ export const getAllCustomers = async (
 
   const statusCountQuery = `
     SELECT 
-      SUM(u.is_deactivated = 0) AS active_count,
-      SUM(u.is_deactivated = 1) AS inactive_count,
-      SUM(u.status = 'Follow Up') AS follow_up_count,
-      SUM(u.status = 'Guest') AS guest_count
+      SUM(u.status = '0') AS status_0_count,
+      SUM(u.status = '1') AS status_1_count,
+      SUM(u.status = '2') AS status_2_count
     FROM users u
   `;
   const [[statusCount]] = await db
     .promise()
     .query<RowDataPacket[]>(statusCountQuery);
-
   return {
     customers: rows.map((row) => ({
       user_id: row.user_id,
