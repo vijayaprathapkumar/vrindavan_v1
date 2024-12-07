@@ -6,7 +6,10 @@ import {
   getTransactionsByUserId as fetchTransactionsByUserId,
   TransactionsResponse,
   fetchAllTransactions,
+  updateWalletBalanceDections,
+  insertWalletLog,
 } from "../../models/wallet/walletTransactionModel";
+import { db } from "../../config/databaseConnection";
 
 export const walletRecharges = async (req: Request, res: Response) => {
   const {
@@ -15,7 +18,6 @@ export const walletRecharges = async (req: Request, res: Response) => {
     rp_order_id,
     user_id,
     plan_id,
-    transaction_date,
     extra_percentage,
     plan_amount,
     extra_amount,
@@ -34,7 +36,6 @@ export const walletRecharges = async (req: Request, res: Response) => {
       rp_order_id,
       user_id,
       plan_id,
-      transaction_date,
       extra_percentage,
       plan_amount,
       extra_amount,
@@ -90,11 +91,17 @@ export const getTransactionsByUserId = async (req: Request, res: Response) => {
 };
 
 export const getAllTransactions = async (req: Request, res: Response) => {
-  const { page = 1, limit = 10 } = req.query;
+  const { page = 1, limit = 10, startDate, endDate, searchTerm } = req.query;
 
   try {
     const { transactions, total }: TransactionsResponse =
-      await fetchAllTransactions(Number(page), Number(limit));
+      await fetchAllTransactions(
+        Number(page),
+        Number(limit),
+        startDate as string | undefined,
+        endDate as string | undefined,
+        searchTerm as string | undefined
+      );
     const totalPages = Math.ceil(total / Number(limit));
     return res.status(200).json(
       createResponse(200, "Transactions retrieved successfully", {
@@ -110,5 +117,50 @@ export const getAllTransactions = async (req: Request, res: Response) => {
     return res
       .status(500)
       .json(createResponse(500, "Error retrieving transactions"));
+  }
+};
+
+export const deductWalletBalance = async (req: Request, res: Response) => {
+  const { userId, deductionAmount, reason, walletType } = req.body;
+
+  try {
+    const currentBalanceQuery = 'SELECT balance FROM wallet_balances WHERE user_id = ?';
+    const [currentBalanceResult]: any = await db.promise().query(currentBalanceQuery, [userId]);
+
+    if (currentBalanceResult.length === 0) {
+      return res.status(404).json(createResponse(404, "User not found in wallet_balances"));
+    }
+
+    const currentBalance = currentBalanceResult[0]?.balance || 0;
+    const newBalance = currentBalance - deductionAmount;
+
+    if (newBalance < 0) {
+      return res.status(400).json(createResponse(400, "Insufficient balance"));
+    }
+
+    await updateWalletBalanceDections(userId, -deductionAmount); 
+
+    await insertWalletLog({
+      user_id: userId,
+      order_id: null,
+      order_date: '0001-01-01',
+      before_balance: currentBalance,
+      amount: deductionAmount,
+      after_balance: newBalance,
+      wallet_type: walletType,
+      description: reason,
+    });
+
+    return res.status(200).json(
+      createResponse(200, "Wallet balance deducted successfully", {
+        userId,
+        deductionAmount,
+        before_balance: currentBalance,
+        after_balance: newBalance,
+      })
+    );
+  } catch (error) {
+    console.error("Error deducting wallet balance:", error); 
+    return res.status(500).json(createResponse(500, "Error deducting wallet balance", error.message));
   }
 };

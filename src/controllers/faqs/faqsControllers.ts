@@ -11,12 +11,40 @@ import { createResponse } from "../../utils/responseHandler";
 // Fetch all FAQs
 export const getFaqs = async (req: Request, res: Response): Promise<void> => {
   try {
-    const faqs = await getAllFaqs();
-    res
-      .status(200)
-      .json(createResponse(200, "FAQs fetched successfully", faqs));
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const searchTerm = (req.query.searchTerm as string) || "";
+    const faqCategoryId = req.query.faqCategoryId
+      ? req.query.faqCategoryId === "All"
+        ? undefined 
+        : parseInt(req.query.faqCategoryId as string)
+      : undefined;
+
+    if (faqCategoryId !== undefined && isNaN(faqCategoryId)) {
+      res.status(400).json({
+        status: 400,
+        message: "Invalid faqCategoryId",
+      });
+      return;
+    }
+
+    const { faqs, total } = await getAllFaqs(page, limit, searchTerm, faqCategoryId);
+
+    res.status(200).json({
+      status: 200,
+      message: "FAQs fetched successfully",
+      data: {
+        faqs,
+        currentPage: page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+        totalCount: total,
+      },
+    });
+    return; 
   } catch (error) {
-    res.status(500).json(createResponse(500, "Error fetching FAQs", error));
+    res.status(500).json({ status: 500, message: "Error fetching FAQs", error });
+    return; 
   }
 };
 
@@ -33,13 +61,20 @@ export const addFaq = async (req: Request, res: Response): Promise<void> => {
 
 // Get FAQ by ID
 export const getFaq = async (req: Request, res: Response): Promise<void> => {
-  const { id } = req.params;
   try {
-    const faq = await getFaqById(parseInt(id));
-    if (faq.length === 0) {
+    const id = parseInt(req.params.id);
+
+    if (isNaN(id)) {
+      res.status(400).json(createResponse(400, "Invalid FAQ ID"));
+      return;
+    }
+    const faq = await getFaqById(id);
+    if (!faq) {
       res.status(404).json(createResponse(404, "FAQ not found"));
     } else {
-      res.status(200).json(createResponse(200, "FAQ fetched successfully", faq));
+      res
+        .status(200)
+        .json(createResponse(200, "FAQ fetched successfully", faq));
     }
   } catch (error) {
     res.status(500).json(createResponse(500, "Error fetching FAQ", error));
@@ -51,7 +86,13 @@ export const updateFaq = async (req: Request, res: Response): Promise<void> => {
   const { id } = req.params;
   const { question, answer, faqCategoryId, weightage } = req.body;
   try {
-    await updateFaqById(parseInt(id), question, answer, faqCategoryId, weightage);
+    await updateFaqById(
+      parseInt(id),
+      question,
+      answer,
+      faqCategoryId,
+      weightage
+    );
     res.status(200).json(createResponse(200, "FAQ updated successfully"));
   } catch (error) {
     res.status(500).json(createResponse(500, "Error updating FAQ", error));

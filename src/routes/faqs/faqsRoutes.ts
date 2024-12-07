@@ -9,17 +9,17 @@ import {
 import {
   faqValidation,
   faqIdValidation,
-  validate
+  validate,
 } from "../../validation/faqs/faqsValidation";
 import { verifyDeviceToken } from "../../middlewares/authMiddleware";
 
 const router = express.Router();
 
 // Define routes for FAQs
-router.get("/",verifyDeviceToken, getFaqs);
-router.post("/",verifyDeviceToken, faqValidation, validate, addFaq);
-router.get("/:id",verifyDeviceToken, faqIdValidation, validate, getFaq);
-router.put("/:id",verifyDeviceToken, faqIdValidation, faqValidation, validate, updateFaq);
-router.delete("/:id",verifyDeviceToken, faqIdValidation, validate, deleteFaq);
+router.get("/", verifyDeviceToken, getFaqs);
+router.post("/", verifyDeviceToken, addFaq);
+router.get("/:id", verifyDeviceToken, getFaq);
+router.put("/:id", verifyDeviceToken, validate, updateFaq);
+router.delete("/:id", verifyDeviceToken, deleteFaq);
 
 export default router;

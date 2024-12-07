@@ -9,64 +9,133 @@ import {
 import { createResponse } from "../../utils/responseHandler";
 
 // Fetch all FAQ categories
-export const getFaqCategories = async (req: Request, res: Response): Promise<void> => {
+export const getFaqCategories = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  let { page = 1, limit = 10, searchTerm = "" } = req.query;
+
+  page = Number(page);
+  limit = Number(limit);
+
+  if (isNaN(page) || page <= 0) {
+    page = 1;
+  }
+  if (isNaN(limit) || limit <= 0) {
+    limit = 10;
+  }
+
   try {
-    const faqCategories = await getAllFaqCategories();
-    res
-      .status(200)
-      .json(createResponse(200, "FAQ Categories fetched successfully", faqCategories));
+    const { faqCategories, total } = await getAllFaqCategories(
+      page,
+      limit,
+      searchTerm as string
+    );
+
+    const totalPages = Math.ceil(total / limit);
+
+    res.status(200).json({
+      statusCode: 200,
+      message: "FAQ Categories fetched successfully",
+      data: {
+        faqCategories,
+        totalCount: total,
+        currentPage: page,
+        limit,
+        totalPages,
+      },
+    });
   } catch (error) {
-    res
-      .status(500)
-      .json(createResponse(500, "Error fetching FAQ categories", error));
+    res.status(500).json({
+      statusCode: 500,
+      message: "Error fetching FAQ categories",
+      error,
+    });
   }
 };
 
 // Add a new FAQ category
-export const addFaqCategory = async (req: Request, res: Response): Promise<void> => {
+export const addFaqCategory = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
   const { name, weightage } = req.body;
   try {
     await createFaqCategory(name, weightage);
-    res.status(201).json(createResponse(201, "FAQ Category created successfully"));
+    res
+      .status(201)
+      .json(createResponse(201, "FAQ Category created successfully"));
   } catch (error) {
-    res.status(500).json(createResponse(500, "Error creating FAQ category", error));
+    res
+      .status(500)
+      .json(createResponse(500, "Error creating FAQ category", error));
   }
 };
 
 // Get FAQ category by ID
-export const getFaqCategory = async (req: Request, res: Response): Promise<void> => {
-  const { id } = req.params;
+export const getFaqCategory = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
   try {
-    const faqCategory = await getFaqCategoryById(parseInt(id));
-    if (faqCategory.length === 0) {
-      res.status(404).json(createResponse(404, "FAQ Category not found"));
+    const id = parseInt(req.params.id);
+
+    if (isNaN(id)) {
+      res.status(400).json(createResponse(400, "Invalid FAQ category ID"));
+      return;
+    }
+
+    const category = await getFaqCategoryById(id);
+
+    if (!category) {
+      res.status(404).json(createResponse(404, "FAQ category not found"));
     } else {
-      res.status(200).json(createResponse(200, "FAQ Category fetched successfully", faqCategory));
+      res
+        .status(200)
+        .json(
+          createResponse(200, "FAQ category fetched successfully", category)
+        );
     }
   } catch (error) {
-    res.status(500).json(createResponse(500, "Error fetching FAQ category", error));
+    res
+      .status(500)
+      .json(createResponse(500, "Error fetching FAQ category", error));
   }
 };
 
 // Update FAQ category by ID
-export const updateFaqCategory = async (req: Request, res: Response): Promise<void> => {
+export const updateFaqCategory = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
   const { id } = req.params;
   const { name, weightage } = req.body;
   try {
     await updateFaqCategoryById(parseInt(id), name, weightage);
-    res.status(200).json(createResponse(200, "FAQ Category updated successfully"));
+    res
+      .status(200)
+      .json(createResponse(200, "FAQ Category updated successfully"));
   } catch (error) {
-    res.status(500).json(createResponse(500, "Error updating FAQ category", error));
+    res
+      .status(500)
+      .json(createResponse(500, "Error updating FAQ category", error));
   }
 };
 
 // Delete FAQ category by ID
-export const deleteFaqCategory = async (req: Request, res: Response): Promise<void> => {
+export const deleteFaqCategory = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
   const { id } = req.params;
   try {
     await deleteFaqCategoryById(parseInt(id));
-    res.status(200).json(createResponse(200, "FAQ Category deleted successfully"));
+    res
+      .status(200)
+      .json(createResponse(200, "FAQ Category deleted successfully"));
   } catch (error) {
-    res.status(500).json(createResponse(500, "Error deleting FAQ category", error));
+    res
+      .status(500)
+      .json(createResponse(500, "Error deleting FAQ category", error));
   }
 };
