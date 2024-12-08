@@ -213,7 +213,8 @@ export const subcribtionsJob = () => {
 
 export const pauseSubscriptionsJobs = async () => {
   cron.schedule("0 0 * * *", async () => {
-    const currentDate = new Date().toISOString();
+    const currentDate = new Date().toISOString().slice(0, 19).replace("T", " ");
+
     const sql = `
     UPDATE user_subscriptions
     SET
@@ -227,7 +228,7 @@ export const pauseSubscriptionsJobs = async () => {
       pause_specific_period_startDate IS NOT NULL OR 
       pause_specific_period_endDate IS NOT NULL) AND 
       (pause_specific_period_endDate <= ?);
-  `;
+    `;
 
     try {
       const [result]: [OkPacket, any] = await db
