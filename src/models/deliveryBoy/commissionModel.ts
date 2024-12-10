@@ -1,10 +1,15 @@
 import { db } from "../../config/databaseConnection";
-import { RowDataPacket } from "mysql2";
+import { ResultSetHeader, RowDataPacket } from "mysql2";
 
 // Fetch all detailed commissions with search and pagination
-export const getAllDetailedCommissions = async (searchTerm: string = '', limit: number = 10, offset: number = 0, categoryId: string = ''): Promise<{ data: any[], totalCount: number }> => {
+export const getAllDetailedCommissions = async (
+  searchTerm: string = "",
+  limit: number = 10,
+  offset: number = 0,
+  categoryId: string = ""
+): Promise<{ data: any[]; totalCount: number }> => {
   const searchPattern = `%${searchTerm}%`;
-  const categoryFilter = categoryId ? ' AND c.id = ?' : '';
+  const categoryFilter = categoryId ? " AND c.id = ?" : "";
 
   const queryData = `
     SELECT 
@@ -49,8 +54,7 @@ export const getAllDetailedCommissions = async (searchTerm: string = '', limit: 
         p.status AS food_status,
         p.created_at AS food_created_at,
         p.updated_at AS food_updated_at,
-        p.food_locality AS food_food_locality,
-        p.image AS food_image
+        p.food_locality AS food_food_locality
     FROM 
         standard_commissions sc
     LEFT JOIN 
@@ -71,23 +75,35 @@ export const getAllDetailedCommissions = async (searchTerm: string = '', limit: 
   WHERE 
     (p.name LIKE ? OR p.unit LIKE ? OR p.price LIKE ?)${categoryFilter};
 `;
-const params = categoryId ? [searchPattern, searchPattern, searchPattern, parseInt(categoryId), limit, offset] : [searchPattern, searchPattern, searchPattern, limit, offset];
-const countParams = categoryId ? [searchPattern, searchPattern, searchPattern, parseInt(categoryId)] : [searchPattern, searchPattern, searchPattern];
-const [rows] = await db.promise().query<RowDataPacket[]>(queryData, params);
-const [[{ total_count }]] = await db.promise().query<RowDataPacket[]>(queryCount, countParams);
+  const params = categoryId
+    ? [
+        searchPattern,
+        searchPattern,
+        searchPattern,
+        parseInt(categoryId),
+        limit,
+        offset,
+      ]
+    : [searchPattern, searchPattern, searchPattern, limit, offset];
+  const countParams = categoryId
+    ? [searchPattern, searchPattern, searchPattern, parseInt(categoryId)]
+    : [searchPattern, searchPattern, searchPattern];
+  const [rows] = await db.promise().query<RowDataPacket[]>(queryData, params);
+  const [[{ total_count }]] = await db
+    .promise()
+    .query<RowDataPacket[]>(queryCount, countParams);
 
   // Map the rows to a structured format
-  const data = rows.map(row => ({
-    commission: {
-      id: row.commission_id,
-      categoryId: row.commission_category_id,
-      productId: row.commission_product_id,
-      value: row.commission_value,
-      createdAt: row.commission_created_at,
-      updatedAt: row.commission_updated_at,
-    },
+  const data = rows.map((row) => ({
+    id: row.commission_id,
+    categoryId: row.commission_category_id,
+    productId: row.commission_product_id,
+    value: row.commission_value,
+    createdAt: row.commission_created_at,
+    updatedAt: row.commission_updated_at,
+
     category: {
-      id: row.category_id,
+      categoryId: row.category_id,
       name: row.category_name,
       description: row.category_description,
       weightage: row.category_weightage,
@@ -95,7 +111,7 @@ const [[{ total_count }]] = await db.promise().query<RowDataPacket[]>(queryCount
       updatedAt: row.category_updated_at,
     },
     food: {
-      id: row.food_id,
+      foodId: row.food_id,
       name: row.food_name,
       price: row.food_price,
       discountPrice: row.food_discount_price,
@@ -126,16 +142,16 @@ const [[{ total_count }]] = await db.promise().query<RowDataPacket[]>(queryCount
       updatedAt: row.food_updated_at,
       foodLocality: row.food_food_locality,
       image: row.food_image,
-    }
+    },
   }));
 
   return { data, totalCount: total_count };
 };
 
-
 // Fetch detailed commission by ID
 export const getDetailedCommissionById = async (id: number): Promise<any> => {
-  const [rows] = await db.promise().query<RowDataPacket[]>(`
+  const [rows] = await db.promise().query<RowDataPacket[]>(
+    `
     SELECT 
         sc.id AS commission_id,
         sc.category_id AS commission_category_id,
@@ -188,7 +204,9 @@ export const getDetailedCommissionById = async (id: number): Promise<any> => {
         foods p ON sc.product_id = p.id
     WHERE 
         sc.id = ?;
-  `, [id]);
+  `,
+    [id]
+  );
 
   // Map the rows to a structured format
   if (rows.length === 0) return null; // Handle case where no commission is found
@@ -243,6 +261,22 @@ export const getDetailedCommissionById = async (id: number): Promise<any> => {
       updatedAt: row.food_updated_at,
       foodLocality: row.food_food_locality,
       image: row.food_image,
-    }
+    },
   };
+};
+
+export const updateCommission = async (commissionId: string, commissionValue: string): Promise<any> => {
+  const query = `
+    UPDATE standard_commissions 
+    SET commission = ?
+    WHERE id = ?;
+  `;
+
+  const [result] = await db.promise().query<ResultSetHeader>(query, [commissionValue, commissionId]);
+
+  if (result.affectedRows > 0) {
+    return { id: commissionId, commission: commissionValue };
+  }
+
+  return null;
 };

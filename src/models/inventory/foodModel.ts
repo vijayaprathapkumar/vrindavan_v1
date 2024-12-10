@@ -44,7 +44,7 @@ export const getAllFoods = async (
   if (filters.status !== undefined && filters.status !== null) {
     conditions.push("f.status = ?");
     values.push(filters.status);
-  }  
+  }
 
   if (filters.categoryId) {
     conditions.push("f.category_id = ?");
@@ -73,7 +73,9 @@ export const getAllFoods = async (
     ${conditions.length > 0 ? "WHERE " + conditions.join(" AND ") : ""}
   `;
 
-  const [countResult] = await db.promise().execute<RowDataPacket[]>(countQuery, values);
+  const [countResult] = await db
+    .promise()
+    .execute<RowDataPacket[]>(countQuery, values);
   const totalCount = countResult[0].count;
 
   query += ` LIMIT ${limit} OFFSET ${offset}`;
@@ -81,7 +83,7 @@ export const getAllFoods = async (
   const [rows] = await db.promise().execute<RowDataPacket[]>(query, values);
 
   // Construct the final foods array
-  const foods: Food[] = rows.map(row => {
+  const foods: Food[] = rows.map((row) => {
     return {
       id: row.id,
       name: row.name,
@@ -112,27 +114,31 @@ export const getAllFoods = async (
       created_at: row.created_at,
       updated_at: row.updated_at,
       outOfStock: row.outOfStock,
-      media: row.media_id ? [{
-        id: row.media_id,
-        model_type: row.model_type,
-        model_id: row.model_id,
-        uuid: row.uuid,
-        collection_name: row.collection_name,
-        name: row.media_name,
-        file_name: row.media_file_name,
-        mime_type: row.media_mime_type,
-        disk: row.disk,
-        conversions_disk: row.conversions_disk,
-        size: row.size,
-        manipulations: row.manipulations,
-        custom_properties: row.custom_properties,
-        generated_conversions: row.generated_conversions,
-        responsive_images: row.responsive_images,
-        order_column: row.order_column,
-        created_at: row.media_created_at,
-        updated_at: row.media_updated_at,
-        original_url: row.original_url,
-      }] : [],
+      media: row.media_id
+        ? [
+            {
+              id: row.media_id,
+              model_type: row.model_type,
+              model_id: row.model_id,
+              uuid: row.uuid,
+              collection_name: row.collection_name,
+              name: row.media_name,
+              file_name: row.media_file_name,
+              mime_type: row.media_mime_type,
+              disk: row.disk,
+              conversions_disk: row.conversions_disk,
+              size: row.size,
+              manipulations: row.manipulations,
+              custom_properties: row.custom_properties,
+              generated_conversions: row.generated_conversions,
+              responsive_images: row.responsive_images,
+              order_column: row.order_column,
+              created_at: row.media_created_at,
+              updated_at: row.media_updated_at,
+              original_url: row.original_url,
+            },
+          ]
+        : [],
     } as Food;
   });
 
@@ -140,10 +146,11 @@ export const getAllFoods = async (
 };
 
 // Fetch a single food by ID
-export const getFoodById = async (id: number): Promise<{ food: Food | null }> => {
-  const [rows] = await db
-    .promise()
-    .execute<RowDataPacket[]>(`
+export const getFoodById = async (
+  id: number
+): Promise<{ food: Food | null }> => {
+  const [rows] = await db.promise().execute<RowDataPacket[]>(
+    `
       SELECT f.*, 
              m.id AS media_id,
              m.model_type,
@@ -168,11 +175,11 @@ export const getFoodById = async (id: number): Promise<{ food: Food | null }> =>
       FROM foods f
       LEFT JOIN media m ON f.id = m.model_id AND m.model_type = 'App\\\\Models\\\\Food'
       WHERE f.id = ?`,
-      [id]
-    );
+    [id]
+  );
 
   if (rows.length === 0) {
-    return { food: null }; 
+    return { food: null };
   }
 
   const foodData = rows[0];
@@ -182,7 +189,9 @@ export const getFoodById = async (id: number): Promise<{ food: Food | null }> =>
     name: foodData.name,
     price: foodData.price,
     discount_price: foodData.discount_price,
-    description: foodData.description ? foodData.description.replace(/<\/?[^>]+(>|$)/g, "") : null, 
+    description: foodData.description
+      ? foodData.description.replace(/<\/?[^>]+(>|$)/g, "")
+      : null,
     ingredients: foodData.ingredients,
     package_items_count: foodData.package_items_count,
     weight: foodData.weight,
@@ -207,10 +216,10 @@ export const getFoodById = async (id: number): Promise<{ food: Food | null }> =>
     created_at: foodData.created_at,
     updated_at: foodData.updated_at,
     outOfStock: foodData.outOfStock,
-    media: [], 
+    media: [],
   };
 
-  rows.forEach(row => {
+  rows.forEach((row) => {
     if (row.media_id) {
       food.media.push({
         id: row.media_id,
@@ -238,7 +247,6 @@ export const getFoodById = async (id: number): Promise<{ food: Food | null }> =>
 
   return { food };
 };
-
 
 // Create a new food item
 export const createFood = async (foodData: Food): Promise<Food> => {
@@ -273,8 +281,8 @@ export const createFood = async (foodData: Food): Promise<Food> => {
     foodData.track_inventory ?? null,
     foodData.featured ? 1 : 0,
     foodData.deliverable ? 1 : 0,
-    foodData.restaurant_id, 
-    foodData.category_id,    
+    foodData.restaurant_id,
+    foodData.category_id,
     foodData.subcategory_id ?? null,
     foodData.product_type_id ?? null,
     foodData.hub_id ?? null,
@@ -282,14 +290,14 @@ export const createFood = async (foodData: Food): Promise<Food> => {
     foodData.product_brand_id ?? null,
     foodData.weightage ?? null,
     foodData.status ?? null,
-    new Date(), 
-    new Date(), 
-    foodData.food_locality ?? null 
+    new Date(),
+    new Date(),
+    foodData.food_locality ?? null,
   ];
 
   try {
     const [result] = await db.promise().execute<ResultSetHeader>(query, values);
-    return { id: result.insertId, ...foodData }; 
+    return { id: result.insertId, ...foodData };
   } catch (error) {
     console.error("Error inserting food:", error);
     throw new Error("Database insert failed");
@@ -297,7 +305,10 @@ export const createFood = async (foodData: Food): Promise<Food> => {
 };
 
 // Update an existing food item by ID
-export const updateFood = async (id: number, foodData: Food): Promise<Food | null> => {
+export const updateFood = async (
+  id: number,
+  foodData: Food
+): Promise<Food | null> => {
   const query = `
     UPDATE foods SET name = ?, price = ?, discount_price = ?, description = ?, 
     perma_link = ?, ingredients = ?, package_items_count = ?, weight = ?, 
@@ -311,7 +322,7 @@ export const updateFood = async (id: number, foodData: Food): Promise<Food | nul
   const values = [
     foodData.name,
     foodData.price,
-    foodData.discount_price ?? null, 
+    foodData.discount_price ?? null,
     foodData.description ?? null,
     foodData.perma_link ?? null,
     foodData.ingredients ?? null,
@@ -326,8 +337,8 @@ export const updateFood = async (id: number, foodData: Food): Promise<Food | nul
     foodData.track_inventory ?? null,
     foodData.featured ? 1 : 0,
     foodData.deliverable ? 1 : 0,
-    foodData.restaurant_id, 
-    foodData.category_id,    
+    foodData.restaurant_id,
+    foodData.category_id,
     foodData.subcategory_id ?? null,
     foodData.product_type_id ?? null,
     foodData.hub_id ?? null,
@@ -335,7 +346,7 @@ export const updateFood = async (id: number, foodData: Food): Promise<Food | nul
     foodData.product_brand_id ?? null,
     foodData.weightage ?? null,
     foodData.status ?? null,
-    id
+    id,
   ];
 
   try {
@@ -352,4 +363,32 @@ export const deleteFood = async (id: number): Promise<boolean> => {
   const query = `DELETE FROM foods WHERE id = ?`;
   const [result] = await db.promise().execute<ResultSetHeader>(query, [id]);
   return result.affectedRows > 0;
+};
+
+export const updateStock = async (
+  foodId: number,
+  amountChange: number,
+  description?: string
+): Promise<void> => {
+  const query = `
+    UPDATE stock_mutations
+    SET amount = amount + ?,
+    stockable_id=?, 
+        description = ?, 
+        updated_at = NOW()
+    WHERE id = ?
+  `;
+
+  const values = [amountChange, foodId, description ?? null, foodId];
+
+  try {
+    const [result] = await db.promise().execute<ResultSetHeader>(query, values);
+
+    if (result.affectedRows === 0) {
+      throw new Error("No record found with the specified ID");
+    }
+  } catch (error) {
+    console.error("Error updating stock:", error);
+    throw new Error("Stock update failed");
+  }
 };

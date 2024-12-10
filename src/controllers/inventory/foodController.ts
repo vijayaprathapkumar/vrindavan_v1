@@ -5,6 +5,7 @@ import {
   createFood,
   updateFood,
   deleteFood,
+  updateStock,
 } from "../../models/inventory/foodModel";
 import { createResponse } from "../../utils/responseHandler";
 
@@ -161,5 +162,36 @@ export const removeFood = async (
     return res
       .status(500)
       .json(createResponse(500, "Error deleting food", error.message));
+  }
+};
+
+// out of stock
+export const modifyStock = async (req: Request, res: Response): Promise<Response> => {
+  try {
+   
+    const { foodId, amount, description, type } = req.body;
+
+    if (!["add", "sub"].includes(type)) {
+      return res.status(400).json({
+        statusCode: 400,
+        message: "Invalid stock update type. Must be 'add' or 'sub'.",
+      });
+    }
+
+    const amountChange = type === "add" ? amount : -Math.abs(amount);
+
+    await updateStock( foodId, amountChange, description);
+
+    return res.status(200).json({
+      statusCode: 200,
+      message: "Stock updated successfully",
+    });
+  } catch (error) {
+    console.error("Error modifying stock:", error);
+    return res.status(500).json({
+      statusCode: 500,
+      message: "Error modifying stock",
+      error: error.message,
+    });
   }
 };

@@ -1,39 +1,42 @@
 import { db } from "../../config/databaseConnection";
 import { RowDataPacket } from "mysql2";
 
-
 // Fetch all delivery boy orders with complete user data
 export const getAllDeliveryBoyOrders = async (
-  page: number, 
-  limit: number, 
-  searchTerm: string, 
-  localityId: number | null, 
-  foodName: string | null, 
-  startDate: string | null, 
+  page: number,
+  limit: number,
+  searchTerm: string,
+  localityId: number | null,
+  foodName: string | null,
+  startDate: string | null,
   endDate: string | null
-): Promise<{ data: any[], totalRecords: number }> => {
+): Promise<{ data: any[]; totalRecords: number }> => {
   try {
     const offset = (page - 1) * limit;
 
     // Build search conditions
-    const searchCondition = searchTerm ? `
+    const searchCondition = searchTerm
+      ? `
       AND (
         u.name LIKE ? OR
         u.phone LIKE ? OR
         u.email LIKE ? OR
         l.name LIKE ? OR
         f.name LIKE ?
-      )` : '';
+      )`
+      : "";
 
-    const localityCondition = localityId ? `AND l.id = ?` : '';
-    const foodNameCondition = foodName ? `AND f.name LIKE ?` : '';
-    const dateCondition = (startDate && endDate) ? `AND o.created_at BETWEEN ? AND ?` : '';
+    const localityCondition = localityId ? `AND l.id = ?` : "";
+    const foodNameCondition = foodName ? `AND f.name LIKE ?` : "";
+    const dateCondition =
+      startDate && endDate ? `AND o.created_at BETWEEN ? AND ?` : "";
 
     const searchValue = `%${searchTerm}%`;
     const foodNameValue = `%${foodName}%`;
 
     // Construct the query with all conditions
-    const [rows] = await db.promise().query<RowDataPacket[]>(`
+    const [rows] = await db.promise().query<RowDataPacket[]>(
+      `
       SELECT
         o.id AS order_id,
         o.user_id AS order_user_id,
@@ -94,7 +97,27 @@ export const getAllDeliveryBoyOrders = async (
         da.latitude AS delivery_address_latitude,
         da.longitude AS delivery_address_longitude,
         da.house_no AS delivery_address_house_no,
-        da.complete_address AS delivery_address_complete_address
+        da.complete_address AS delivery_address_complete_address,
+        db.id AS delivery_boy_id,
+        db.name AS delivery_boy_name,
+        db.mobile AS delivery_boy_mobile,
+        db.user_id AS delivery_boy_user_id,
+        db.active AS delivery_boy_active,
+        db.cash_collection AS delivery_boy_cash_collection,
+        db.delivery_fee AS delivery_boy_delivery_fee,
+        db.total_orders AS delivery_boy_total_orders,
+        db.earning AS delivery_boy_earning,
+        db.available AS delivery_boy_available,
+        db.addressPickup AS delivery_boy_addressPickup,
+        db.latitudePickup AS delivery_boy_latitudePickup,
+        db.longitudePickup AS delivery_boy_longitudePickup,
+        db.created_at AS delivery_boy_created_at,
+        db.updated_at AS delivery_boy_updated_at,
+        ldb.id AS locality_delivery_boy_id,
+        ldb.locality_id AS locality_delivery_boy_locality_id,
+        ldb.delivery_boy_id AS locality_delivery_boy_delivery_boy_id,
+        ldb.created_at AS locality_delivery_boy_created_at,
+        ldb.updated_at AS locality_delivery_boy_updated_at
       FROM orders o
       LEFT JOIN food_orders fo ON o.id = fo.order_id
       LEFT JOIN foods f ON fo.food_id = f.id
@@ -102,41 +125,54 @@ export const getAllDeliveryBoyOrders = async (
       LEFT JOIN payments p ON o.payment_id = p.id
       LEFT JOIN users u ON o.user_id = u.id
       LEFT JOIN delivery_addresses da ON o.delivery_address_id = da.id
+      LEFT JOIN locality_delivery_boys ldb ON o.locality_id = ldb.locality_id
+      LEFT JOIN delivery_boys db ON ldb.delivery_boy_id = db.id
       WHERE 1=1
       ${searchCondition}
       ${localityCondition}
       ${foodNameCondition}
       ${dateCondition}
-      ORDER BY o.id, f.id
+       ORDER BY o.created_at DESC, f.id
       LIMIT ? OFFSET ?;
-    `, [
-      ...(searchTerm ? [searchValue, searchValue, searchValue, searchValue, searchValue] : []),
-      ...(localityId ? [localityId] : []),
-      ...(foodName ? [foodNameValue] : []),
-      ...(startDate && endDate ? [startDate, endDate] : []),
-      limit, 
-      offset
-    ]);
+    `,
+      [
+        ...(searchTerm
+          ? [searchValue, searchValue, searchValue, searchValue, searchValue]
+          : []),
+        ...(localityId ? [localityId] : []),
+        ...(foodName ? [foodNameValue] : []),
+        ...(startDate && endDate ? [startDate, endDate] : []),
+        limit,
+        offset,
+      ]
+    );
 
-    // Fetch total count with filters
-    const [[{ totalRecords }]] = await db.promise().query<RowDataPacket[]>(`
+    // Fetch total count with filters including delivery_boys association
+    const [[{ totalRecords }]] = await db.promise().query<RowDataPacket[]>(
+      `
       SELECT COUNT(*) AS totalRecords
       FROM orders o
       LEFT JOIN food_orders fo ON o.id = fo.order_id
       LEFT JOIN foods f ON fo.food_id = f.id
       LEFT JOIN localities l ON o.locality_id = l.id
       LEFT JOIN users u ON o.user_id = u.id
+      LEFT JOIN locality_delivery_boys ldb ON o.locality_id = ldb.locality_id
+      LEFT JOIN delivery_boys db ON ldb.delivery_boy_id = db.id
       WHERE 1=1
       ${searchCondition}
       ${localityCondition}
       ${foodNameCondition}
       ${dateCondition};
-    `, [
-      ...(searchTerm ? [searchValue, searchValue, searchValue, searchValue, searchValue] : []),
-      ...(localityId ? [localityId] : []),
-      ...(foodName ? [foodNameValue] : []),
-      ...(startDate && endDate ? [startDate, endDate] : [])
-    ]);
+    `,
+      [
+        ...(searchTerm
+          ? [searchValue, searchValue, searchValue, searchValue, searchValue]
+          : []),
+        ...(localityId ? [localityId] : []),
+        ...(foodName ? [foodNameValue] : []),
+        ...(startDate && endDate ? [startDate, endDate] : []),
+      ]
+    );
 
     // Structuring data logic remains the same
     const structuredData = rows.reduce((acc: any[], row: any) => {
@@ -144,7 +180,6 @@ export const getAllDeliveryBoyOrders = async (
       if (!order) {
         order = {
           order_id: row.order_id,
-          
           user: {
             id: row.user_id,
             name: row.user_name,
@@ -153,17 +188,19 @@ export const getAllDeliveryBoyOrders = async (
             api_token: row.user_api_token,
             device_token: row.user_device_token,
             delivery_priority: row.user_delivery_priority,
-            credit_limit: row.user_credit_limit
+            credit_limit: row.user_credit_limit,
           },
-          delivery_address: row.delivery_address_id ? {
-            id: row.delivery_address_id,
-            description: row.delivery_address_description,
-            address: row.delivery_address_address,
-            latitude: row.delivery_address_latitude,
-            longitude: row.delivery_address_longitude,
-            house_no: row.delivery_address_house_no,
-            complete_address: row.delivery_address_complete_address
-          } : null,
+          delivery_address: row.delivery_address_id
+            ? {
+                id: row.delivery_address_id,
+                description: row.delivery_address_description,
+                address: row.delivery_address_address,
+                latitude: row.delivery_address_latitude,
+                longitude: row.delivery_address_longitude,
+                house_no: row.delivery_address_house_no,
+                complete_address: row.delivery_address_complete_address,
+              }
+            : null,
           locality: {
             id: row.locality_id,
             name: row.locality_name,
@@ -171,23 +208,50 @@ export const getAllDeliveryBoyOrders = async (
             google_address: row.locality_google_address,
             latitude: row.locality_latitude,
             longitude: row.locality_longitude,
-            city: row.locality_city
+            city: row.locality_city,
+          },
+          delivery_boy: {
+            id: row.delivery_boy_id,
+            name: row.delivery_boy_name,
+            mobile: row.delivery_boy_mobile,
+            user_id: row.delivery_boy_user_id,
+            active: row.delivery_boy_active,
+            cash_collection: row.delivery_boy_cash_collection,
+            delivery_fee: row.delivery_boy_delivery_fee,
+            total_orders: row.delivery_boy_total_orders,
+            earning: row.delivery_boy_earning,
+            available: row.delivery_boy_available,
+            addressPickup: row.delivery_boy_addressPickup,
+            latitudePickup: row.delivery_boy_latitudePickup,
+            longitudePickup: row.delivery_boy_longitudePickup,
+            created_at: row.delivery_boy_created_at,
+            updated_at: row.delivery_boy_updated_at,
+          },
+          locality_delivery_boys: {
+            id: row.locality_delivery_boy_id,
+            locality_id: row.locality_delivery_boy_locality_id,
+            delivery_boy_id: row.locality_delivery_boy_delivery_boy_id,
+            created_at: row.locality_delivery_boy_created_at,
+            updated_at: row.locality_delivery_boy_updated_at,
           },
           payment: {
             id: row.payment_id,
             price: row.payment_price,
             description: row.payment_description,
             status: row.payment_status,
-            method: row.payment_method
+            method: row.payment_method,
           },
-          created_at: row.order_created_at, 
-          updated_at: row.order_updated_at, 
-          foods: []
+          created_at: row.order_created_at,
+          updated_at: row.order_updated_at,
+          foods: [],
         };
         acc.push(order);
       }
 
-      if (row.food_id && !order.foods.some((food: any) => food.id === row.food_id)) {
+      if (
+        row.food_id &&
+        !order.foods.some((food: any) => food.id === row.food_id)
+      ) {
         order.foods.push({
           id: row.food_id,
           name: row.food_name,
@@ -198,8 +262,8 @@ export const getAllDeliveryBoyOrders = async (
           updated_at: row.food_updated_at, // Adding updated_at for food
           product_type: {
             name: row.product_type_name,
-            weightage: row.product_type_weightage
-          }
+            weightage: row.product_type_weightage,
+          },
         });
       }
 
