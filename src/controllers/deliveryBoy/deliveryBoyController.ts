@@ -1,39 +1,40 @@
 import { Request, Response } from "express";
 import {
-  getAllDeliveryBoys,
   createDeliveryBoy,
   getDeliveryBoyById,
   updateDeliveryBoyById,
   deleteDeliveryBoyById,
+  getAllDeliveryBoysWithLocalities,
 } from "../../models/deliveryBoy/deliveryBoyModel";
 import { createResponse } from "../../utils/responseHandler";
 
 // Fetch all delivery boys
-export const getDeliveryBoys = async (req: Request, res: Response): Promise<void> => {
+export const getDeliveryBoysWithLocalities = async (req: Request, res: Response): Promise<void> => {
   try {
-    const limit = parseInt(req.query.limit as string) || 10; // Default limit to 10
-    const page = parseInt(req.query.page as string) || 1; // Default page to 1
+    const limit = parseInt(req.query.limit as string) || 10;
+    const page = parseInt(req.query.page as string) || 1;
     const offset = (page - 1) * limit;
     const searchTerm = req.query.searchTerm ? (req.query.searchTerm as string) : '';
 
-    // Fetch filtered delivery boys and total count
-    const { deliveryBoys, totalCount } = await getAllDeliveryBoys(limit, offset, searchTerm);
+    const { deliveryBoys, totalCount } = await getAllDeliveryBoysWithLocalities(
+      limit,
+      offset,
+      searchTerm
+    );
 
     res.status(200).json(
-      createResponse(200, "Delivery boys fetched successfully", {
+      createResponse(200, "Delivery boys and localities fetched successfully", {
         deliveryBoys,
         totalCount,
         limit,
         page,
-        totalPages: Math.ceil(totalCount / limit), // Calculate total pages
+        totalPages: Math.ceil(totalCount / limit), 
       })
     );
   } catch (error) {
-    res.status(500).json(createResponse(500, "Error fetching delivery boys", error));
+    res.status(500).json(createResponse(500, "Error fetching delivery boys and localities", error));
   }
 };
-
-
 
 
 // Add a new delivery boy

@@ -1,7 +1,6 @@
 import { db } from "../../config/databaseConnection";
 import { RowDataPacket, OkPacket, ResultSetHeader } from "mysql2";
 
-// Fetch all customers
 export const getAllCustomers = async (
   page: number,
   limit: number,
@@ -47,14 +46,28 @@ export const getAllCustomers = async (
       da.updated_at AS address_updated_at,
       l.id AS locality_id,
       l.name AS locality_name,
-      wb.balance AS wallet_balance
+      wb.balance AS wallet_balance,
+      lb.delivery_boy_id,
+      db.name AS delivery_boy_name,
+      db.mobile AS delivery_boy_mobile,
+      db.active AS delivery_boy_active,
+      db.cash_collection AS delivery_boy_cash_collection,
+      db.delivery_fee AS delivery_boy_fee,
+      db.total_orders AS delivery_boy_orders,
+      db.earning AS delivery_boy_earning,
+      db.available AS delivery_boy_available
     FROM 
       users u
     LEFT JOIN 
       delivery_addresses da ON u.id = da.user_id
     LEFT JOIN 
       localities l ON da.locality_id = l.id
-    LEFT JOIN wallet_balances wb ON u.id = wb.user_id
+    LEFT JOIN 
+      wallet_balances wb ON u.id = wb.user_id
+    LEFT JOIN 
+      locality_delivery_boys lb ON lb.locality_id = da.locality_id
+    LEFT JOIN 
+      delivery_boys db ON lb.delivery_boy_id = db.id
     WHERE 
       u.id IS NOT NULL
   `;
@@ -90,7 +103,6 @@ export const getAllCustomers = async (
     params.push(status);
   }
 
-
   const [[totalCount]] = await db
     .promise()
     .query<RowDataPacket[]>(totalCountQuery, params);
@@ -111,6 +123,7 @@ export const getAllCustomers = async (
   const [[statusCount]] = await db
     .promise()
     .query<RowDataPacket[]>(statusCountQuery);
+
   return {
     customers: rows.map((row) => ({
       user_id: row.user_id,
@@ -149,11 +162,23 @@ export const getAllCustomers = async (
         created_at: row.address_created_at,
         updated_at: row.address_updated_at,
       },
+      delivery_boy: {
+        delivery_boy_id: row.delivery_boy_id,
+        name: row.delivery_boy_name,
+        mobile: row.delivery_boy_mobile,
+        active: row.delivery_boy_active,
+        cash_collection: row.delivery_boy_cash_collection,
+        delivery_fee: row.delivery_boy_fee,
+        total_orders: row.delivery_boy_orders,
+        earning: row.delivery_boy_earning,
+        available: row.delivery_boy_available,
+      },
     })),
     total: totalCount.total,
     statusCount,
   };
 };
+
 
 export const createCustomer = async (
   localityId: number,
@@ -266,13 +291,20 @@ export const getCustomerById = async (id: number): Promise<any | null> => {
       da.is_approve,
       da.is_default,
       da.locality_id,
+      da.created_at AS address_created_at,
+      da.updated_at AS address_updated_at,
       l.id AS locality_id,
       l.name AS locality_name,
-      cf.id AS custom_field_id,
-      cf.name AS custom_field_name,
-      cp.id AS priority_id,
-      cp.mark_priority,
-      wb.balance AS wallet_balance
+      wb.balance AS wallet_balance,
+      lb.delivery_boy_id,
+      db.name AS delivery_boy_name,
+      db.mobile AS delivery_boy_mobile,
+      db.active AS delivery_boy_active,
+      db.cash_collection AS delivery_boy_cash_collection,
+      db.delivery_fee AS delivery_boy_fee,
+      db.total_orders AS delivery_boy_orders,
+      db.earning AS delivery_boy_earning,
+      db.available AS delivery_boy_available
     FROM 
       users u
     LEFT JOIN 
@@ -280,10 +312,11 @@ export const getCustomerById = async (id: number): Promise<any | null> => {
     LEFT JOIN 
       localities l ON da.locality_id = l.id
     LEFT JOIN 
-      custom_fields cf ON u.id = cf.custom_field_model
+      wallet_balances wb ON u.id = wb.user_id
     LEFT JOIN 
-      customer_priorities cp ON u.id = cp.id 
-    LEFT JOIN wallet_balances wb ON u.id = wb.user_id
+      locality_delivery_boys lb ON lb.locality_id = da.locality_id
+    LEFT JOIN 
+      delivery_boys db ON lb.delivery_boy_id = db.id
     WHERE 
       u.id = ?;
   `;
@@ -326,6 +359,17 @@ export const getCustomerById = async (id: number): Promise<any | null> => {
       is_default: row.is_default,
       locality_id: row.locality_id,
       locality_name: row.locality_name,
+    },
+    delivery_boy: {
+      delivery_boy_id: row.delivery_boy_id,
+      name: row.delivery_boy_name,
+      mobile: row.delivery_boy_mobile,
+      active: row.delivery_boy_active,
+      cash_collection: row.delivery_boy_cash_collection,
+      delivery_fee: row.delivery_boy_fee,
+      total_orders: row.delivery_boy_orders,
+      earning: row.delivery_boy_earning,
+      available: row.delivery_boy_available,
     },
     custom_fields: rows.map((row) => ({
       custom_field_id: row.custom_field_id,

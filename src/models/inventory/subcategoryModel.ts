@@ -96,8 +96,8 @@ export const createSubCategory = async (
   const [result] = await db
     .promise()
     .query<OkPacket>(
-      "INSERT INTO sub_categories (category_id, name, description, weightage, active) VALUES (?, ?, ?, ?, ?)",
-      [category_id, name, description, weightage, active]
+      "INSERT INTO sub_categories (category_id, name, description, weightage, active,created_at,updated_at) VALUES (?, ?, ?, ?, ?,?,?)",
+      [category_id, name, description, weightage, active , new Date,new Date]
     );
   return result;
 };

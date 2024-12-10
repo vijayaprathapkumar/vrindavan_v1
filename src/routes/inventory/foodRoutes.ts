@@ -7,8 +7,9 @@ const router = express.Router();
 
 router.get("/", verifyDeviceToken, foodController.fetchAllFoods);
 router.get("/:id", verifyDeviceToken, foodController.fetchFoodById);
-router.post("/", verifyDeviceToken, validateFood, foodController.addFood);
-router.put("/:id", verifyDeviceToken, validateFood, foodController.modifyFood);
+router.post("/", verifyDeviceToken,  foodController.addFood);
+router.put("/:id", verifyDeviceToken,  foodController.modifyFood);
 router.delete("/:id", verifyDeviceToken, foodController.removeFood);
+router.post("/stocks", verifyDeviceToken, foodController.modifyStock);
 
 export default router;

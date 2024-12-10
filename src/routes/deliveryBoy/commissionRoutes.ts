@@ -2,19 +2,15 @@ import express from "express";
 import {
   getDetailedCommissions,
   getDetailedCommission,
+  updateCommissionController,
 } from "../../controllers/deliveryBoy/commissionController";
-import {
-  commissionValidation,
-  commissionIdValidation,
-  validate,
-} from "../../validation/deliveryBoy/commissionValidation";
 import { verifyDeviceToken } from "../../middlewares/authMiddleware";
 
 const router = express.Router();
 
 // Define routes for commissions
 router.get("/",verifyDeviceToken, getDetailedCommissions);
-
-router.get("/:id", commissionIdValidation,verifyDeviceToken, validate, getDetailedCommission);
+router.put("/:commissionId",verifyDeviceToken, updateCommissionController);
+router.get("/:id", verifyDeviceToken, getDetailedCommission);
 
 export default router;

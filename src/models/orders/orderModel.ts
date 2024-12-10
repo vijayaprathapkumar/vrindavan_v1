@@ -173,8 +173,10 @@ export const getAllOrdersWithOutUserId = async (
   routeId?: number | null,
   hubId?: number | null,
   localityId?: number | null,
+  productId?: string | number | null,
   approveStatus?: string,
-  orderType?: string |number | null 
+  orderType?: string | number | null,
+  deliveryBoyId?: string | number | null
 ): Promise<{ total: number; placeOrders: any[] }> => {
   const offset = (page - 1) * limit;
 
@@ -210,24 +212,47 @@ export const getAllOrdersWithOutUserId = async (
     queryParams.push(localityId);
   }
 
-   // ApproveStatus condition (handle "All", "1", "0")
-   if (approveStatus !== "All") {
+  if (deliveryBoyId !== null && deliveryBoyId !== "All") {
+    const parsedDeliveryBoyId = Number(deliveryBoyId);
+    if (!isNaN(parsedDeliveryBoyId)) {
+      conditions += " AND db.id = ?";
+      queryParams.push(parsedDeliveryBoyId);
+    }
+  }
+  
+  // ApproveStatus condition (handle "All", "1", "0")
+  if (approveStatus !== "All") {
     conditions += " AND da.is_approve = ?";
     queryParams.push(parseInt(approveStatus, 10));
   }
+
+
+  
+  if (productId !== null && productId !== "All") {
+    const parsedProductId = Number(productId);
+    if (!isNaN(parsedProductId)) {
+      conditions += " AND f.id = ?";
+      queryParams.push(parsedProductId);
+    }
+  }
+  
 
   // OrderType condition
   if (orderType && orderType !== "All") {
     conditions += " AND o.order_type = ?";
     queryParams.push(orderType);
   }
-  
 
   const countQuery = `
-  SELECT COUNT(DISTINCT o.id) AS total
-  FROM orders o
-  JOIN delivery_addresses da ON o.delivery_address_id = da.id 
-  WHERE 1=1 ${conditions} 
+    SELECT COUNT(DISTINCT o.id) AS total
+    FROM orders o
+    JOIN delivery_addresses da ON o.delivery_address_id = da.id
+    LEFT JOIN locality_delivery_boys ldb ON o.locality_id = ldb.locality_id
+    LEFT JOIN delivery_boys db ON ldb.delivery_boy_id = db.id
+    LEFT JOIN food_orders fo ON o.id = fo.order_id
+    LEFT JOIN foods f ON fo.food_id = f.id
+    WHERE 1=1 ${conditions};
+
 `;
 
   const [[{ total }]] = await db
@@ -344,8 +369,14 @@ export const getAllOrdersWithOutUserId = async (
     p.created_at AS payment_created_at,
     p.updated_at AS payment_updated_at,
 
-    db.id As delivery_boy_id,
-    db.user_id As delivery_boy_userId,
+ldb.id AS locality_delivery_boy_id,
+    ldb.locality_id AS locality_delivery_boy_locality_id,
+    ldb.delivery_boy_id AS locality_delivery_boy_delivery_boy_id,
+    ldb.created_at AS locality_delivery_boy_created_at,
+    ldb.updated_at AS locality_delivery_boy_updated_at,
+
+     db.id AS delivery_boy_id,
+    db.user_id AS delivery_boy_user_id,
     db.name AS delivery_boy_name,
     db.mobile AS delivery_boy_mobile,
     db.active AS delivery_boy_active,
@@ -384,6 +415,7 @@ export const getAllOrdersWithOutUserId = async (
 
   FROM 
     orders o
+ LEFT JOIN locality_delivery_boys ldb ON o.locality_id = ldb.locality_id
   LEFT JOIN food_orders fo ON o.id = fo.order_id
   LEFT JOIN foods f ON fo.food_id = f.id  
   LEFT JOIN media m ON f.id = m.model_id AND m.model_type = 'App\\\\Models\\\\Food' 
@@ -392,7 +424,7 @@ export const getAllOrdersWithOutUserId = async (
   LEFT JOIN localities l ON o.locality_id = l.id
   LEFT JOIN delivery_addresses da ON o.delivery_address_id = da.id
   LEFT JOIN payments p ON o.payment_id = p.id
-  LEFT JOIN delivery_boys db ON o.delivery_boy_id = db.id
+  LEFT JOIN delivery_boys db ON ldb.delivery_boy_id = db.id
   LEFT JOIN product_types pt ON f.product_type_id = pt.id
   LEFT JOIN order_statuses os ON o.order_status_id =os.id
   LEFT JOIN users u ON o.user_id = u.id
