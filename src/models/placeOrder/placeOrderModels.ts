@@ -58,7 +58,7 @@ export const addOrdersEntry = async (userId, orderDate) => {
           order_status_id, tax, delivery_fee, delivery_address_id, is_wallet_deduct, 
           created_at, updated_at
         ) 
-        VALUES (?, 2, ?, ?, ?, ?, 1, 0.0, 0.0, ?, 1, NOW(), NOW());
+        VALUES (?, 1, ?, ?, ?, ?, 1, 0.0, 0.0, ?, 1, NOW(), NOW());
       `;
 
     const [orderResult]: any = await db

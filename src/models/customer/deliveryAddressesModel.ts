@@ -73,6 +73,8 @@ export const getDeliveryAddress = async (
         users u ON da.user_id = u.id
       WHERE 
         da.is_default = 1
+      ORDER BY 
+        da.created_at DESC
       LIMIT ? OFFSET ?;
     `;
 

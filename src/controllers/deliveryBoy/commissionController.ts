@@ -2,13 +2,14 @@ import { Request, Response } from "express";
 import {
   getAllDetailedCommissions,
   getDetailedCommissionById,
+  updateCommission,
 } from "../../models/deliveryBoy/commissionModel";
 import { createResponse } from "../../utils/responseHandler";
 
 export const getDetailedCommissions = async (req: Request, res: Response): Promise<void> => {
   const searchTerm = req.query.searchTerm as string || '';
-  const categoryId = req.query.categoryId as string || ''; // Category filter
-  const limit = parseInt(req.query.limit as string) || 10; // Ensure this is a number
+  const categoryId = req.query.categoryId as string || ''; 
+  const limit = parseInt(req.query.limit as string) || 10; 
   const page = parseInt(req.query.page as string) || 1; 
   const offset = (page - 1) * limit; 
 
@@ -59,5 +60,22 @@ export const getDetailedCommission = async (
     res
       .status(500)
       .json(createResponse(500, "Error fetching detailed commission", error));
+  }
+};
+
+export const updateCommissionController = async (req: Request, res: Response): Promise<void> => {
+  const { commissionId } = req.params;
+  const { commissionValue } = req.body;
+
+  try {
+    const updatedCommission = await updateCommission(commissionId, commissionValue);
+
+    if (updatedCommission) {
+      res.status(200).json(createResponse(200, "Commission updated successfully", updatedCommission));
+    } else {
+      res.status(404).json(createResponse(404, "Commission not found"));
+    }
+  } catch (error) {
+    res.status(500).json(createResponse(500, "Error updating commission", error));
   }
 };

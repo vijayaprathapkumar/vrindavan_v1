@@ -89,6 +89,16 @@ export const fetchAllOrdersWithOutUserID = async (
     ? (req.query.orderType as string)
     : null;
 
+  const deliveryBoyId = req.query.deliveryBoyId
+    ? parseInt(req.query.deliveryBoyId as string)
+    : null;
+    
+    
+    const productId = req.query.productId
+    ? parseInt(req.query.productId as string)
+    : null;
+  
+
   const startDate = req.query.startDate
     ? new Date(req.query.startDate as string)
     : undefined;
@@ -114,8 +124,10 @@ export const fetchAllOrdersWithOutUserID = async (
       routeId,
       hubId,
       localityId,
+      productId,
       approveStatus,
-      orderType
+      orderType,
+      deliveryBoyId
     );
 
     const totalPages = Math.ceil(total / limit);

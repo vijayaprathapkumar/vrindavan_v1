@@ -1,6 +1,6 @@
 import express from "express";
 import {
-  getDeliveryBoys,
+  getDeliveryBoysWithLocalities,
   addDeliveryBoy,
   getDeliveryBoy,
   updateDeliveryBoy,
@@ -11,20 +11,10 @@ import { verifyDeviceToken } from "../../middlewares/authMiddleware";
 const router = express.Router();
 
 // Define routes for delivery boys
-router.get("/", verifyDeviceToken, getDeliveryBoys);
+router.get("/", verifyDeviceToken, getDeliveryBoysWithLocalities);
 router.post("/", verifyDeviceToken, addDeliveryBoy);
 router.get("/:id", verifyDeviceToken, getDeliveryBoy);
-router.put(
-  "/:id",
-  updateDeliveryBoy,
-  verifyDeviceToken
-);
-router.delete(
-  "/:id",
-  
-  verifyDeviceToken,
-  
-  deleteDeliveryBoy
-);
+router.put("/:id", updateDeliveryBoy, verifyDeviceToken);
+router.delete("/:id", verifyDeviceToken, deleteDeliveryBoy);
 
 export default router;
