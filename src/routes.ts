@@ -29,6 +29,7 @@ import similarProductsRoutes from "./routes/similarProducts/similarProductRoute"
 import loginRoutes from "./routes/adminLogin/loginRoutes";
 import deliveryAddressesRoutes from "./routes/customer/deliveryAddressesRoutes";
 import customerPrioritiesRoutes from "./routes/customer/customerPrioritiesRoutes";
+import specialCommissionRoutes from "./routes/deliveryBoy/specialCommissionRoutes";
 
 const router = express.Router();
 
@@ -58,6 +59,8 @@ router.use("/faqs", faqsRoutes);
 // deliveryBoys
 router.use("/delivery_boys", deliveryBoyRoutes);
 router.use("/commissions", commissionRoutes);
+router.use("/special-commissions", specialCommissionRoutes);
+
 
 // orders
 router.use("/orders", orderRoutes); 
