@@ -9,7 +9,9 @@ export const getAllDetailedCommissions = async (
   categoryId: string = ""
 ): Promise<{ data: any[]; totalCount: number }> => {
   const searchPattern = `%${searchTerm}%`;
-  const categoryFilter = categoryId ? " AND c.id = ?" : "";
+
+  const categoryFilter =
+    categoryId && categoryId !== "All" ? " AND c.id = ?" : "";
 
   const queryData = `
     SELECT 
@@ -75,19 +77,22 @@ export const getAllDetailedCommissions = async (
   WHERE 
     (p.name LIKE ? OR p.unit LIKE ? OR p.price LIKE ?)${categoryFilter};
 `;
-  const params = categoryId
-    ? [
-        searchPattern,
-        searchPattern,
-        searchPattern,
-        parseInt(categoryId),
-        limit,
-        offset,
-      ]
-    : [searchPattern, searchPattern, searchPattern, limit, offset];
-  const countParams = categoryId
-    ? [searchPattern, searchPattern, searchPattern, parseInt(categoryId)]
-    : [searchPattern, searchPattern, searchPattern];
+  const params = [
+    searchPattern,
+    searchPattern,
+    searchPattern,
+    ...(categoryId && categoryId !== "All" ? [parseInt(categoryId)] : []),
+    limit,
+    offset,
+  ];
+
+  const countParams = [
+    searchPattern,
+    searchPattern,
+    searchPattern,
+    ...(categoryId && categoryId !== "All" ? [parseInt(categoryId)] : []),
+  ];
+
   const [rows] = await db.promise().query<RowDataPacket[]>(queryData, params);
   const [[{ total_count }]] = await db
     .promise()
@@ -265,14 +270,19 @@ export const getDetailedCommissionById = async (id: number): Promise<any> => {
   };
 };
 
-export const updateCommission = async (commissionId: string, commissionValue: string): Promise<any> => {
+export const updateCommission = async (
+  commissionId: string,
+  commissionValue: string
+): Promise<any> => {
   const query = `
     UPDATE standard_commissions 
     SET commission = ?
     WHERE id = ?;
   `;
 
-  const [result] = await db.promise().query<ResultSetHeader>(query, [commissionValue, commissionId]);
+  const [result] = await db
+    .promise()
+    .query<ResultSetHeader>(query, [commissionValue, commissionId]);
 
   if (result.affectedRows > 0) {
     return { id: commissionId, commission: commissionValue };
