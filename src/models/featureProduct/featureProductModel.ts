@@ -62,3 +62,30 @@ export const getFeaturedCategories = async (
     data: rows,
   };
 };
+
+interface FeaturedCategoryInput {
+  category_id: number;
+  sub_category_id?: number;
+  status: number;
+  category_type?: number;
+}
+
+export const createFeaturedCategory = async (data: FeaturedCategoryInput): Promise<any> => {
+  const { category_id, sub_category_id, status, category_type } = data;
+
+  const query = `
+      INSERT INTO featured_categories (category_id, sub_category_id, status, category_type, created_at, updated_at)
+      VALUES (?, ?, ?, ?, NOW(), NOW());
+  `;
+
+  const params = [category_id, sub_category_id || null, status, category_type || null];
+
+  const [result]: any = await db.promise().query(query, params);
+
+  return {
+      id: result.insertId,
+      ...data,
+      created_at: new Date(),
+      updated_at: new Date(),
+  };
+};
