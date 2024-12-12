@@ -6,7 +6,7 @@ export const getAllCustomers = async (
   limit: number,
   locality?: string,
   status?: string,
-  searchTerm?: string,
+  searchTerm?: string
 ): Promise<{ customers: any[]; total: number; statusCount: any }> => {
   const offset = (page - 1) * limit;
 
@@ -47,7 +47,7 @@ export const getAllCustomers = async (
       l.id AS locality_id,
       l.name AS locality_name,
       wb.balance AS wallet_balance,
-      lb.delivery_boy_id,
+      db.delivery_boy_id,
       db.name AS delivery_boy_name,
       db.mobile AS delivery_boy_mobile,
       db.active AS delivery_boy_active,
@@ -65,14 +65,32 @@ export const getAllCustomers = async (
     LEFT JOIN 
       wallet_balances wb ON u.id = wb.user_id
     LEFT JOIN 
-      locality_delivery_boys lb ON lb.locality_id = da.locality_id
+      locality_delivery_boys lb ON lb.locality_id = l.id
     LEFT JOIN 
-      delivery_boys db ON lb.delivery_boy_id = db.id
+      (
+        SELECT 
+          lb.id AS locality_delivery_boy_id,
+          lb.locality_id, 
+          lb.delivery_boy_id, 
+          db.name, 
+          db.mobile, 
+          db.active, 
+          db.cash_collection, 
+          db.delivery_fee, 
+          db.total_orders, 
+          db.earning, 
+          db.available
+        FROM 
+          locality_delivery_boys lb
+        LEFT JOIN 
+          delivery_boys db ON lb.delivery_boy_id = db.id
+       
+      ) db ON db.locality_id = da.id
     WHERE 
       u.id IS NOT NULL
   `;
 
-  const params: any[] = [];
+  const params: any[] = []; 
 
   if (searchTerm) {
     const searchValue = `%${searchTerm}%`;
@@ -88,8 +106,6 @@ export const getAllCustomers = async (
   let totalCountQuery = `
     SELECT COUNT(*) as total 
     FROM users u
-    LEFT JOIN delivery_addresses da ON u.id = da.user_id
-    LEFT JOIN localities l ON da.locality_id = l.id
     WHERE u.id IS NOT NULL
   `;
 
@@ -173,11 +189,17 @@ export const getAllCustomers = async (
         earning: row.delivery_boy_earning,
         available: row.delivery_boy_available,
       },
+      locality_delivery_boys: {
+        locality_delivery_boy_id: row.locality_delivery_boy_id,
+        delivery_boy_id: row.delivery_boy_id,
+        locality_id: row.locality_id,
+      },
     })),
     total: totalCount.total,
     statusCount,
   };
 };
+
 
 
 export const createCustomer = async (
@@ -223,7 +245,13 @@ export const createCustomer = async (
     `;
     const [userResult] = await db
       .promise()
-      .query<ResultSetHeader>(insertUserQuery,  [name, email, mobile, status, password || ""]);
+      .query<ResultSetHeader>(insertUserQuery, [
+        name,
+        email,
+        mobile,
+        status,
+        password || "",
+      ]);
 
     const userId = userResult.insertId;
 

@@ -76,16 +76,16 @@ export const getAllDeliveryBoysWithLocalities = async (
         l.created_at AS locality_created_at,
         l.updated_at AS locality_updated_at
       FROM (
-        SELECT DISTINCT db.id
+        SELECT DISTINCT db.id, db.created_at
         FROM delivery_boys db
         ${searchCondition}
-        ORDER BY db.id ASC
+        ORDER BY db.created_at DESC
         LIMIT ? OFFSET ?
       ) AS limited_db
-      INNER JOIN delivery_boys db ON limited_db.id = db.id
+      LEFT JOIN delivery_boys db ON limited_db.id = db.id
       LEFT JOIN locality_delivery_boys ldb ON db.id = ldb.delivery_boy_id
       LEFT JOIN localities l ON ldb.locality_id = l.id
-      ORDER BY db.id ASC`,
+      ORDER BY db.id DESC`,
     [...searchParams, limit, offset]
   );
 
@@ -149,25 +149,52 @@ export const getAllDeliveryBoysWithLocalities = async (
 };
 
 
+
+export interface DeliveryBoyData {
+  userId: number;
+  name: string | null;
+  mobile: string | null;
+  active: boolean;
+  cashCollection: boolean;
+  deliveryFee: number;
+  totalOrders: number;
+  earning: number;
+  available: boolean;
+  addressPickup: string | null;
+  latitudePickup: string | null;
+  longitudePickup: string | null;
+  localityIds: number[];
+}
+
 // Create a new delivery boy
-export const createDeliveryBoy = async (
-  userId: number,
-  name: string | null,
-  mobile: string | null,
-  active: boolean,
-  cashCollection: boolean,
-  deliveryFee: number,
-  totalOrders: number,
-  earning: number,
-  available: boolean,
-  addressPickup: string | null,
-  latitudePickup: string | null,
-  longitudePickup: string | null
-): Promise<void> => {
-  await db
-    .promise()
-    .query<OkPacket>(
-      "INSERT INTO delivery_boys (user_id, name, mobile, active, cash_collection, delivery_fee, total_orders, earning, available, addressPickup, latitudePickup, longitudePickup, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())",
+export const createDeliveryBoy = async (data: DeliveryBoyData): Promise<void> => {
+  const {
+    userId,
+    name,
+    mobile,
+    active,
+    cashCollection,
+    deliveryFee,
+    totalOrders,
+    earning,
+    available,
+    addressPickup,
+    latitudePickup,
+    longitudePickup,
+    localityIds,
+  } = data;
+
+  const connection = await db.promise().getConnection(); 
+
+  try {
+    await connection.beginTransaction();
+
+    // Corrected INSERT statement to match the table structure
+    const [insertResult] = await connection.query<OkPacket>(
+      `INSERT INTO delivery_boys 
+      (user_id, name, mobile, active, cash_collection, delivery_fee, total_orders, earning, available, 
+       addressPickup, latitudePickup, longitudePickup, created_at, updated_at) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
       [
         userId,
         name,
@@ -183,7 +210,27 @@ export const createDeliveryBoy = async (
         longitudePickup,
       ]
     );
+
+    const deliveryBoyId = insertResult.insertId;
+
+    // Insert into locality_delivery_boys table if localityIds exist
+    if (localityIds && localityIds.length > 0) {
+      const values = localityIds.map((localityId) => [deliveryBoyId, localityId, new Date(), new Date()]);
+      await connection.query(
+        `INSERT INTO locality_delivery_boys (delivery_boy_id, locality_id, created_at, updated_at) VALUES ?`,
+        [values]
+      );
+    }
+
+    await connection.commit();
+  } catch (error) {
+    await connection.rollback(); 
+    throw error;
+  } finally {
+    connection.release(); 
+  }
 };
+
 
 // Fetch delivery boy by ID
 export const getDeliveryBoyById = async (
@@ -238,4 +285,32 @@ export const deleteDeliveryBoyById = async (id: number): Promise<void> => {
   await db
     .promise()
     .query<OkPacket>("DELETE FROM delivery_boys WHERE id = ?", [id]);
+};
+
+export const deleteLocalitiesByDeliveryBoyId = async (
+  deliveryBoyId: number,
+  localityIds: number[]
+): Promise<void> => {
+  const connection = await db.promise().getConnection();
+
+  try {
+    await connection.beginTransaction();
+
+    // Delete specific locality assignments and get affected rows
+    const [result] = await connection.query<OkPacket>(
+      `DELETE FROM locality_delivery_boys WHERE delivery_boy_id = ? AND locality_id IN (?)`,
+      [deliveryBoyId, localityIds]
+    );
+
+    if (result.affectedRows === 0) {
+      throw new Error("No matching locality assignments found for deletion.");
+    }
+
+    await connection.commit();
+  } catch (error) {
+    await connection.rollback();
+    throw error; // Re-throw the error to be caught by the controller
+  } finally {
+    connection.release();
+  }
 };
