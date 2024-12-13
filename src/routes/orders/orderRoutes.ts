@@ -12,6 +12,7 @@ import { oneTimeOrdersInCustomer } from "../../controllers/placeOrder/placeOrder
 const router = Router();
 
 router.post("/oneTimeOrder", verifyDeviceToken, oneTimeOrdersInCustomer);
+router.post("/oneSubscriptionOrder", verifyDeviceToken, oneTimeOrdersInCustomer);
 
 router.get("/:userId", verifyDeviceToken, fetchAllOrders);
 

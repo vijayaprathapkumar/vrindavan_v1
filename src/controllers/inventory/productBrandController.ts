@@ -15,9 +15,12 @@ export const fetchAllBrands = async (
   res: Response
 ): Promise<Response<any, Record<string, any>> | void> => {
   try {
-    const { searchTerm } = req.query;
     const limit = parseInt(req.query.limit as string) || 10;
     const page = parseInt(req.query.page as string) || 1;
+    const searchTerm = req.query.searchTerm
+    ? (req.query.searchTerm as string)
+    : null;
+
     const offset = (page - 1) * limit;
 
     const brands = await getAllBrands(searchTerm as string, limit, offset);
