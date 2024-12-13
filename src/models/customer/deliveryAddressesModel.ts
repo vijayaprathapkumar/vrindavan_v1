@@ -40,66 +40,103 @@ interface UpdateDeliveryAddress {
 
 export const getDeliveryAddress = async (
   page: number,
-  limit: number
+  limit: number,
+  searchTerm: string
 ): Promise<{ deliveryAddresses: DeliveryAddressWithUser[]; total: number }> => {
   const offset = (page - 1) * limit;
+  const searchValue = `%${searchTerm}%`;
 
   const query = `
-      SELECT 
-        da.id ,
-        da.description,
-        da.address,
-        da.latitude,
-        da.longitude,
-        da.house_no,
-        da.complete_address,
-        da.is_approve,
-        da.is_default,
-        da.user_id,
-        da.locality_id,
-        da.created_at AS address_created_at,
-        da.updated_at AS address_updated_at,
-        u.id AS user_id,
-        u.name,
-        u.email,
-        u.phone,
-        u.status,
-        u.is_deactivated,
-        u.created_at AS user_created_at,
-        u.updated_at AS user_updated_at
-      FROM 
-        delivery_addresses da
-      JOIN 
-        users u ON da.user_id = u.id
-      WHERE 
-        da.is_default = 1
-      ORDER BY 
-        da.created_at DESC
-      LIMIT ? OFFSET ?;
-    `;
+    SELECT 
+      da.id,
+      da.description,
+      da.address,
+      da.latitude,
+      da.longitude,
+      da.house_no,
+      da.complete_address,
+      da.is_approve,
+      da.is_default,
+      da.user_id,
+      da.locality_id,
+      da.created_at AS address_created_at,
+      da.updated_at AS address_updated_at,
+      u.id AS user_id,
+      u.name,
+      u.email,
+      u.phone,
+      u.status,
+      u.is_deactivated,
+      u.created_at AS user_created_at,
+      u.updated_at AS user_updated_at
+    FROM 
+      delivery_addresses da
+    JOIN 
+      users u ON da.user_id = u.id
+    WHERE 
+      da.is_default = 1
+      AND (
+        u.name LIKE ? OR 
+        u.phone LIKE ? OR 
+        u.email LIKE ? OR 
+        da.address LIKE ? OR 
+        da.house_no LIKE ? OR 
+        da.complete_address LIKE ?
+      )
+    ORDER BY 
+      da.created_at DESC
+    LIMIT ? OFFSET ?;
+  `;
 
   const countQuery = `
-      SELECT COUNT(*) AS total
-      FROM delivery_addresses da
-      WHERE da.is_default = 1;
-    `;
+    SELECT COUNT(*) AS total
+    FROM delivery_addresses da
+    JOIN users u ON da.user_id = u.id
+    WHERE da.is_default = 1
+    AND (
+      u.name LIKE ? OR 
+      u.phone LIKE ? OR 
+      u.email LIKE ? OR 
+      da.address LIKE ? OR 
+      da.house_no LIKE ? OR 
+      da.complete_address LIKE ?
+    );
+  `;
 
   try {
+    // Fetch total count
+    const [[{ total }]] = await db
+      .promise()
+      .query<RowDataPacket[]>(countQuery, [
+        searchValue,
+        searchValue,
+        searchValue,
+        searchValue,
+        searchValue,
+        searchValue,
+      ]);
+
+    // Fetch paginated results
     const [rows] = await db
       .promise()
-      .query<RowDataPacket[]>(query, [limit, offset]);
-
-    const [[{ total }]] = await db.promise().query<RowDataPacket[]>(countQuery);
+      .query<RowDataPacket[]>(query, [
+        searchValue,
+        searchValue,
+        searchValue,
+        searchValue,
+        searchValue,
+        searchValue,
+        limit,
+        offset,
+      ]);
 
     return { deliveryAddresses: rows as DeliveryAddressWithUser[], total };
   } catch (error) {
-    console.error(
-      "Error fetching default addresses with users:",
-      error.message
-    );
+    console.error("Error fetching default addresses with users:", error.message);
     throw new Error("Error fetching delivery addresses");
   }
 };
+
 
 export const updateDeliveryAddressById = async (
   id: number,
