@@ -191,13 +191,13 @@ export const deleteLocalitiesForDeliveryBoy = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-  const { deliveryBoyId } = req.params;
-  let { localityIds } = req.body;
+  const { id } = req.params;
+console.log('localityIds',id);
 
-  const parsedDeliveryBoyId = parseInt(deliveryBoyId);
+  const parsedDeliveryBoyLocalityId = parseInt(id);
 
   // Validate deliveryBoyId
-  if (isNaN(parsedDeliveryBoyId)) {
+  if (isNaN(parsedDeliveryBoyLocalityId)) {
     res
       .status(400)
       .json(createResponse(400, "Invalid deliveryBoyId provided"));
@@ -205,28 +205,18 @@ export const deleteLocalitiesForDeliveryBoy = async (
   }
 
   // Normalize localityIds to an array
-  if (!localityIds) {
+  if (!id) {
     res
       .status(400)
       .json(createResponse(400, "No locality IDs provided for deletion"));
     return;
   }
 
-  // Ensure localityIds is an array
-  if (!Array.isArray(localityIds)) {
-    localityIds = [localityIds];
-  }
 
-  // Validate that the array is not empty
-  if (localityIds.length === 0) {
-    res
-      .status(400)
-      .json(createResponse(400, "No locality IDs provided for deletion"));
-    return;
-  }
+
 
   try {
-    await deleteLocalitiesByDeliveryBoyId(parsedDeliveryBoyId, localityIds);
+    await deleteLocalitiesByDeliveryBoyId(parsedDeliveryBoyLocalityId);
     res
       .status(200)
       .json(createResponse(200, "Localities removed successfully"));
