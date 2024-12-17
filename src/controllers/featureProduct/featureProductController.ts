@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { getFeaturedCategories } from "../../models/featureProduct/featureProductModel";
+import { createFeaturedCategory, getFeaturedCategories } from "../../models/featureProduct/featureProductModel";
 import { createResponse } from "../../utils/responseHandler";
 
 export const fetchFeaturedCategories = async (req: Request, res: Response): Promise<Response> => {
@@ -23,5 +23,24 @@ export const fetchFeaturedCategories = async (req: Request, res: Response): Prom
     } catch (error) {
         console.error("Error fetching featured categories:", error);
         return res.status(500).json(createResponse(500, "Failed to fetch featured categories."));
+    }
+};
+
+export const addFeaturedCategory = async (req: Request, res: Response): Promise<Response> => {
+    const { category_id, sub_category_id, status, category_type } = req.body;
+
+    if (!category_id || typeof status === 'undefined') {
+        return res.status(400).json(createResponse(400, "Missing required fields: category_id and status are mandatory."));
+    }
+
+    try {
+        const newCategory = await createFeaturedCategory({ category_id, sub_category_id, status, category_type });
+
+        return res.status(201).json(
+            createResponse(201, "Featured category added successfully.", newCategory)
+        );
+    } catch (error) {
+        console.error("Error adding featured category:", error);
+        return res.status(500).json(createResponse(500, "Failed to add featured category."));
     }
 };

@@ -41,9 +41,9 @@ export const getAllLocalities = async (
           db.latitudePickup AS delivery_boy_latitude_pickup,
           db.longitudePickup AS delivery_boy_longitude_pickup
       FROM 
-          locality_delivery_boys lb
+          localities l
       LEFT JOIN 
-        localities l ON lb.locality_id = l.id
+        locality_delivery_boys lb ON l.id = lb.locality_id
       LEFT JOIN 
           hubs h ON l.hub_id = h.id 
       LEFT JOIN 

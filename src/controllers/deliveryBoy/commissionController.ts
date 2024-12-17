@@ -26,13 +26,12 @@ export const getDetailedCommissions = async (req: Request, res: Response): Promi
       totalCount,
       totalPages,
       currentPage: page,
-      recordsPerPage: limit,
+      limit,
     }));
   } catch (error) {
     res.status(500).json(createResponse(500, "Error fetching detailed commissions", error));
   }
 };
-
 
 export const getDetailedCommission = async (
   req: Request,

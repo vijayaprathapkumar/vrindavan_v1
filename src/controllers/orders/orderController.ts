@@ -154,9 +154,12 @@ export const fetchOrderById = async (
   res: Response
 ): Promise<Response> => {
   const id = parseInt(req.params.id);
+  const searchTerm = req.query.searchTerm
+    ? (req.query.searchTerm as string)
+    : null;
 
   try {
-    const placeOrder = await getPlaceOrderById(Number(id));
+    const placeOrder = await getPlaceOrderById(Number(id), searchTerm);
 
     if (!placeOrder) {
       return res
@@ -174,6 +177,7 @@ export const fetchOrderById = async (
       .json(createResponse(500, "Failed to fetch place order."));
   }
 };
+
 
 //update  Qnty Change
 export const updateOrderqty = async (
