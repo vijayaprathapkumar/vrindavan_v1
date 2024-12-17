@@ -11,9 +11,10 @@ export const getDeliveryAddresses = async (
 ): Promise<void> => {
   const page = parseInt(req.query.page as string, 10) || 1;
   const limit = parseInt(req.query.limit as string, 10) || 10;
+  const searchTerm = req.query.searchTerm ? (req.query.searchTerm as string) : "";
 
   try {
-    const { deliveryAddresses, total } = await getDeliveryAddress(page, limit);
+    const { deliveryAddresses, total } = await getDeliveryAddress(page, limit, searchTerm);
 
     const totalPages = Math.ceil(total / limit);
 
@@ -37,6 +38,7 @@ export const getDeliveryAddresses = async (
     });
   }
 };
+
 
 export const updateDeliveryAddress = async (
   req: Request,

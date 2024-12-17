@@ -182,12 +182,13 @@ export const getAllOrdersWithOutUserId = async (
 
   const queryParams: (number | string)[] = [];
   let conditions = "";
-
+  
   if (searchTerm) {
-    conditions += ` AND (f.description LIKE ? OR f.name LIKE ?)`;
+    conditions += ` AND f.name LIKE ?`;
     const searchValue = `%${searchTerm}%`;
-    queryParams.push(searchValue, searchValue);
+    queryParams.push(searchValue);
   }
+  
 
   // Date range conditions
   if (startDate) {
@@ -220,14 +221,11 @@ export const getAllOrdersWithOutUserId = async (
     }
   }
   
-  // ApproveStatus condition (handle "All", "1", "0")
   if (approveStatus !== "All") {
     conditions += " AND da.is_approve = ?";
     queryParams.push(parseInt(approveStatus, 10));
   }
 
-
-  
   if (productId !== null && productId !== "All") {
     const parsedProductId = Number(productId);
     if (!isNaN(parsedProductId)) {
@@ -236,8 +234,6 @@ export const getAllOrdersWithOutUserId = async (
     }
   }
   
-
-  // OrderType condition
   if (orderType && orderType !== "All") {
     conditions += " AND o.order_type = ?";
     queryParams.push(orderType);
@@ -715,8 +711,8 @@ ldb.id AS locality_delivery_boy_id,
   return { total, placeOrders: orderData };
 };
 
-export const getPlaceOrderById = async (orderId: number): Promise<any> => {
-  const query = `
+export const getPlaceOrderById = async (orderId: number,searchTerm: string | null): Promise<any> => {
+  let query = `
     SELECT 
     o.id AS order_id, 
     o.user_id, 
@@ -878,16 +874,24 @@ export const getPlaceOrderById = async (orderId: number): Promise<any> => {
   LEFT JOIN order_statuses os ON o.order_status_id =os.id
   LEFT JOIN users u ON o.user_id = u.id
     WHERE 
-      u.id = ?
+      o.user_id = ?
+     
   `;
 
-  const [rows]: [RowDataPacket[], any] = await db
-    .promise()
-    .query(query, [orderId]);
+  const queryParams: (number | string)[] = [orderId];
+
+  if (searchTerm) {
+    query += ` AND f.name LIKE ?`;
+    queryParams.push(`%${searchTerm}%`);
+  }
+
+  const [rows]: [RowDataPacket[], any] = await db.promise().query(query, queryParams);
 
   if (rows.length === 0) {
     return null; // No order found
   }
+
+
   // Structure the result
   const orderData = [
     ...new Map(
