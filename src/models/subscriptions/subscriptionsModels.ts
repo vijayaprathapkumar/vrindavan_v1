@@ -105,7 +105,9 @@ export const getAllSubscriptionsModel = (
   userId: number,
   page: number,
   limit: number,
-  searchTerm?: string
+  searchTerm?: string,
+  startDate?: Date,
+  endDate?: Date
 ): Promise<any[]> => {
   const offset = (page - 1) * limit;
   const searchQuery = searchTerm ? `%${searchTerm}%` : null;
@@ -188,28 +190,27 @@ export const getAllSubscriptionsModel = (
       WHERE user_subscriptions.user_id = ?
     `;
 
+    const params: any[] = [userId];
+
     if (searchQuery) {
       query += ` AND (foods.name LIKE ? 
                       OR foods.unit LIKE ? 
                       OR foods.status LIKE ? 
                       OR foods.weightage LIKE ? 
                       OR foods.description LIKE ?)`;
+      params.push(searchQuery, searchQuery, searchQuery, searchQuery, searchQuery);
+    }
+
+    if (startDate && endDate) {
+      query += ` AND user_subscriptions.created_at BETWEEN ? AND ?`;
+      params.push(
+        startDate.toISOString().slice(0, 19).replace('T', ' '), 
+        endDate.toISOString().slice(0, 19).replace('T', ' ')
+      );
     }
 
     query += ` ORDER BY user_subscriptions.created_at DESC LIMIT ?, ?`;
-
-    const params: any[] = searchQuery
-      ? [
-          userId,
-          searchQuery,
-          searchQuery,
-          searchQuery,
-          searchQuery,
-          searchQuery,
-          offset,
-          limit,
-        ]
-      : [userId, offset, limit];
+    params.push(offset, limit);
 
     db.query<RowDataPacket[]>(query, params, (error, results) => {
       if (error) {
@@ -217,14 +218,13 @@ export const getAllSubscriptionsModel = (
       }
       const transformedResults = results.map((change) => {
         return {
-          ...change, 
+          ...change,
         };
       });
       resolve(transformedResults);
     });
   });
 };
-
 
 export const getTotalSubscriptionsCountModel = (
   userId: number
@@ -355,7 +355,7 @@ export const getSubscriptionGetByIdModel = (
 ): Promise<Subscription | null> => {
   return new Promise((resolve, reject) => {
     db.query<RowDataPacket[]>(
-     `SELECT user_subscriptions.*, 
+      `SELECT user_subscriptions.*, 
       foods.id as food_id, 
       foods.name, 
       foods.price, 
@@ -478,7 +478,3 @@ export const updateSubscriptionPauseInfo = async (
     throw new Error("Failed to update subscription pause information.");
   }
 };
-
-
-
-

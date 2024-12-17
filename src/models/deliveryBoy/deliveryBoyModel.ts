@@ -62,6 +62,7 @@ export const getAllDeliveryBoysWithLocalities = async (
         db.longitudePickup,
         db.created_at AS delivery_boy_created_at,
         db.updated_at AS delivery_boy_updated_at,
+        ldb.id AS delivery_boy_locality_id,
         ldb.locality_id,
         l.id AS locality_id,
         l.route_id,
@@ -117,6 +118,7 @@ export const getAllDeliveryBoysWithLocalities = async (
 
     if (row.locality_id) {
       deliveryBoysMap.get(deliveryBoyId).localities.push({
+        localityDeliveryBoysId:row.delivery_boy_locality_id,
         locality_id: row.locality_id,
         route_id: row.route_id,
         hub_id: row.hub_id,
@@ -288,18 +290,18 @@ export const deleteDeliveryBoyById = async (id: number): Promise<void> => {
 };
 
 export const deleteLocalitiesByDeliveryBoyId = async (
-  deliveryBoyId: number,
-  localityIds: number[]
+  id: number
 ): Promise<void> => {
   const connection = await db.promise().getConnection();
+console.log('deliveryBoyId',id);
 
   try {
     await connection.beginTransaction();
 
     // Delete specific locality assignments and get affected rows
     const [result] = await connection.query<OkPacket>(
-      `DELETE FROM locality_delivery_boys WHERE delivery_boy_id = ? AND locality_id IN (?)`,
-      [deliveryBoyId, localityIds]
+      `DELETE FROM locality_delivery_boys WHERE id = ?`,
+      [id]
     );
 
     if (result.affectedRows === 0) {

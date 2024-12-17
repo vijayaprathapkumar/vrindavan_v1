@@ -17,6 +17,6 @@ router.post("/", verifyDeviceToken, addDeliveryBoy);
 router.get("/:id", verifyDeviceToken, getDeliveryBoy);
 router.put("/:id", updateDeliveryBoy, verifyDeviceToken);
 router.delete("/:id", verifyDeviceToken, deleteDeliveryBoy);
-router.delete("/localities/:deliveryBoyId", verifyDeviceToken, deleteLocalitiesForDeliveryBoy);
+router.delete("/localities/:id", verifyDeviceToken, deleteLocalitiesForDeliveryBoy);
 
 export default router;
