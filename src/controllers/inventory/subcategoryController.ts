@@ -155,7 +155,7 @@ export const updateSubcategory = async (req: Request, res: Response): Promise<vo
   } catch (error) {
     res.status(500).json(createResponse(500, "Error updating subcategory", error.message));
   }
-};
+}; 
 
 // Delete subcategory by ID (DELETE)
 export const deleteSubcategory = async (req: Request, res: Response): Promise<void> => {

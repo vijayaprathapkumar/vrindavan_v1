@@ -9,17 +9,15 @@ import {
 import { createResponse } from "../../utils/responseHandler";
 import { checkUserProfileStatus } from "../../models/authLogin/authLoginModel";
 
-export const getCustomers = async (
-  req: Request,
-  res: Response
-): Promise<void> => {
+export const getCustomers = async (req: Request, res: Response): Promise<void> => {
   const { page = 1, limit = 10, locality, status, searchTerm } = req.query;
 
-  const validLimit = Number(limit) > 0 ? Number(limit) : 10;
+  const validPage = Math.max(1, Number(page));
+  const validLimit = Math.min(Math.max(1, Number(limit)), 100); // Cap limit at 100 for performance
 
   try {
-    const { customers, total } = await getAllCustomers(
-      Number(page),
+    const { customers, total, statusCount } = await getAllCustomers(
+      validPage,
       validLimit,
       locality?.toString(),
       status?.toString(),
@@ -27,21 +25,18 @@ export const getCustomers = async (
     );
 
     const totalPages = Math.ceil(total / validLimit);
-    res.status(200).json({
-      statusCode: 200,
-      message: "Customers fetched successfully",
-      data: {
-        customer: customers,
+    res.status(200).json(
+      createResponse(200, "Customers fetched successfully", {
+        customers,
         totalCount: total,
-        currentPage: Number(page),
+        currentPage: validPage,
         limit: validLimit,
-        totalPages: totalPages,
-      },
-    });
+        totalPages,
+        statusCount,
+      })
+    );
   } catch (error) {
-    res
-      .status(500)
-      .json(createResponse(500, "Error fetching customers", error));
+    res.status(500).json(createResponse(500, "Error fetching customers", error));
   }
 };
 
