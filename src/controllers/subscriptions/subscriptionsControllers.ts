@@ -58,13 +58,11 @@ export const addSubscription = async (req: Request, res: Response) => {
       cancel_subscription_date
     );
 
-    res
-      .status(201)
-      .json(
-        createResponse(201, "Subscription created successfully.", {
-          id: user_subscription_id,
-        })
-      );
+    res.status(201).json(
+      createResponse(201, "Subscription created successfully.", {
+        id: user_subscription_id,
+      })
+    );
   } catch (error) {
     console.error("Error adding subscription:", error);
     res
@@ -82,6 +80,13 @@ export const getSubscriptions = async (req: Request, res: Response) => {
   const limit = parseInt(req.query.limit as string) || 10;
   const searchTerm = (req.query.searchTerm as string) || "";
 
+  const startDate = req.query.startDate
+    ? new Date(req.query.startDate as string)
+    : undefined;
+  const endDate = req.query.endDate
+    ? new Date(req.query.endDate as string)
+    : undefined;
+
   if (isNaN(userId)) {
     return res.status(400).json(createResponse(400, "Invalid user ID."));
   }
@@ -94,7 +99,9 @@ export const getSubscriptions = async (req: Request, res: Response) => {
       userId,
       page,
       limit,
-      searchTerm
+      searchTerm,
+      startDate,
+      endDate
     );
 
     res.status(200).json(
@@ -337,7 +344,7 @@ export const updateSubscriptionPauseController = async (
     is_pause_subscription,
     pause_start_time,
     pause_end_time,
-    pause_until_come_back
+    pause_until_come_back,
   } = req.body;
 
   try {
@@ -349,7 +356,9 @@ export const updateSubscriptionPauseController = async (
       pause_end_time
     );
 
-    res.status(200).json(createResponse(200, "Pause info updated successfully."));
+    res
+      .status(200)
+      .json(createResponse(200, "Pause info updated successfully."));
   } catch (error) {
     console.error("Error updating subscription pause info:", error);
     res

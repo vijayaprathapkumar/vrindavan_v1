@@ -11,131 +11,116 @@ export const getAllCustomers = async (
   const offset = (page - 1) * limit;
 
   let query = `
-    SELECT 
-      u.id AS user_id,
-      u.name AS user_name,
-      u.email,
-      u.phone,
-      u.api_token,
-      u.device_token,
-      u.delivery_priority,
-      u.credit_limit,
-      u.stripe_id,
-      u.card_brand,
-      u.card_last_four,
-      u.trial_ends_at,
-      u.braintree_id,
-      u.paypal_email,
-      u.remember_token,
-      u.status,
-      u.is_deactivated,
-      u.is_deactivated_at,
-      u.created_at,
-      u.updated_at,
-      da.id AS address_id,
-      da.description,
-      da.address,
-      da.latitude,
-      da.longitude,
-      da.house_no,
-      da.complete_address,
-      da.is_approve,
-      da.is_default,
-      da.locality_id,
-      da.created_at AS address_created_at,
-      da.updated_at AS address_updated_at,
-      l.id AS locality_id,
-      l.name AS locality_name,
-      wb.balance AS wallet_balance,
-      db.delivery_boy_id,
-      db.name AS delivery_boy_name,
-      db.mobile AS delivery_boy_mobile,
-      db.active AS delivery_boy_active,
-      db.cash_collection AS delivery_boy_cash_collection,
-      db.delivery_fee AS delivery_boy_fee,
-      db.total_orders AS delivery_boy_orders,
-      db.earning AS delivery_boy_earning,
-      db.available AS delivery_boy_available
-    FROM 
-      users u
-    LEFT JOIN 
-      delivery_addresses da ON u.id = da.user_id
-    LEFT JOIN 
-      localities l ON da.locality_id = l.id
-    LEFT JOIN 
-      wallet_balances wb ON u.id = wb.user_id
-    LEFT JOIN 
-      locality_delivery_boys lb ON lb.locality_id = l.id
-    LEFT JOIN 
-      (
-        SELECT 
-          lb.id AS locality_delivery_boy_id,
-          lb.locality_id, 
-          lb.delivery_boy_id, 
-          db.name, 
-          db.mobile, 
-          db.active, 
-          db.cash_collection, 
-          db.delivery_fee, 
-          db.total_orders, 
-          db.earning, 
-          db.available
-        FROM 
-          locality_delivery_boys lb
-        LEFT JOIN 
-          delivery_boys db ON lb.delivery_boy_id = db.id
-       
-      ) db ON db.locality_id = da.id
-    WHERE 
-      u.id IS NOT NULL
+    WITH RankedUsers AS (
+      SELECT 
+        u.id AS user_id,
+        u.name AS user_name,
+        u.email,
+        u.phone,
+        u.api_token,
+        u.device_token,
+        u.delivery_priority,
+        u.credit_limit,
+        u.stripe_id,
+        u.card_brand,
+        u.card_last_four,
+        u.trial_ends_at,
+        u.braintree_id,
+        u.paypal_email,
+        u.remember_token,
+        u.status,
+        u.is_deactivated,
+        u.is_deactivated_at,
+        u.created_at,
+        u.updated_at,
+        da.id AS address_id,
+        da.description,
+        da.address,
+        da.latitude,
+        da.longitude,
+        da.house_no,
+        da.complete_address,
+        da.is_approve,
+        da.is_default,
+        da.locality_id AS da_locality_id, -- Renamed to avoid conflict
+        da.created_at AS address_created_at,
+        da.updated_at AS address_updated_at,
+        l.id AS locality_id,
+        l.name AS locality_name,
+        wb.balance AS wallet_balance,
+        lb.delivery_boy_id,
+        db.name AS delivery_boy_name,
+        db.mobile AS delivery_boy_mobile,
+        db.active AS delivery_boy_active,
+        db.cash_collection AS delivery_boy_cash_collection,
+        db.delivery_fee AS delivery_boy_fee,
+        db.total_orders AS delivery_boy_orders,
+        db.earning AS delivery_boy_earning,
+        db.available AS delivery_boy_available,
+        ROW_NUMBER() OVER (PARTITION BY u.id ORDER BY u.created_at DESC) AS row_num
+      FROM 
+        users u
+      LEFT JOIN 
+        delivery_addresses da ON u.id = da.user_id
+      LEFT JOIN 
+        localities l ON da.locality_id = l.id
+      LEFT JOIN 
+        wallet_balances wb ON u.id = wb.user_id
+      LEFT JOIN 
+        locality_delivery_boys lb ON lb.locality_id = da.locality_id
+      LEFT JOIN 
+        delivery_boys db ON lb.delivery_boy_id = db.id
+    )
+    SELECT *
+    FROM RankedUsers
+    WHERE row_num = 1
   `;
 
-  const params: any[] = []; 
+  const params: any[] = [];
 
   if (searchTerm) {
     const searchValue = `%${searchTerm}%`;
-    query += ` AND (u.name LIKE ? OR u.email LIKE ? OR u.phone LIKE ?) `;
+    query += ` AND (user_name LIKE ? OR email LIKE ? OR phone LIKE ?) `;
     params.push(searchValue, searchValue, searchValue);
   }
 
   if (locality && locality !== "All") {
-    query += ` AND l.id = ? `;
-    params.push(parseInt(locality));
-  }
-
-  let totalCountQuery = `
-    SELECT COUNT(*) as total 
-    FROM users u
-    WHERE u.id IS NOT NULL
-  `;
-
-  if (locality && locality !== "All") {
-    totalCountQuery += ` AND l.id = ?`;
+    query += ` AND locality_id = ? `;
     params.push(parseInt(locality));
   }
 
   if (status && status !== "All") {
-    query += ` AND u.status = ? `;
+    query += ` AND status = ? `;
     params.push(status);
   }
 
-  const [[totalCount]] = await db
-    .promise()
-    .query<RowDataPacket[]>(totalCountQuery, params);
-
-  query += ` ORDER BY u.created_at DESC LIMIT ? OFFSET ?;`;
+  query += ` ORDER BY user_id DESC LIMIT ? OFFSET ?;`;
 
   params.push(limit, offset);
 
   const [rows] = await db.promise().query<RowDataPacket[]>(query, params);
 
+  const totalCountQuery = `
+    SELECT COUNT(*) as total 
+    FROM (
+      SELECT DISTINCT u.id
+      FROM users u
+      LEFT JOIN delivery_addresses da ON u.id = da.user_id
+    ) UniqueUsers;
+  `;
+
+  const [[totalCount]] = await db
+    .promise()
+    .query<RowDataPacket[]>(totalCountQuery);
+
   const statusCountQuery = `
     SELECT 
-      SUM(u.status = '0') AS status_0_count,
-      SUM(u.status = '1') AS status_1_count,
-      SUM(u.status = '2') AS status_2_count
-    FROM users u
+      SUM(status = '0') AS status_0_count,
+      SUM(status = '1') AS status_1_count,
+      SUM(status = '2') AS status_2_count
+    FROM users;
   `;
+
   const [[statusCount]] = await db
     .promise()
     .query<RowDataPacket[]>(statusCountQuery);
@@ -173,7 +158,7 @@ export const getAllCustomers = async (
         complete_address: row.complete_address,
         is_approve: row.is_approve,
         is_default: row.is_default,
-        locality_id: row.locality_id,
+        locality_id: row.da_locality_id, 
         locality_name: row.locality_name,
         created_at: row.address_created_at,
         updated_at: row.address_updated_at,
@@ -189,16 +174,13 @@ export const getAllCustomers = async (
         earning: row.delivery_boy_earning,
         available: row.delivery_boy_available,
       },
-      locality_delivery_boys: {
-        locality_delivery_boy_id: row.locality_delivery_boy_id,
-        delivery_boy_id: row.delivery_boy_id,
-        locality_id: row.locality_id,
-      },
     })),
     total: totalCount.total,
     statusCount,
   };
 };
+
+
 
 
 
