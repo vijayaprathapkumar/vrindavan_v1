@@ -115,9 +115,9 @@ export const getAllBanners = async (
             m.name AS media_name,
             m.file_name AS media_file_name,
             m.mime_type AS media_mime_type,
-            CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name) AS food_image_url
+         CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name) AS food_image_url
           FROM foods f
-          LEFT JOIN media m ON f.id = m.model_id AND m.model_type = 'App\\\\Models\\\\Food'
+          LEFT JOIN media m ON f.id = m.model_id AND (m.model_type = 'App\\\\Models\\\\Food' OR m.model_type = 'AppModelsBanner')
           WHERE f.id IN (${foodIds.map(() => '?').join(', ')})
         `,
           foodIds
@@ -219,7 +219,7 @@ export const createBanner = async (bannerData: {
 
   try {
     const [result]: [OkPacket, any] = await db.promise().query(sql, values);
-    return result;
+    return result.insertId;
   } catch (error) {
     console.error("Error creating banner:", error);
     throw error; 
@@ -263,10 +263,14 @@ export const getBannerById = async (
       m.order_column,
       m.created_at AS media_created_at,
       m.updated_at AS media_updated_at,
-      CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name) AS original_url
+      CASE 
+            WHEN m.order_column = 0 THEN CONCAT('https://imagefileupload-1.s3.us-east-1.amazonaws.com/category/', m.file_name)
+            WHEN m.order_column IS NULL THEN NULL
+            ELSE CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name)
+            END AS original_url
     FROM 
       banners b
-    LEFT JOIN media m ON b.id = m.model_id AND m.model_type = 'App\\\\Models\\\\Banner'
+    LEFT JOIN media m ON b.id = m.model_id AND (m.model_type = 'App\\\\Models\\\\Food' OR m.model_type = 'AppModelsBanner')
     WHERE 
       b.id = ?;
   `;
