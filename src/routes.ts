@@ -30,6 +30,7 @@ import loginRoutes from "./routes/adminLogin/loginRoutes";
 import deliveryAddressesRoutes from "./routes/customer/deliveryAddressesRoutes";
 import customerPrioritiesRoutes from "./routes/customer/customerPrioritiesRoutes";
 import specialCommissionRoutes from "./routes/deliveryBoy/specialCommissionRoutes";
+import imageUploadRoutes from "./routes/imageUpload/imageUploadRoutes";
 
 const router = express.Router();
 
@@ -103,5 +104,8 @@ router.use("/admin", loginRoutes);
 
 // customer-priorities
 router.use("/customer-priorities", customerPrioritiesRoutes);
+
+//image upload
+router.use("/imageUpload",imageUploadRoutes);
 
 export default router;

@@ -8,6 +8,7 @@ import {
   deleteCategoryById,
 } from "../../models/inventory/categoryModel";
 import { createResponse } from "../../utils/responseHandler";
+import { updateMediaModelId } from "../imageUpload/imageUploadController";
 
 // Fetch all categories with pagination and search
 export const getCategories = async (req: Request, res: Response): Promise<void> => {
@@ -74,18 +75,25 @@ export const getCategories = async (req: Request, res: Response): Promise<void> 
 
 // Add a new category (POST)
 export const addCategory = async (req: Request, res: Response): Promise<void> => {
-  const { name, description, weightage, image } = req.body;
+  const { name, description, weightage, mediaId } = req.body;
   try {
-    await createCategory(name, description, weightage, image);
-    res.status(201).json({
-      statusCode: 201,
-      message: "Category created successfully",
-      data: null,
-    });
+      const categoryId = await createCategory(name, description, weightage);
+      if (mediaId) {
+          await updateMediaModelId(mediaId, categoryId);
+      } else {
+          console.log('No mediaId provided, skipping update');
+      }
+      res.status(201).json({
+          statusCode: 201,
+          message: 'Category created successfully',
+          data: null,
+      });
   } catch (error) {
-    res.status(500).json(createResponse(500, "Error creating category", error.message));
+      console.error('Error in addCategory:', error);
+      res.status(500).json(createResponse(500, 'Error creating category', error.message));
   }
 };
+
 
 
 // Get category by ID (GET)
@@ -141,10 +149,10 @@ export const getCategory = async (req: Request, res: Response): Promise<void> =>
 // Update category by ID (PUT)
 export const updateCategory = async (req: Request, res: Response): Promise<void> => {
   const { id } = req.params;
-  const { name, description, weightage, image } = req.body;
+  const { name, description, weightage } = req.body;
 
   try {
-    await updateCategoryById(parseInt(id), name, description, weightage, image);
+    await updateCategoryById(parseInt(id), name, description, weightage);
     res.status(200).json({
       statusCode: 200,
       message: "Category updated successfully",
