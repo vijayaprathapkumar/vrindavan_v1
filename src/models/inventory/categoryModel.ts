@@ -1,5 +1,6 @@
 import { db } from "../../config/databaseConnection";
 import { RowDataPacket, OkPacket } from "mysql2";
+import { imageUpload } from "../../controllers/imageUpload/imageUploadController";
 
 // Fetch all categories with limit and offset for pagination
 export const getAllCategories = async (
@@ -27,26 +28,27 @@ export const getAllCategories = async (
       m.generated_conversions,
       m.responsive_images,
       m.order_column,
-      CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name) AS original_url 
+     CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name) AS original_url
     FROM 
       categories c
     LEFT JOIN 
-      media m ON c.id = m.model_id AND m.model_type = 'App\\\\Models\\\\Category'
+      media m ON c.id = m.model_id AND (m.model_type = 'App\\\\Models\\\\Category' OR m.model_type = 'AppModelsCategory')
     WHERE 
-      (c.name LIKE ? OR c.weightage = ?) 
+      (c.name LIKE ? OR CAST(c.weightage AS CHAR) = ?) 
     ORDER BY 
       CAST(c.weightage AS UNSIGNED) ASC
     LIMIT ? OFFSET ?
   `;
-  
-  const params = [`%${searchTerm}%`, parseInt(searchTerm) || -1, limit, offset];
+
+  const params = [`%${searchTerm}%`, searchTerm, limit, offset];
   const [rows] = await db.promise().query<RowDataPacket[]>(query, params);
   return rows;
 };
 
-
 // Fetch total count of categories that match the search term
-export const getCategoriesCount = async (searchTerm: string): Promise<number> => {
+export const getCategoriesCount = async (
+  searchTerm: string
+): Promise<number> => {
   const query = `
     SELECT COUNT(*) as count FROM categories 
     WHERE name LIKE ? OR weightage = ?
@@ -56,28 +58,19 @@ export const getCategoriesCount = async (searchTerm: string): Promise<number> =>
   return rows[0].count;
 };
 
-// Create a new category (with optional image)
+// Create a new category
 export const createCategory = async (
   name: string,
   description: string,
-  weightage: number,
-  image?: string
-): Promise<void> => {
-  const query = image
-    ? `
-      INSERT INTO categories (name, description, weightage, image, created_at, updated_at) 
-      VALUES (?, ?, ?, ?, NOW(), NOW())
-    `
-    : `
+  weightage: number
+): Promise<number> => {
+  const query = `
       INSERT INTO categories (name, description, weightage, created_at, updated_at) 
       VALUES (?, ?, ?, NOW(), NOW())
-    `;
-
-  const params = image
-    ? [name, description, weightage, image]
-    : [name, description, weightage];
-
-  await db.promise().query<OkPacket>(query, params);
+  `;
+  const params = [name, description, weightage];
+  const [result]: any = await db.promise().query(query, params);
+  return result.insertId;
 };
 
 export const getCategoryById = async (id: number): Promise<RowDataPacket[]> => {
@@ -102,11 +95,11 @@ export const getCategoryById = async (id: number): Promise<RowDataPacket[]> => {
       m.order_column,
       m.created_at AS media_created_at,
       m.updated_at AS media_updated_at,
-      CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name) AS original_url 
+    CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name) AS original_url
     FROM 
       categories c
     LEFT JOIN 
-      media m ON c.id = m.model_id AND m.model_type = 'App\\\\Models\\\\Category'
+      media m ON c.id = m.model_id AND (m.model_type = 'App\\\\Models\\\\Category' OR m.model_type = 'AppModelsCategory')
     WHERE 
       c.id = ? 
   `;
@@ -120,16 +113,11 @@ export const updateCategoryById = async (
   id: number,
   name: string,
   description: string,
-  weightage: number,
-  image?: string
+  weightage: number
 ): Promise<void> => {
-  let query = "UPDATE categories SET name = ?, description = ?, weightage = ?, updated_at = NOW()";
+  let query =
+    "UPDATE categories SET name = ?, description = ?, weightage = ?, updated_at = NOW()";
   const params: (string | number)[] = [name, description, weightage];
-
-  if (image) {
-    query += ", image = ?";
-    params.push(image);
-  }
 
   query += " WHERE id = ?";
   params.push(id);

@@ -18,7 +18,6 @@ export interface Notification {
   notification_sent_dates?: string;
 }
 
-// Get all notifications
 export const getAllNotifications = async (
   page: number,
   limit: number,
@@ -31,27 +30,47 @@ export const getAllNotifications = async (
     : "";
 
   const query = `
-      SELECT
-        un.id,
-        un.notification_type,
-        un.title,
-        un.description,
-        un.user_id,
-        un.product_id,
-        un.is_global,
-        un.notification_send,
-        un.created_at,
-        un.updated_at,
-        GROUP_CONCAT(CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name)) AS original_url,
-        GROUP_CONCAT(ul.id) AS log_ids,  
-        GROUP_CONCAT(ul.notification_sent_date) AS notification_sent_dates  
-      FROM user_notifications un
-      LEFT JOIN media m ON un.product_id = m.model_id AND m.model_type = 'App\\\\Models\\\\Food'
-      LEFT JOIN user_notification_logs ul ON un.id = ul.user_notification_id  
-      WHERE 1=1 ${searchCondition}  
-      GROUP BY un.id
-      ORDER BY un.created_at DESC
-      LIMIT ? OFFSET ?;
+        SELECT
+          un.id,
+          un.notification_type,
+          un.title,
+          un.description,
+          un.user_id,
+          un.product_id,
+          un.is_global,
+          un.notification_send,
+          un.created_at,
+          un.updated_at,
+          m.id AS media_id,
+          m.model_type,
+          m.model_id,
+          m.uuid,
+          m.collection_name,
+          m.name AS media_name,
+          m.file_name,
+          m.mime_type,
+          m.disk,
+          m.conversions_disk,
+          m.size,
+          m.manipulations,
+          m.custom_properties,
+          m.generated_conversions,
+          m.responsive_images,
+          m.order_column,
+          m.created_at AS media_created_at,
+          m.updated_at AS media_updated_at,
+          CONCAT(
+            'https://vrindavanmilk.com/storage/app/public/', m.id, '/conversions/',
+            REPLACE(REPLACE(SUBSTRING_INDEX(m.file_name, '-icon', 1), '.png', ''), '.jpg', ''),
+            '-icon.jpg'
+          ) AS original_url
+        FROM user_notifications un
+        LEFT JOIN media m ON un.id = m.model_id 
+          AND (m.model_type = 'App\\\\Models\\\\UserNotification' OR m.model_type = 'AppModelsNotification')
+        WHERE 1=1 ${searchCondition}  
+        ORDER BY un.created_at DESC
+        LIMIT ? OFFSET ?;
+
     `;
 
   // If searchTerm exists, use it in the query
@@ -90,8 +109,27 @@ export const getAllNotifications = async (
       created_at: row.created_at,
       updated_at: row.updated_at,
       original_url: row.original_url,
-      notifications_log_ids: row.log_ids,
-      notification_sent_dates: row.notification_sent_dates,
+      media: {
+        mediaId: row.media_id,
+        model_type: row.model_type,
+        model_id: row.model_id,
+        uuid: row.uuid,
+        collection_name: row.collection_name,
+        name: row.media_name,
+        file_name: row.file_name,
+        mime_type: row.mime_type,
+        disk: row.disk,
+        conversions_disk: row.conversions_disk,
+        size: row.size,
+        manipulations: row.manipulations,
+        custom_properties: row.custom_properties,
+        generated_conversions: row.generated_conversions,
+        responsive_images: row.responsive_images,
+        order_column: row.order_column,
+        created_at: row.media_created_at,
+        updated_at: row.media_updated_at,
+        original_url: row.original_url,
+      },
     })),
     total: totalCount,
   };
@@ -135,7 +173,7 @@ export const createNotification = async (notificationData: {
 
   try {
     const [result]: [OkPacket, any] = await db.promise().query(sql, values);
-    return result;
+    return result.insertId;
   } catch (error) {
     console.error("Error creating notification:", error);
     throw error;
@@ -145,27 +183,48 @@ export const createNotification = async (notificationData: {
 // Fetch notification by ID
 export const getNotificationById = async (
   id: number
-): Promise<Notification | null> => {
+): Promise<Notification | null | any> => {
   const query = `
       SELECT
-        un.id,
-        un.notification_type,
-        un.title,
-        un.description,
-        un.user_id,
-        un.product_id,
-        un.is_global,
-        un.notification_send,
-        un.created_at,
-        un.updated_at,
-        GROUP_CONCAT(CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name)) AS original_url,
-        GROUP_CONCAT(ul.id) AS log_ids,  
-        GROUP_CONCAT(ul.notification_sent_date) AS notification_sent_dates  
-      FROM user_notifications un
-      LEFT JOIN media m ON un.product_id = m.model_id AND m.model_type = 'App\\\\Models\\\\Food'
+      SELECT
+          un.id,
+          un.notification_type,
+          un.title,
+          un.description,
+          un.user_id,
+          un.product_id,
+          un.is_global,
+          un.notification_send,
+          un.created_at,
+          un.updated_at,
+          m.id AS media_id,
+          m.model_type,
+          m.model_id,
+          m.uuid,
+          m.collection_name,
+          m.name AS media_name,
+          m.file_name,
+          m.mime_type,
+          m.disk,
+          m.conversions_disk,
+          m.size,
+          m.manipulations,
+          m.custom_properties,
+          m.generated_conversions,
+          m.responsive_images,
+          m.order_column,
+          m.created_at AS media_created_at,
+          m.updated_at AS media_updated_at,
+          CONCAT(
+            'https://vrindavanmilk.com/storage/app/public/', m.id, '/conversions/',
+            REPLACE(REPLACE(SUBSTRING_INDEX(m.file_name, '-icon', 1), '.png', ''), '.jpg', ''),
+            '-icon.jpg'
+          ) AS original_url
+        FROM user_notifications un
+        LEFT JOIN media m ON un.id = m.model_id 
+          AND (m.model_type = 'App\\\\Models\\\\UserNotification' OR m.model_type = 'AppModelsNotification')
       LEFT JOIN user_notification_logs ul ON un.id = ul.user_notification_id 
       WHERE un.id = ? 
-      GROUP BY un.id
       ORDER BY un.created_at DESC;
     `;
 
@@ -188,8 +247,27 @@ export const getNotificationById = async (
     created_at: row.created_at,
     updated_at: row.updated_at,
     original_url: row.original_url,
-    notifications_log_ids: row.log_ids,
-    notification_sent_dates: row.notification_sent_dates,
+    media: {
+      mediaId: row.media_id,
+      model_type: row.model_type,
+      model_id: row.model_id,
+      uuid: row.uuid,
+      collection_name: row.collection_name,
+      name: row.media_name,
+      file_name: row.file_name,
+      mime_type: row.mime_type,
+      disk: row.disk,
+      conversions_disk: row.conversions_disk,
+      size: row.size,
+      manipulations: row.manipulations,
+      custom_properties: row.custom_properties,
+      generated_conversions: row.generated_conversions,
+      responsive_images: row.responsive_images,
+      order_column: row.order_column,
+      created_at: row.media_created_at,
+      updated_at: row.media_updated_at,
+      original_url: row.original_url,
+    },
   };
 };
 

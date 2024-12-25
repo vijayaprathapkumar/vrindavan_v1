@@ -32,10 +32,10 @@ export const getAllFoods = async (
            m.order_column,
            m.created_at AS media_created_at,
            m.updated_at AS media_updated_at,
-           CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name) AS original_url,
+        CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name) AS original_url,
            (SELECT SUM(amount) FROM stock_mutations  WHERE  stockable_id = f.id) AS outOfStock
     FROM foods f
-    LEFT JOIN media m ON f.id = m.model_id AND m.model_type = 'App\\\\Models\\\\Food'
+    LEFT JOIN media m ON f.id = m.model_id AND (m.model_type = 'App\\\\Models\\\\Food' OR m.model_type = 'AppModelsFood')
   `;
 
   const conditions: string[] = [];
@@ -170,10 +170,10 @@ export const getFoodById = async (
              m.order_column,
              m.created_at AS media_created_at,
              m.updated_at AS media_updated_at,
-             CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name) AS original_url,
+            CONCAT('https://imagefileupload-1.s3.us-east-1.amazonaws.com/foods/', m.file_name) AS original_url,
              (SELECT SUM(amount) FROM stock_mutations  WHERE  stockable_id = f.id) AS outOfStock
       FROM foods f
-      LEFT JOIN media m ON f.id = m.model_id AND m.model_type = 'App\\\\Models\\\\Food'
+      LEFT JOIN media m ON f.id = m.model_id AND (m.model_type = 'App\\\\Models\\\\Food' OR m.model_type = 'AppModelsFood')
       WHERE f.id = ?`,
     [id]
   );
@@ -249,7 +249,7 @@ export const getFoodById = async (
 };
 
 // Create a new food item
-export const createFood = async (foodData: Food): Promise<Food> => {
+export const createFood = async (foodData: Food): Promise<number> => {
   const query = `
     INSERT INTO foods (
       name, price, discount_price, description, 
@@ -261,7 +261,7 @@ export const createFood = async (foodData: Food): Promise<Food> => {
       product_brand_id, weightage, status, created_at, 
       updated_at, food_locality
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
-`;
+  `;
 
   const values = [
     foodData.name,
@@ -297,7 +297,7 @@ export const createFood = async (foodData: Food): Promise<Food> => {
 
   try {
     const [result] = await db.promise().execute<ResultSetHeader>(query, values);
-    return { id: result.insertId, ...foodData };
+    return  result.insertId;
   } catch (error) {
     console.error("Error inserting food:", error);
     throw new Error("Database insert failed");
