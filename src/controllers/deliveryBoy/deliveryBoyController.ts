@@ -192,7 +192,6 @@ export const deleteLocalitiesForDeliveryBoy = async (
   res: Response
 ): Promise<void> => {
   const { id } = req.params;
-console.log('localityIds',id);
 
   const parsedDeliveryBoyLocalityId = parseInt(id);
 

@@ -8,6 +8,7 @@ import {
   deleteSubCategoryById,
 } from "../../models/inventory/subcategoryModel";
 import { createResponse } from "../../utils/responseHandler";
+import { updateMediaModelId } from "../imageUpload/imageUploadController";
 
 // Fetch all subcategories with pagination, search, and categoryId filter
 export const getSubcategories = async (req: Request, res: Response): Promise<void> => {
@@ -77,9 +78,14 @@ export const getSubcategories = async (req: Request, res: Response): Promise<voi
 
 // Add a new subcategory (POST)
 export const addSubcategory = async (req: Request, res: Response): Promise<void> => {
-  const { category_id, name, description, weightage, active } = req.body;
+  const { category_id, name, description, weightage, active ,mediaId} = req.body;
   try {
-    await createSubCategory(category_id, name, description, weightage, active);
+    const subcategoryId=await createSubCategory(category_id, name, description, weightage, active);
+     if (mediaId) {
+              await updateMediaModelId(mediaId, subcategoryId);
+          } else {
+              console.log('No mediaId provided, skipping update');
+          }
     res.status(201).json({
       statusCode: 201,
       message: "Subcategory created successfully",

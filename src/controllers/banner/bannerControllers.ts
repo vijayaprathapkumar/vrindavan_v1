@@ -7,6 +7,7 @@ import {
   deleteBannerById,
 } from "../../models/banner/bannerModel";
 import { createResponse } from "../../utils/responseHandler";
+import { updateMediaModelId } from "../imageUpload/imageUploadController";
 
 // Fetch all banners
 export const fetchBanners = async (
@@ -58,10 +59,11 @@ export const addBanner = async (
     date_from,
     date_to,
     status,
+    mediaId
   } = req.body;
 
   try {
-    await createBanner({
+   const bannerId = await createBanner({
       banner_name,
       banner_type,
       banner_location,
@@ -73,6 +75,11 @@ export const addBanner = async (
       date_to,
       status,
     });
+     if (mediaId) {
+              await updateMediaModelId(mediaId, bannerId);
+          } else {
+              console.log('No mediaId provided, skipping update');
+          }
     return res
       .status(201)
       .json(createResponse(201, "Banner created successfully."));

@@ -37,7 +37,7 @@ export const getAllSubCategoriesWithCategory = async (
     LEFT JOIN 
       categories ON sub_categories.category_id = categories.id
     LEFT JOIN 
-      media m ON sub_categories.id = m.model_id AND m.model_type = 'App\\\\Models\\\\SubCategory'
+      media m ON sub_categories.id = m.model_id AND (m.model_type = 'App\\\\Models\\\\SubCategory'  OR m.model_type = 'AppModelsSubCategory')
     WHERE 
       (sub_categories.name LIKE ? OR 
       categories.name LIKE ? OR 
@@ -92,14 +92,14 @@ export const createSubCategory = async (
   description: string,
   weightage: string,
   active: boolean
-): Promise<OkPacket> => {
+): Promise<number> => {
   const [result] = await db
     .promise()
     .query<OkPacket>(
       "INSERT INTO sub_categories (category_id, name, description, weightage, active,created_at,updated_at) VALUES (?, ?, ?, ?, ?,?,?)",
       [category_id, name, description, weightage, active , new Date,new Date]
     );
-  return result;
+    return result.insertId;
 };
 
 // Fetch subcategory by ID
@@ -128,13 +128,13 @@ export const getSubCategoryById = async (
           m.order_column,
           m.created_at AS media_created_at,
           m.updated_at AS media_updated_at,
-          CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/conversions/', REPLACE(m.file_name, '.png', '-icon.jpg')) AS original_url
+         CONCAT('https://imagefileupload-1.s3.us-east-1.amazonaws.com/subCategory/', m.file_name) AS original_url
         FROM 
           sub_categories
         LEFT JOIN 
           categories ON sub_categories.category_id = categories.id
         LEFT JOIN 
-          media m ON sub_categories.id = m.model_id AND m.model_type = 'App\\\\Models\\\\SubCategory'
+          media m ON sub_categories.id = m.model_id AND (m.model_type = 'App\\\\Models\\\\SubCategory'  OR m.model_type = 'AppModelsSubCategory')
         WHERE 
           sub_categories.id = ?  
         ORDER BY 

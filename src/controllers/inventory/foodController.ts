@@ -8,6 +8,7 @@ import {
   updateStock,
 } from "../../models/inventory/foodModel";
 import { createResponse } from "../../utils/responseHandler";
+import { updateMediaModelId } from "../imageUpload/imageUploadController";
 
 export const fetchAllFoods = async (
   req: Request,
@@ -85,9 +86,15 @@ export const addFood = async (
   res: Response
 ): Promise<Response<any, Record<string, any>> | void> => {
   try {
-    const foodData = req.body;
-    const newFood = await createFood(foodData);
-
+     const foodData = req.body;
+     const mediaId = req.body.mediaId;
+    const foodId = await createFood(foodData);
+    
+    if (mediaId) {
+      await updateMediaModelId(mediaId, foodId);
+  } else {
+      console.log('No mediaId provided, skipping update');
+  }
     return res.status(201).json({
       statusCode: 201,
       message: "Food created successfully",

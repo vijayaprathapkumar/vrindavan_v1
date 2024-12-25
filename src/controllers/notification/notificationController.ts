@@ -8,6 +8,7 @@ import {
   logNotificationSend,
 } from "../../models/notification/notificationModel";
 import { createResponse } from "../../utils/responseHandler";
+import { updateMediaModelId } from "../imageUpload/imageUploadController";
 
 // Fetch all notifications
 export const fetchNotifications = async (
@@ -59,10 +60,11 @@ export const addNotification = async (
     user_id,
     product_id,
     is_global,
+    mediaId
   } = req.body;
 
   try {
-    await createNotification({
+    const notificationId = await createNotification({
       notification_type,
       title,
       description,
@@ -70,6 +72,12 @@ export const addNotification = async (
       product_id,
       is_global,
     });
+
+     if (mediaId) {
+            await updateMediaModelId(mediaId, notificationId);
+        } else {
+            console.log('No mediaId provided, skipping update');
+        }
     return res
       .status(201)
       .json(createResponse(201, "Notification created successfully."));
