@@ -1,14 +1,16 @@
 import { db } from "../../config/databaseConnection";
 import { RowDataPacket, OkPacket } from "mysql2";
-import { imageUpload } from "../../controllers/imageUpload/imageUploadController";
 
 // Fetch all categories with limit and offset for pagination
 export const getAllCategories = async (
   limit: number,
   offset: number,
-  searchTerm: string
-): Promise<RowDataPacket[]> => {
-  const query = `
+  searchTerm: string,
+  sortField: string,
+  sortOrder: string
+): Promise<{ rows: RowDataPacket[], total: number }> => {
+ 
+  let query = `
     SELECT 
       c.id AS category_id,
       c.name AS category_name,
@@ -28,21 +30,44 @@ export const getAllCategories = async (
       m.generated_conversions,
       m.responsive_images,
       m.order_column,
-     CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name) AS original_url
+      CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name) AS original_url
     FROM 
       categories c
     LEFT JOIN 
-      media m ON c.id = m.model_id AND (m.model_type = 'App\\\\Models\\\\Category' OR m.model_type = 'AppModelsCategory')
+      media m ON c.id = m.model_id AND (m.model_type = 'App\\\\Models\\\\Category')
     WHERE 
-      (c.name LIKE ? OR CAST(c.weightage AS CHAR) = ?) 
-    ORDER BY 
-      CAST(c.weightage AS UNSIGNED) ASC
-    LIMIT ? OFFSET ?
+      (c.name LIKE ? OR CAST(c.weightage AS CHAR) = ?)
   `;
+
+  const validSortFields = ["c.id", "c.name", "c.weightage", "c.updated_at"];
+
+  if (sortField && validSortFields.includes(`c.${sortField}`)) {
+    if (sortField === "weightage") {
+      query += ` ORDER BY CAST(c.weightage AS UNSIGNED) ${sortOrder === "DESC" ? "DESC" : "ASC"}`;
+    } else {
+      query += ` ORDER BY c.${sortField} ${sortOrder === "DESC" ? "DESC" : "ASC"}`;
+    }
+  } else {
+    query += " ORDER BY CAST(c.weightage AS UNSIGNED) ASC";
+  }
+
+
+  query += " LIMIT ? OFFSET ?";
 
   const params = [`%${searchTerm}%`, searchTerm, limit, offset];
   const [rows] = await db.promise().query<RowDataPacket[]>(query, params);
-  return rows;
+  const countQuery = `
+    SELECT COUNT(*) AS total
+    FROM categories c
+    LEFT JOIN media m ON c.id = m.model_id AND (m.model_type = 'App\\\\Models\\\\Category')
+    WHERE (c.name LIKE ? OR CAST(c.weightage AS CHAR) = ?)
+  `;
+  
+  const [countResult] = await db.promise().query<RowDataPacket[]>(countQuery, [`%${searchTerm}%`, searchTerm]);
+
+  const total = (countResult[0] as { total: number }).total;
+
+  return { rows, total };
 };
 
 // Fetch total count of categories that match the search term
@@ -99,7 +124,7 @@ export const getCategoryById = async (id: number): Promise<RowDataPacket[]> => {
     FROM 
       categories c
     LEFT JOIN 
-      media m ON c.id = m.model_id AND (m.model_type = 'App\\\\Models\\\\Category' OR m.model_type = 'AppModelsCategory')
+      media m ON c.id = m.model_id AND (m.model_type = 'App\\\\Models\\\\Category')
     WHERE 
       c.id = ? 
   `;
