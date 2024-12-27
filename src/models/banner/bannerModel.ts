@@ -117,7 +117,7 @@ export const getAllBanners = async (
             m.mime_type AS media_mime_type,
          CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name) AS food_image_url
           FROM foods f
-          LEFT JOIN media m ON f.id = m.model_id AND (m.model_type = 'App\\\\Models\\\\Food' OR m.model_type = 'AppModelsBanner')
+          LEFT JOIN media m ON f.id = m.model_id AND (m.model_type = 'App\\\\Models\\\\Food')
           WHERE f.id IN (${foodIds.map(() => '?').join(', ')})
         `,
           foodIds

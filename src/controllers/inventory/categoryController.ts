@@ -8,30 +8,42 @@ import {
   deleteCategoryById,
 } from "../../models/inventory/categoryModel";
 import { createResponse } from "../../utils/responseHandler";
-import { updateMediaModelId } from "../imageUpload/imageUploadController";
+import {
+  insertMediaRecord,
+  updateMediaRecord,
+} from "../imageUpload/imageUploadController";
 
 // Fetch all categories with pagination and search
-export const getCategories = async (req: Request, res: Response): Promise<void> => {
+export const getCategories = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
   const limit = parseInt(req.query.limit as string) || 10;
   const page = parseInt(req.query.page as string) || 1;
   const searchTerm = (req.query.searchTerm as string) || "";
+  const sortField = (req.query.sortField as string) || "";
+  const sortOrder = (req.query.sortOrder as string) || "ASC";
   const offset = (page - 1) * limit;
 
   try {
-    const totalCount = await getCategoriesCount(searchTerm);
-    const categories = await getAllCategories(limit, offset, searchTerm);
+    const { rows: categories, total: totalCount } = await getAllCategories(
+      limit,
+      offset,
+      searchTerm,
+      sortField,
+      sortOrder
+    );
     const totalPages = Math.ceil(totalCount / limit);
 
-    const categoriesWithMedia = categories.map(category => {
-      
+    const categoriesWithMedia = categories.map((category) => {
       const categoryResponse = {
-            category_id: category.category_id,
-            category_name: category.category_name,
-            description: category.description,
-            weightage: category.weightage,
-            created_at: category.created_at,
-            updated_at:category.updated_at,
-        media: [] 
+        category_id: category.category_id,
+        category_name: category.category_name,
+        description: category.description,
+        weightage: category.weightage,
+        created_at: category.created_at,
+        updated_at: category.updated_at,
+        media: [],
       };
 
       if (category.media_id) {
@@ -68,36 +80,52 @@ export const getCategories = async (req: Request, res: Response): Promise<void> 
       },
     });
   } catch (error) {
-    res.status(500).json(createResponse(500, "Error fetching categories", error.message));
+    res
+      .status(500)
+      .json(createResponse(500, "Error fetching categories", error.message));
   }
 };
-
 
 // Add a new category (POST)
-export const addCategory = async (req: Request, res: Response): Promise<void> => {
-  const { name, description, weightage, mediaId } = req.body;
+export const addCategory = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  const { name, description, weightage, media } = req.body;
   try {
-      const categoryId = await createCategory(name, description, weightage);
-      if (mediaId) {
-          await updateMediaModelId(mediaId, categoryId);
-      } else {
-          console.log('No mediaId provided, skipping update');
-      }
-      res.status(201).json({
-          statusCode: 201,
-          message: 'Category created successfully',
-          data: null,
-      });
+    const categoryId = await createCategory(name, description, weightage);
+
+    if (media) {
+      const { model_type, file_name, mime_type, size } = media;
+      await insertMediaRecord(
+        model_type,
+        categoryId,
+        file_name,
+        mime_type,
+        size
+      );
+    }
+
+    res.status(201).json({
+      statusCode: 201,
+      message: "Category created successfully",
+      data: null,
+    });
   } catch (error) {
-      console.error('Error in addCategory:', error);
-      res.status(500).json(createResponse(500, 'Error creating category', error.message));
+    console.error("Error in addCategory:", error);
+    res.status(500).json({
+      statusCode: 500,
+      message: "Error creating category",
+      error: error.message,
+    });
   }
 };
 
-
-
 // Get category by ID (GET)
-export const getCategory = async (req: Request, res: Response): Promise<void> => {
+export const getCategory = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
   const { id } = req.params;
   try {
     const rows = await getCategoryById(parseInt(id));
@@ -136,7 +164,7 @@ export const getCategory = async (req: Request, res: Response): Promise<void> =>
       statusCode: 200,
       message: "Category fetched successfully",
       data: {
-        category: [category], 
+        category: [category],
       },
     });
   } catch (error) {
@@ -145,28 +173,41 @@ export const getCategory = async (req: Request, res: Response): Promise<void> =>
   }
 };
 
-
 // Update category by ID (PUT)
-export const updateCategory = async (req: Request, res: Response): Promise<void> => {
+export const updateCategory = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
   const { id } = req.params;
-  const { name, description, weightage } = req.body;
+  const { name, description, weightage, media } = req.body;
 
   try {
     await updateCategoryById(parseInt(id), name, description, weightage);
+
+    if (media && media.media_id) {
+      const { media_id, file_name, mime_type, size } = media;
+      await updateMediaRecord(media_id, file_name, mime_type, size);
+    }
+
     res.status(200).json({
       statusCode: 200,
       message: "Category updated successfully",
       data: {
-        updateCategory_id: parseInt(id)
+        updateCategory_id: parseInt(id),
       },
     });
   } catch (error) {
-    res.status(500).json(createResponse(500, "Error updating category", error.message));
+    res
+      .status(500)
+      .json(createResponse(500, "Error updating category", error.message));
   }
 };
 
 // Delete category by ID (DELETE)
-export const deleteCategory = async (req: Request, res: Response): Promise<void> => {
+export const deleteCategory = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
   const { id } = req.params;
   try {
     await deleteCategoryById(parseInt(id));
@@ -178,6 +219,8 @@ export const deleteCategory = async (req: Request, res: Response): Promise<void>
       },
     });
   } catch (error) {
-    res.status(500).json(createResponse(500, "Error deleting category", error.message));
+    res
+      .status(500)
+      .json(createResponse(500, "Error deleting category", error.message));
   }
 };

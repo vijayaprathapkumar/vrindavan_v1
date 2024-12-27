@@ -181,9 +181,6 @@ export const getAllCustomers = async (
 };
 
 
-
-
-
 export const createCustomer = async (
   localityId: number,
   name: string,
@@ -211,18 +208,25 @@ export const createCustomer = async (
   }
 
   try {
-    const existingUserQuery = `SELECT id FROM users WHERE email = ?;`;
+    // Check for existing user
+    const existingUserQuery = `SELECT email, phone FROM users WHERE email = ? OR phone = ?`;
     const [existingUsers] = await db
       .promise()
-      .query<RowDataPacket[]>(existingUserQuery, [email]);
+      .query<RowDataPacket[]>(existingUserQuery, [email, mobile]);
 
-    if (existingUsers.length !== 0) {
-      return null;
+    if (existingUsers.length > 0) {
+      if (existingUsers.some((user) => user.email === email)) {
+        return null; // Email already registered
+      }
+
+      if (existingUsers.some((user) => user.phone === mobile)) {
+        return 0; // Mobile already registered
+      }
     }
 
     // Insert new user
     const insertUserQuery = `
-      INSERT INTO users (name, email, phone, status,password, created_at, updated_at) 
+      INSERT INTO users (name, email, phone, status, password, created_at, updated_at) 
       VALUES (?, ?, ?, ?, ?, NOW(), NOW());
     `;
     const [userResult] = await db
@@ -231,13 +235,13 @@ export const createCustomer = async (
         name,
         email,
         mobile,
-        status,
+        status || "active",
         password || "",
       ]);
 
     const userId = userResult.insertId;
 
-    // Insert user address into delivery_addresses table
+    // Insert user address
     const insertAddressQuery = `
       INSERT INTO delivery_addresses (user_id, locality_id, house_no, complete_address, created_at, updated_at) 
       VALUES (?, ?, ?, ?, NOW(), NOW());
@@ -259,13 +263,14 @@ export const createCustomer = async (
     await db.promise().query(insertWalletQuery, [userId]);
 
     return userId;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error creating customer:", error);
     throw new Error(
       "Error creating customer: " + (error.message || "Unknown error")
     );
   }
 };
+
 
 // Fetch customer by ID
 export const getCustomerById = async (id: number): Promise<any | null> => {

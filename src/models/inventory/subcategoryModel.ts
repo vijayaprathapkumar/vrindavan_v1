@@ -5,7 +5,9 @@ export const getAllSubCategoriesWithCategory = async (
   limit: number,
   offset: number,
   searchTerm: string,
-  categoryId: number | null
+  categoryId: number | null,
+  sortField: string,
+  sortOrder: string
 ): Promise<RowDataPacket[]> => {
   let query = `
     SELECT 
@@ -37,7 +39,7 @@ export const getAllSubCategoriesWithCategory = async (
     LEFT JOIN 
       categories ON sub_categories.category_id = categories.id
     LEFT JOIN 
-      media m ON sub_categories.id = m.model_id AND (m.model_type = 'App\\\\Models\\\\SubCategory'  OR m.model_type = 'AppModelsSubCategory')
+      media m ON sub_categories.id = m.model_id AND (m.model_type = 'App\\\\Models\\\\SubCategory')
     WHERE 
       (sub_categories.name LIKE ? OR 
       categories.name LIKE ? OR 
@@ -48,12 +50,28 @@ export const getAllSubCategoriesWithCategory = async (
 
   if (categoryId) {
     query += " AND sub_categories.category_id = ?";
-    params.splice(params.length - 2, 0, categoryId); // Insert categoryId before limit and offset
+    params.splice(params.length - 2, 0, categoryId);
+  }
+
+  const validSortFields = [
+    "id",
+    "categories.name",
+    "name",
+    "sub_categories.weightage",
+    "updated_at",
+  ];
+
+  if (sortField && validSortFields.includes(sortField)) {
+    if (sortField === "sub_categories.weightage") {
+      query += ` ORDER BY CAST(${sortField} AS UNSIGNED) ${sortOrder === "DESC" ? "DESC" : "ASC"}`;
+    } else {
+      query += ` ORDER BY ${sortField} ${sortOrder === "DESC" ? "DESC" : "ASC"}`;
+    }
+  } else {
+    query += " ORDER BY CAST(sub_categories.weightage AS UNSIGNED) ASC";
   }
 
   query += `
-    ORDER BY 
-       CAST(sub_categories.weightage AS UNSIGNED) ASC 
     LIMIT ? 
     OFFSET ?;
   `;
@@ -134,7 +152,7 @@ export const getSubCategoryById = async (
         LEFT JOIN 
           categories ON sub_categories.category_id = categories.id
         LEFT JOIN 
-          media m ON sub_categories.id = m.model_id AND (m.model_type = 'App\\\\Models\\\\SubCategory'  OR m.model_type = 'AppModelsSubCategory')
+          media m ON sub_categories.id = m.model_id AND (m.model_type = 'App\\\\Models\\\\SubCategory')
         WHERE 
           sub_categories.id = ?  
         ORDER BY 

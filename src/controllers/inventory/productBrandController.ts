@@ -17,13 +17,15 @@ export const fetchAllBrands = async (
   try {
     const limit = parseInt(req.query.limit as string) || 10;
     const page = parseInt(req.query.page as string) || 1;
+    const sortField = req.query.sortField as string || ""; 
+    const sortOrder = req.query.sortOrder as string || "ASC";
     const searchTerm = req.query.searchTerm
     ? (req.query.searchTerm as string)
     : null;
 
     const offset = (page - 1) * limit;
 
-    const brands = await getAllBrands(searchTerm as string, limit, offset);
+    const brands = await getAllBrands(searchTerm as string, limit, offset,sortField,sortOrder);
     const totalCount = await getBrandsCount(searchTerm as string);
 
     if (!brands || brands.length === 0 || totalCount === 0) {

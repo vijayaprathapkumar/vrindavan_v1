@@ -8,14 +8,24 @@ import {
   updateStock,
 } from "../../models/inventory/foodModel";
 import { createResponse } from "../../utils/responseHandler";
-import { updateMediaModelId } from "../imageUpload/imageUploadController";
+import {
+  insertMediaRecord,
+  updateMediaRecord,
+} from "../imageUpload/imageUploadController";
 
 export const fetchAllFoods = async (
   req: Request,
   res: Response
 ): Promise<Response<any, Record<string, any>> | void> => {
   try {
-    const { status, categoryId, subcategoryId, searchTerm } = req.query;
+    const {
+      status,
+      categoryId,
+      subcategoryId,
+      searchTerm,
+      sortField,
+      sortOrder,
+    } = req.query;
     const limit = parseInt(req.query.limit as string) || 10;
     const page = parseInt(req.query.page as string) || 1;
     const offset = (page - 1) * limit;
@@ -27,7 +37,13 @@ export const fetchAllFoods = async (
       searchTerm: searchTerm ? searchTerm.toString() : null,
     };
 
-    const { foods, totalCount } = await getAllFoods(filters, limit, offset);
+    const { foods, totalCount } = await getAllFoods(
+      filters,
+      limit,
+      offset,
+      sortField as string,
+      sortOrder as string
+    );
 
     return res.status(200).json({
       statusCode: 200,
@@ -86,15 +102,13 @@ export const addFood = async (
   res: Response
 ): Promise<Response<any, Record<string, any>> | void> => {
   try {
-     const foodData = req.body;
-     const mediaId = req.body.mediaId;
+    const foodData = req.body;
     const foodId = await createFood(foodData);
-    
-    if (mediaId) {
-      await updateMediaModelId(mediaId, foodId);
-  } else {
-      console.log('No mediaId provided, skipping update');
-  }
+
+    if (foodData.media) {
+      const { model_type, file_name, mime_type, size } = foodData.media;
+      await insertMediaRecord(model_type, foodId, file_name, mime_type, size);
+    }
     return res.status(201).json({
       statusCode: 201,
       message: "Food created successfully",
@@ -123,6 +137,11 @@ export const modifyFood = async (
     const updatedFood = await updateFood(foodId, foodData);
 
     if (updatedFood) {
+    
+      if (foodData?.media && foodData?.media.media_id) {
+        const { media_id, file_name, mime_type, size } = foodData?.media;
+        await updateMediaRecord(media_id, file_name, mime_type, size);
+      }
       return res.status(200).json({
         statusCode: 200,
         message: "Food updated successfully",
@@ -173,9 +192,11 @@ export const removeFood = async (
 };
 
 // out of stock
-export const modifyStock = async (req: Request, res: Response): Promise<Response> => {
+export const modifyStock = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
   try {
-   
     const { foodId, amount, description, type } = req.body;
 
     if (!["add", "sub"].includes(type)) {
@@ -187,7 +208,7 @@ export const modifyStock = async (req: Request, res: Response): Promise<Response
 
     const amountChange = type === "add" ? amount : -Math.abs(amount);
 
-    await updateStock( foodId, amountChange, description);
+    await updateStock(foodId, amountChange, description);
 
     return res.status(200).json({
       statusCode: 200,
