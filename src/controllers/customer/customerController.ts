@@ -64,6 +64,12 @@ export const addCustomer = async (
         .json(createResponse(400, "This email is already registered."));
     }
 
+    if (userId === 0) {
+      return res
+        .status(400)
+        .json(createResponse(400, "This mobile is already registered."));
+    }
+
     const { status: userProfileStatus } = await checkUserProfileStatus(mobile);
 
     return res.status(201).json(
@@ -79,6 +85,7 @@ export const addCustomer = async (
       .json(createResponse(500, "Error creating customer", error.message));
   }
 };
+
 
 export const getCustomer = async (
   req: Request,

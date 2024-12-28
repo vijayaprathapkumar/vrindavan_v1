@@ -1,8 +1,8 @@
 import { db } from "../../config/databaseConnection";
 import { RowDataPacket, OkPacket } from "mysql2";
 
-export const getAllBrands = async (searchTerm?: string, limit: number = 10, offset: number = 0): Promise<RowDataPacket[]> => {
-  let query = "SELECT * FROM product_brands WHERE 1=1"; // Use a base condition
+export const getAllBrands = async (searchTerm?: string, limit: number = 10, offset: number = 0,sortField?:string,sortOrder?:string): Promise<RowDataPacket[]> => {
+  let query = "SELECT * FROM product_brands WHERE 1=1";
   const queryParams: any[] = [];
 
   if (searchTerm) {
@@ -17,7 +17,14 @@ export const getAllBrands = async (searchTerm?: string, limit: number = 10, offs
     }
   }
 
-  query += " ORDER BY created_at DESC LIMIT ? OFFSET ?";
+  const validSortFields = ['id','created_at', 'name', 'active']; 
+  if (validSortFields.includes(sortField)) {
+    query += ` ORDER BY ${sortField} ${sortOrder}`;
+  } else {
+    query += " ORDER BY created_at DESC";  
+  }
+
+  query += " LIMIT ? OFFSET ?";
   queryParams.push(limit, offset);
 
   const [rows] = await db.promise().query<RowDataPacket[]>(query, queryParams);

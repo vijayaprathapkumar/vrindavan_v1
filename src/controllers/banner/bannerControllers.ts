@@ -7,7 +7,10 @@ import {
   deleteBannerById,
 } from "../../models/banner/bannerModel";
 import { createResponse } from "../../utils/responseHandler";
-import { updateMediaModelId } from "../imageUpload/imageUploadController";
+import {
+  insertMediaRecord,
+  updateMediaRecord,
+} from "../imageUpload/imageUploadController";
 
 // Fetch all banners
 export const fetchBanners = async (
@@ -59,11 +62,11 @@ export const addBanner = async (
     date_from,
     date_to,
     status,
-    mediaId
+    media,
   } = req.body;
 
   try {
-   const bannerId = await createBanner({
+    const bannerId = await createBanner({
       banner_name,
       banner_type,
       banner_location,
@@ -75,11 +78,11 @@ export const addBanner = async (
       date_to,
       status,
     });
-     if (mediaId) {
-              await updateMediaModelId(mediaId, bannerId);
-          } else {
-              console.log('No mediaId provided, skipping update');
-          }
+    if (media) {
+      const { model_type, file_name, mime_type, size } = media;
+      await insertMediaRecord(model_type, bannerId, file_name, mime_type, size);
+    }
+
     return res
       .status(201)
       .json(createResponse(201, "Banner created successfully."));
@@ -137,6 +140,7 @@ export const updateBanner = async (
     date_from,
     date_to,
     status,
+    media,
   } = req.body;
 
   if (isNaN(bannerId)) {
@@ -159,6 +163,11 @@ export const updateBanner = async (
     );
 
     if (result.affectedRows > 0) {
+      if (media && media.media_id) {
+        const { media_id, file_name, mime_type, size } = media;
+        await updateMediaRecord(media_id, file_name, mime_type, size);
+      }
+
       return res
         .status(200)
         .json(createResponse(200, "Banner updated successfully."));

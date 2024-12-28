@@ -8,26 +8,43 @@ import {
   deleteSubCategoryById,
 } from "../../models/inventory/subcategoryModel";
 import { createResponse } from "../../utils/responseHandler";
-import { updateMediaModelId } from "../imageUpload/imageUploadController";
+import {
+  insertMediaRecord,
+  updateMediaRecord,
+} from "../imageUpload/imageUploadController";
 
 // Fetch all subcategories with pagination, search, and categoryId filter
-export const getSubcategories = async (req: Request, res: Response): Promise<void> => {
+export const getSubcategories = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
   const limit = parseInt(req.query.limit as string) || 10;
   const page = parseInt(req.query.page as string) || 1;
   const searchTerm = (req.query.searchTerm as string) || "";
-  const categoryId = req.query.categoryId ? parseInt(req.query.categoryId as string) : null;
+  const categoryId = req.query.categoryId
+    ? parseInt(req.query.categoryId as string)
+    : null;
+  const sortField = (req.query.sortField as string) || "";
+  const sortOrder = (req.query.sortOrder as string) || "ASC";
   const offset = (page - 1) * limit;
 
   try {
     const totalCount = await getSubcategoriesCount(searchTerm, categoryId);
-    const subcategories = await getAllSubCategoriesWithCategory(limit, offset, searchTerm, categoryId);
+    const subcategories = await getAllSubCategoriesWithCategory(
+      limit,
+      offset,
+      searchTerm,
+      categoryId,
+      sortField,
+      sortOrder
+    );
     const totalPages = Math.ceil(totalCount / limit);
 
-    const subcategoriesWithMedia = subcategories.map(subcategory => {
+    const subcategoriesWithMedia = subcategories.map((subcategory) => {
       const subcategoryResponse = {
         id: subcategory.id,
         category_id: subcategory.category_id,
-        categoryName:subcategory.category_name,
+        categoryName: subcategory.category_name,
         subcategory_name: subcategory.name,
         description: subcategory.description,
         weightage: subcategory.weightage,
@@ -41,7 +58,7 @@ export const getSubcategories = async (req: Request, res: Response): Promise<voi
           media_id: subcategory.media_id,
           file_name: subcategory.file_name,
           mime_type: subcategory.mime_type,
-          model_id:subcategory.model_id,
+          model_id: subcategory.model_id,
           disk: subcategory.disk,
           conversions_disk: subcategory.conversions_disk,
           size: subcategory.size,
@@ -71,33 +88,53 @@ export const getSubcategories = async (req: Request, res: Response): Promise<voi
       },
     });
   } catch (error) {
-    res.status(500).json(createResponse(500, "Error fetching subcategories", error.message));
+    res
+      .status(500)
+      .json(createResponse(500, "Error fetching subcategories", error.message));
   }
 };
 
-
 // Add a new subcategory (POST)
-export const addSubcategory = async (req: Request, res: Response): Promise<void> => {
-  const { category_id, name, description, weightage, active ,mediaId} = req.body;
+export const addSubcategory = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  const { category_id, name, description, weightage, active, media } = req.body;
   try {
-    const subcategoryId=await createSubCategory(category_id, name, description, weightage, active);
-     if (mediaId) {
-              await updateMediaModelId(mediaId, subcategoryId);
-          } else {
-              console.log('No mediaId provided, skipping update');
-          }
+    const subcategoryId = await createSubCategory(
+      category_id,
+      name,
+      description,
+      weightage,
+      active
+    );
+    if (media) {
+      const { model_type, file_name, mime_type, size } = media;
+      await insertMediaRecord(
+        model_type,
+        subcategoryId,
+        file_name,
+        mime_type,
+        size
+      );
+    }
     res.status(201).json({
       statusCode: 201,
       message: "Subcategory created successfully",
       data: null,
     });
   } catch (error) {
-    res.status(500).json(createResponse(500, "Error creating subcategory", error.message));
+    res
+      .status(500)
+      .json(createResponse(500, "Error creating subcategory", error.message));
   }
 };
 
 // Get subcategory by ID (GET)
-export const getSubcategory = async (req: Request, res: Response): Promise<void> => {
+export const getSubcategory = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
   const { id } = req.params;
   try {
     const rows = await getSubCategoryById(parseInt(id));
@@ -112,25 +149,27 @@ export const getSubcategory = async (req: Request, res: Response): Promise<void>
       description: rows[0].description,
       weightage: rows[0].weightage,
       subcategory_created_at: rows[0].created_at,
-      media: rows.map(row => ({
-        media_id: row.media_id,
-        file_name: row.file_name,
-        mime_type: row.mime_type,
-        disk: row.disk,
-        conversions_disk: row.conversions_disk,
-        size: row.size,
-        manipulations: row.manipulations,
-        custom_properties: row.custom_properties,
-        generated_conversions: row.generated_conversions,
-        responsive_images: row.responsive_images,
-        order_column: row.order_column,
-        created_at: row.media_created_at,
-        updated_at: row.media_updated_at,
-        original_url: row.original_url,
-      })).filter(mediaItem => mediaItem.media_id !== null),
+      media: rows
+        .map((row) => ({
+          media_id: row.media_id,
+          file_name: row.file_name,
+          mime_type: row.mime_type,
+          disk: row.disk,
+          conversions_disk: row.conversions_disk,
+          size: row.size,
+          manipulations: row.manipulations,
+          custom_properties: row.custom_properties,
+          generated_conversions: row.generated_conversions,
+          responsive_images: row.responsive_images,
+          order_column: row.order_column,
+          created_at: row.media_created_at,
+          updated_at: row.media_updated_at,
+          original_url: row.original_url,
+        }))
+        .filter((mediaItem) => mediaItem.media_id !== null),
     };
 
-    const subcategoryResponse=[subcategory]
+    const subcategoryResponse = [subcategory];
     res.status(200).json({
       statusCode: 200,
       message: "Subcategory fetched successfully",
@@ -145,12 +184,27 @@ export const getSubcategory = async (req: Request, res: Response): Promise<void>
 };
 
 // Update subcategory by ID (PUT)
-export const updateSubcategory = async (req: Request, res: Response): Promise<void> => {
+export const updateSubcategory = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
   const { id } = req.params;
-  const { category_id, name, description, weightage, active } = req.body;
+  const { category_id, name, description, weightage, active, media } = req.body;
 
   try {
-    await updateSubCategoryById(parseInt(id), category_id, name, description, weightage, active);
+    await updateSubCategoryById(
+      parseInt(id),
+      category_id,
+      name,
+      description,
+      weightage,
+      active
+    );
+    if (media) {
+      const { media_id, file_name, mime_type, size } = media;
+      await updateMediaRecord(media_id, file_name, mime_type, size);
+    }
+
     res.status(200).json({
       statusCode: 200,
       message: "Subcategory updated successfully",
@@ -159,12 +213,17 @@ export const updateSubcategory = async (req: Request, res: Response): Promise<vo
       },
     });
   } catch (error) {
-    res.status(500).json(createResponse(500, "Error updating subcategory", error.message));
+    res
+      .status(500)
+      .json(createResponse(500, "Error updating subcategory", error.message));
   }
-}; 
+};
 
 // Delete subcategory by ID (DELETE)
-export const deleteSubcategory = async (req: Request, res: Response): Promise<void> => {
+export const deleteSubcategory = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
   const { id } = req.params;
   try {
     await deleteSubCategoryById(parseInt(id));
@@ -176,6 +235,8 @@ export const deleteSubcategory = async (req: Request, res: Response): Promise<vo
       },
     });
   } catch (error) {
-    res.status(500).json(createResponse(500, "Error deleting subcategory", error.message));
+    res
+      .status(500)
+      .json(createResponse(500, "Error deleting subcategory", error.message));
   }
 };
