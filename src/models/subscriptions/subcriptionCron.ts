@@ -146,7 +146,7 @@ const addOrdersEntry = async (userId) => {
           order_status_id, tax, delivery_fee, delivery_address_id, is_wallet_deduct, 
           created_at, updated_at
         ) 
-        VALUES (?, 2, NOW(), ?, ?, ?, 1, 0.0, 0.0, ?, 1, NOW(), NOW());
+        VALUES (?, 2, DATE_ADD(NOW(), INTERVAL 1 DAY), ?, ?, ?, 1, 0.0, 0.0, ?, 1, NOW(), NOW());
       `;
 
     const [orderResult]: any = await db
@@ -198,7 +198,7 @@ const addFoodOrderEntry = async (
 };
 
 export const subcribtionsJob = () => {
-  cron.schedule("30 14 * * *", async () => {
+  cron.schedule("31 14 * * *", async () => {
     console.log("Cron job running...");
     console.time("subProcessing");
     try {

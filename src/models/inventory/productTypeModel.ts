@@ -4,7 +4,9 @@ import { RowDataPacket, OkPacket } from "mysql2";
 export const getAllProductTypes = async (
   searchTerm: string,
   limit: number,
-  offset: number
+  offset: number,
+  sortField: string,
+  sortOrder: string
 ): Promise<{ total: number; rows: RowDataPacket[] }> => {
   const countQuery = `
     SELECT COUNT(*) as total FROM product_types
@@ -26,14 +28,27 @@ export const getAllProductTypes = async (
       activeValue,
     ]);
 
-  const total = countResult[0].total; // Get the total count
+  const total = countResult[0].total;
+
+  const validSortFields = ["id","name", "weightage", "active"];
+
+  let orderBy = "product_types.name";
+
+  if (validSortFields.includes(sortField)) {
+    orderBy = sortField;
+  }
+
+  const validSortOrders = ["ASC", "DESC"];
+  const orderDirection = validSortOrders.includes(sortOrder) ? sortOrder : "ASC";
 
   // Fetch the actual records
   const query = `
     SELECT * FROM product_types
     WHERE Name LIKE ? OR Weightage LIKE ? OR Active LIKE ?
+    ORDER BY ${orderBy} ${orderDirection}
     LIMIT ? OFFSET ?
   `;
+
   const [rows] = await db
     .promise()
     .query<RowDataPacket[]>(query, [

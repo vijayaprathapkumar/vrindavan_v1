@@ -66,7 +66,7 @@ export const getAllNotifications = async (
           ) AS original_url
         FROM user_notifications un
         LEFT JOIN media m ON un.id = m.model_id 
-          AND (m.model_type = 'App\\\\Models\\\\UserNotification' OR m.model_type = 'AppModelsNotification')
+          AND (m.model_type = 'App\\\\Models\\\\UserNotification')
         WHERE 1=1 ${searchCondition}  
         ORDER BY un.created_at DESC
         LIMIT ? OFFSET ?;

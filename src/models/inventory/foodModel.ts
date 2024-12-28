@@ -10,7 +10,9 @@ export const getAllFoods = async (
     searchTerm?: string;
   },
   limit: number,
-  offset: number
+  offset: number,
+  sortField?: string,
+  sortOrder?: string
 ): Promise<{ foods: Food[]; totalCount: number }> => {
   let query = `
     SELECT f.*, 
@@ -35,7 +37,7 @@ export const getAllFoods = async (
         CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name) AS original_url,
            (SELECT SUM(amount) FROM stock_mutations  WHERE  stockable_id = f.id) AS outOfStock
     FROM foods f
-    LEFT JOIN media m ON f.id = m.model_id AND (m.model_type = 'App\\\\Models\\\\Food' OR m.model_type = 'AppModelsFood')
+    LEFT JOIN media m ON f.id = m.model_id AND (m.model_type = 'App\\\\Models\\\\Food')
   `;
 
   const conditions: string[] = [];
@@ -65,7 +67,12 @@ export const getAllFoods = async (
     query += " WHERE " + conditions.join(" AND ");
   }
 
-  query += " ORDER BY CAST(f.weightage AS UNSIGNED) ASC";
+  const validSortFields = ["f.id", "f.track_inventory", "f.price", "f.discount_price", "f.unit", "f.size", "f.weightage"];
+  if (sortField && validSortFields.includes(`f.${sortField}`)) {
+    query += ` ORDER BY ${`f.${sortField}`} ${sortOrder === "DESC" ? "DESC" : "ASC"}`;
+  } else {
+    query += " ORDER BY CAST(f.weightage AS UNSIGNED) ASC";
+  }
 
   const countQuery = `
     SELECT COUNT(*) as count 
@@ -173,7 +180,7 @@ export const getFoodById = async (
             CONCAT('https://imagefileupload-1.s3.us-east-1.amazonaws.com/foods/', m.file_name) AS original_url,
              (SELECT SUM(amount) FROM stock_mutations  WHERE  stockable_id = f.id) AS outOfStock
       FROM foods f
-      LEFT JOIN media m ON f.id = m.model_id AND (m.model_type = 'App\\\\Models\\\\Food' OR m.model_type = 'AppModelsFood')
+      LEFT JOIN media m ON f.id = m.model_id AND (m.model_type = 'App\\\\Models\\\\Food')
       WHERE f.id = ?`,
     [id]
   );

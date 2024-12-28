@@ -5,6 +5,7 @@ import path from "path";
 import AWS from "aws-sdk";
 import dotenv from "dotenv";
 import multer from "multer";
+import { OkPacket } from "mysql2";
 
 dotenv.config();
 
@@ -21,11 +22,11 @@ export const uploadMiddleware = multer({ storage }).single("file");
 
 // Media config
 export const mediaConfig = {
-  AppModelsCategory: "category",
-  AppModelsSubCategory: "subCategory",
-  AppModelsFood: "foods",
-  AppModelsBanner: "banners",
-  AppModelsNotification: "notification",
+  "App\\Models\\Category": "category",
+  "App\\Models\\SubCategory": "subCategory",
+  "App\\Models\\Food": "foods",
+  "App\\Models\\Banner": "banners",
+  "App\\Models\\UserNotification": "notification",
 };
 
 // Image upload controller
@@ -34,7 +35,7 @@ export const imageUpload = async (
   res: Response
 ): Promise<Response<any>> => {
   try {
-    const { model_type, model_id } = req.body;
+    const { model_type } = req.body;
     const file = req.file;
 
     if (!file || !model_type) {
@@ -43,7 +44,6 @@ export const imageUpload = async (
         .json({ message: "Missing required fields: file or model_type" });
     }
 
-    const uuid = uuidv4();
     const folderName = mediaConfig[model_type] || "default";
     const fileKey = `${folderName}/${file.originalname}`;
 
@@ -60,69 +60,13 @@ export const imageUpload = async (
 
     const uploadResult = await uploadPromise;
 
-    let mediaId;
-
-    if (model_id) {
-      const updateQuery = `
-        UPDATE media 
-        SET 
-          uuid = ?, 
-          file_name = ?, 
-          mime_type = ?, 
-          size = ?, 
-          updated_at = NOW()
-        WHERE id = ?`;
-
-      const [updateResult]: any = await db
-        .promise()
-        .query(updateQuery, [
-          uuid,
-          file.originalname,
-          file.mimetype,
-          file.size,
-          model_id,
-          model_type,
-        ]);
-
-      mediaId = updateResult.affectedRows ? model_id : null;
-    }
-
-    // If model_id is not provided, insert a new media record
-    if (!mediaId) {
-      const insertQuery = `
-        INSERT INTO media (
-          model_type, model_id, uuid, collection_name, name, file_name, mime_type, disk, conversions_disk,
-          size, manipulations, custom_properties, generated_conversions, responsive_images, order_column,
-          created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`;
-
-      const [insertResult]: any = await db
-        .promise()
-        .query(insertQuery, [
-          model_type,
-          model_id || 0,
-          uuid,
-          "image",
-          path.parse(file.originalname).name,
-          file.originalname,
-          file.mimetype,
-          "public",
-          "public",
-          file.size,
-          "[]",
-          JSON.stringify({ uuid, user_id: 1 }),
-          JSON.stringify({ icon: true, thumb: true }),
-          "[]",
-          0,
-        ]);
-
-      mediaId = insertResult.insertId;
-    }
-
     return res.status(201).json({
-      message: "Image uploaded and processed successfully",
-      mediaId,
+      message: "Image uploaded successfully",
       original_url: uploadResult.Location,
+      file_name: file.originalname,
+      mime_type: file.mimetype,
+      size: file.size,
+      uuid: uuidv4(),
     });
   } catch (error) {
     console.error("Error uploading image:", error);
@@ -131,23 +75,73 @@ export const imageUpload = async (
 };
 
 // Function to update the media record with a new all ID
-export const updateMediaModelId = async (
-  mediaId: number,
-  modifyId: number
+export const insertMediaRecord = async (
+  model_type: string,
+  model_id: number,
+  file_name: string,
+  mime_type: string,
+  size: number
 ): Promise<void> => {
+  const uuid = uuidv4();
+  const query = `
+      INSERT INTO media (
+        model_type, model_id, uuid, collection_name, name, file_name, mime_type, disk, conversions_disk,
+        size, manipulations, custom_properties, generated_conversions, responsive_images, order_column,
+        created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+  `;
+
+  const params = [
+    model_type,
+    model_id,
+    uuid,
+    "image",
+    path.parse(file_name).name,
+    file_name,
+    mime_type,
+    "public",
+    "public1",
+    size,
+    "[]",
+    JSON.stringify({ uuid, user_id: 1 }),
+    JSON.stringify({ icon: true, thumb: true }),
+    "[]",
+    0,
+  ];
+
+  await db.promise().query(query, params);
+};
+
+// update image file
+export const updateMediaRecord = async (
+  media_id: string,
+  file_name: string,
+  mime_type: string,
+  size: number,
+): Promise<void> => {
+
+  const query = `
+     UPDATE media
+     SET 
+      name = ?,
+      file_name = ?, 
+      mime_type = ?, 
+      size = ?, 
+      updated_at = NOW()
+     WHERE id = ?
+  `;
+
+  const params = [ path.parse(file_name).name,file_name, mime_type, size, media_id];
+
   try {
-    const updateQuery = `
-            UPDATE media 
-            SET model_id = ? 
-            WHERE id = ?
-        `;
+    const [result] = await db.promise().query<OkPacket>(query, params);
 
-    const [result]: any = await db
-      .promise()
-      .query(updateQuery, [modifyId, mediaId]);
-
+    if (result.affectedRows === 0) {
+      throw new Error("No record found to update.");
+    }
+    console.log("Media record updated successfully.");
   } catch (error) {
-    console.error("Error updating media category ID:", error);
-    throw new Error("Internal server error");
+    console.error("Error in updateMediaRecord:", error);
+    throw error;
   }
 };

@@ -8,7 +8,10 @@ import {
   logNotificationSend,
 } from "../../models/notification/notificationModel";
 import { createResponse } from "../../utils/responseHandler";
-import { updateMediaModelId } from "../imageUpload/imageUploadController";
+import {
+  insertMediaRecord,
+  updateMediaRecord,
+} from "../imageUpload/imageUploadController";
 
 // Fetch all notifications
 export const fetchNotifications = async (
@@ -60,7 +63,7 @@ export const addNotification = async (
     user_id,
     product_id,
     is_global,
-    mediaId
+    media,
   } = req.body;
 
   try {
@@ -73,11 +76,16 @@ export const addNotification = async (
       is_global,
     });
 
-     if (mediaId) {
-            await updateMediaModelId(mediaId, notificationId);
-        } else {
-            console.log('No mediaId provided, skipping update');
-        }
+    if (media) {
+      const { model_type, file_name, mime_type, size } = media;
+      await insertMediaRecord(
+        model_type,
+        notificationId,
+        file_name,
+        mime_type,
+        size
+      );
+    }
     return res
       .status(201)
       .json(createResponse(201, "Notification created successfully."));
@@ -135,6 +143,7 @@ export const updateNotificationController = async (
   res: Response
 ): Promise<Response> => {
   const notificationId = Number(req.params.id);
+  const { media } = req.body;
 
   if (isNaN(notificationId)) {
     return res
@@ -146,6 +155,10 @@ export const updateNotificationController = async (
     const result = await updateNotification(notificationId, req.body);
 
     if (result.affectedRows > 0) {
+       if (media && media.media_id) {
+            const { media_id, file_name, mime_type, size } = media;
+            await updateMediaRecord(media_id, file_name, mime_type, size);
+          }
       return res
         .status(200)
         .json(createResponse(200, "Notification updated successfully."));
