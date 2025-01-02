@@ -41,10 +41,22 @@ interface UpdateDeliveryAddress {
 export const getDeliveryAddress = async (
   page: number,
   limit: number,
-  searchTerm: string
+  searchTerm: string,
+  sortField: string,
+  sortOrder: string
 ): Promise<{ deliveryAddresses: DeliveryAddressWithUser[]; total: number }> => {
   const offset = (page - 1) * limit;
   const searchValue = `%${searchTerm}%`;
+
+  const validSortFields: Record<string, string> = {
+    customerName: "u.name",
+    mobile: "u.phone",
+    address: "da.complete_address",
+    approveStatus: "da.is_approve",
+    created_at: "da.created_at",
+  };
+
+  const orderBy = validSortFields[sortField] || "da.created_at";
 
   const query = `
     SELECT 
@@ -84,7 +96,7 @@ export const getDeliveryAddress = async (
         da.complete_address LIKE ?
       )
     ORDER BY 
-      da.created_at DESC
+       ${orderBy} ${sortOrder}
     LIMIT ? OFFSET ?;
   `;
 

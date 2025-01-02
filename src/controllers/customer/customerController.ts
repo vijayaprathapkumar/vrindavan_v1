@@ -10,10 +10,11 @@ import { createResponse } from "../../utils/responseHandler";
 import { checkUserProfileStatus } from "../../models/authLogin/authLoginModel";
 
 export const getCustomers = async (req: Request, res: Response): Promise<void> => {
-  const { page = 1, limit = 10, locality, status, searchTerm } = req.query;
+  const { page = 1, limit = 10, locality, status, searchTerm ,sortField = "id", 
+    sortOrder = "ASC" } = req.query;
 
   const validPage = Math.max(1, Number(page));
-  const validLimit = Math.min(Math.max(1, Number(limit)), 100); // Cap limit at 100 for performance
+  const validLimit = Math.min(Math.max(1, Number(limit)), 100);
 
   try {
     const { customers, total, statusCount } = await getAllCustomers(
@@ -21,7 +22,9 @@ export const getCustomers = async (req: Request, res: Response): Promise<void> =
       validLimit,
       locality?.toString(),
       status?.toString(),
-      searchTerm?.toString()
+      searchTerm?.toString(),
+      sortField?.toString(),
+      sortOrder?.toString()
     );
 
     const totalPages = Math.ceil(total / validLimit);

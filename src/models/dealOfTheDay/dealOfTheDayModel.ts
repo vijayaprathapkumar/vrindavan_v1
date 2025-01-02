@@ -4,7 +4,7 @@ import { RowDataPacket, OkPacket, ResultSetHeader } from "mysql2";
 export interface DealOfTheDay {
   id: number;
   food_id: string;
-  food_name:any;
+  food_name: any;
   unit: string;
   price: number;
   offer_price: number;
@@ -21,10 +21,21 @@ export interface DealOfTheDay {
 export const getAllDeals = async (
   page: number,
   limit: number,
-  searchTerm: string
+  searchTerm: string,
+  sortField: string,
+  sortOrder: string
 ): Promise<{ deals: DealOfTheDay[]; total: number }> => {
   const offset = (page - 1) * limit;
 
+  const validSortFields: Record<string, string> = {
+    id: "d.id",
+    name: "f.name",
+    unitSize: "d.unit",
+    price: "d.price",
+    discountPrice: "d.offer_price",
+    weightage: "CAST(d.weightage AS UNSIGNED)",
+    status: "d.status",
+  };
   let query = `
     SELECT 
       d.id AS deal_id,
@@ -74,7 +85,7 @@ export const getAllDeals = async (
   }
 
   // Ensure the ORDER BY clause is specifying DESC
-  query += ` ORDER BY CAST(d.weightage AS UNSIGNED) ASC`;
+  query += ` ORDER BY ${validSortFields[sortField]} ${sortOrder}`;
   params.push(limit, offset);
 
   const [rows]: [RowDataPacket[], any] = await db
@@ -136,7 +147,6 @@ export const getAllDeals = async (
     total: totalCount,
   };
 };
-
 
 // Create a new deal
 export const createDeal = async (dealData: {
@@ -242,7 +252,7 @@ export const getDealById = async (id: number): Promise<DealOfTheDay | null> => {
   return {
     id: rows[0].deal_id,
     food_id: rows[0].food_id,
-    food_name: rows[0].food_name,  // Include food_name in the return value
+    food_name: rows[0].food_name, // Include food_name in the return value
     unit: rows[0].unit,
     price: rows[0].price,
     offer_price: rows[0].offer_price,
@@ -274,8 +284,6 @@ export const getDealById = async (id: number): Promise<DealOfTheDay | null> => {
     },
   };
 };
-
-
 
 // Update a deal
 export const updateDeals = async (

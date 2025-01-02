@@ -8,8 +8,16 @@ export const getAllCategories = async (
   searchTerm: string,
   sortField: string,
   sortOrder: string
-): Promise<{ rows: RowDataPacket[], total: number }> => {
- 
+): Promise<{ rows: RowDataPacket[]; total: number }> => {
+  const validSortFields: Record<string, string> = {
+    name: "c.name",
+    weightage: "CAST(c.weightage AS UNSIGNED)",
+    updated_at: "c.updated_at",
+  };
+
+  const sortColumn = validSortFields[sortField] || validSortFields["name"];
+  const orderDirection = sortOrder.toUpperCase() === "DESC" ? "DESC" : "ASC";
+
   let query = `
     SELECT 
       c.id AS category_id,
@@ -37,38 +45,26 @@ export const getAllCategories = async (
       media m ON c.id = m.model_id AND (m.model_type = 'App\\\\Models\\\\Category')
     WHERE 
       (c.name LIKE ? OR CAST(c.weightage AS CHAR) = ?)
+    ORDER BY ${sortColumn} ${orderDirection}
+    LIMIT ? OFFSET ?
   `;
-
-  const validSortFields = ["c.id", "c.name", "c.weightage", "c.updated_at"];
-
-  if (sortField && validSortFields.includes(`c.${sortField}`)) {
-    if (sortField === "weightage") {
-      query += ` ORDER BY CAST(c.weightage AS UNSIGNED) ${sortOrder === "DESC" ? "DESC" : "ASC"}`;
-    } else {
-      query += ` ORDER BY c.${sortField} ${sortOrder === "DESC" ? "DESC" : "ASC"}`;
-    }
-  } else {
-    query += " ORDER BY CAST(c.weightage AS UNSIGNED) ASC";
-  }
-
-
-  query += " LIMIT ? OFFSET ?";
 
   const params = [`%${searchTerm}%`, searchTerm, limit, offset];
   const [rows] = await db.promise().query<RowDataPacket[]>(query, params);
+
   const countQuery = `
     SELECT COUNT(*) AS total
     FROM categories c
     LEFT JOIN media m ON c.id = m.model_id AND (m.model_type = 'App\\\\Models\\\\Category')
     WHERE (c.name LIKE ? OR CAST(c.weightage AS CHAR) = ?)
   `;
-  
   const [countResult] = await db.promise().query<RowDataPacket[]>(countQuery, [`%${searchTerm}%`, searchTerm]);
 
   const total = (countResult[0] as { total: number }).total;
 
   return { rows, total };
 };
+
 
 // Fetch total count of categories that match the search term
 export const getCategoriesCount = async (

@@ -67,11 +67,19 @@ export const getAllFoods = async (
     query += " WHERE " + conditions.join(" AND ");
   }
 
-  const validSortFields = ["f.id", "f.track_inventory", "f.price", "f.discount_price", "f.unit", "f.size", "f.weightage"];
-  if (sortField && validSortFields.includes(`f.${sortField}`)) {
-    query += ` ORDER BY ${`f.${sortField}`} ${sortOrder === "DESC" ? "DESC" : "ASC"}`;
+  const validSortFields: Record<string, string> = {
+    id: "f.id",
+    track_inventory: "f.track_inventory",
+    price: "f.price",
+    unit: "f.unit",
+    size: "f.size",
+    weightage: "CAST(f.weightage AS UNSIGNED)",
+  };
+
+  if (sortField && validSortFields[sortField]) {
+    query += ` ORDER BY ${validSortFields[sortField]} ${sortOrder === "DESC" ? "DESC" : "ASC"}`;
   } else {
-    query += " ORDER BY CAST(f.weightage AS UNSIGNED) ASC";
+    query += " ORDER BY CAST(f.weightage AS UNSIGNED) ASC"; 
   }
 
   const countQuery = `

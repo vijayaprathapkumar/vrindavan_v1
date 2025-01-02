@@ -6,9 +6,24 @@ export const getAllFaqs = async (
   page: number = 1,
   limit: number = 10,
   searchTerm: string = "",
-  faqCategoryId?: number
+  faqCategoryId?: number,
+  sortField?: string,
+  sortOrder?: string
 ): Promise<{ faqs: RowDataPacket[]; total: number }> => {
   const offset = (page - 1) * limit;
+
+  const validSortFields: Record<string, string> = {
+    question: "f.question",
+    answer: "f.answer",
+    faq_category: "fc.name",
+    weightage: "CAST(f.weightage AS UNSIGNED)",
+    updated_at: "f.updated_at",
+  };
+
+  const sortColumn = validSortFields[sortField] || validSortFields.question;
+
+  const validSortOrder = sortOrder === "DESC" ? "DESC" : "ASC";
+
 
   // Build the WHERE clause dynamically
   let whereClause = `
@@ -41,6 +56,7 @@ export const getAllFaqs = async (
     FROM faqs f
     LEFT JOIN faq_categories fc ON f.faq_category_id = fc.id
     ${whereClause}
+   ORDER BY ${sortColumn} ${validSortOrder}
     LIMIT ? OFFSET ?
   `;
 
