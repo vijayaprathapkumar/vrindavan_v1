@@ -13,7 +13,13 @@ export const getFaqCategories = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-  let { page = 1, limit = 10, searchTerm = "" } = req.query;
+  let {
+    page = 1,
+    limit = 10,
+    searchTerm = "",
+    sortField = "",
+    sortOrder = "",
+  } = req.query;
 
   page = Number(page);
   limit = Number(limit);
@@ -29,7 +35,9 @@ export const getFaqCategories = async (
     const { faqCategories, total } = await getAllFaqCategories(
       page,
       limit,
-      searchTerm as string
+      searchTerm as string,
+      sortField as string,
+      sortOrder as string
     );
 
     const totalPages = Math.ceil(total / limit);
