@@ -16,6 +16,8 @@ export const getDetailedSpecialCommissions = async (
   const deliveryBoyId = (req.query.deliveryBoyId as string) || "";
   const limit = parseInt(req.query.limit as string) || 10;
   const page = parseInt(req.query.page as string) || 1;
+  const sortField = req.query.sortField as string || '';
+  const sortOrder=  req.query.sortOrder as string || '';
   const offset = (page - 1) * limit;
 
   try {
@@ -24,7 +26,9 @@ export const getDetailedSpecialCommissions = async (
       limit,
       offset,
       categoryId,
-      deliveryBoyId
+      deliveryBoyId,
+      sortField,
+      sortOrder
     );
     const data = result.data;
     const totalCount = result.totalCount;

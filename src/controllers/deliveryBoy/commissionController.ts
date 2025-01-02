@@ -12,9 +12,10 @@ export const getDetailedCommissions = async (req: Request, res: Response): Promi
   const limit = parseInt(req.query.limit as string) || 10; 
   const page = parseInt(req.query.page as string) || 1; 
   const offset = (page - 1) * limit; 
-
+  const sortField = req.query.sortField as string || '';
+  const sortOrder=  req.query.sortOrder as string || '';
   try {
-    const result = await getAllDetailedCommissions(searchTerm, limit, offset, categoryId);
+    const result = await getAllDetailedCommissions(searchTerm, limit, offset, categoryId,sortField,sortOrder);
     const data = result.data;
     const totalCount = result.totalCount; 
 

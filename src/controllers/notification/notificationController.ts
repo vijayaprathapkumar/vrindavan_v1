@@ -22,13 +22,19 @@ export const fetchNotifications = async (
   const limit = Number(req.query.limit) || 10;
   const searchTerm = req.query.searchTerm
     ? String(req.query.searchTerm)
-    : undefined; // Extract searchTerm
+    : undefined;
 
+    const sortField = (req.query.sortField as string) || "created_at";
+    const sortOrder = (req.query.sortOrder as string) || "DESC";
+  
+  
   try {
     const { notifications, total } = await getAllNotifications(
       page,
       limit,
-      searchTerm
+      searchTerm,
+      sortField,
+      sortOrder
     );
 
     const totalPages = Math.ceil(total / limit);

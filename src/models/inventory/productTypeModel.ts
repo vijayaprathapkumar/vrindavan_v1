@@ -20,6 +20,16 @@ export const getAllProductTypes = async (
     activeValue = 0; 
   }
 
+  const validSortFields: Record<string, string> = {
+    name: "product_types.name",
+    weightage: "CAST(product_types.weightage AS UNSIGNED)",
+    active: "product_types.active",
+  };
+
+  const orderBy = validSortFields[sortField] || validSortFields["name"]; 
+  const validSortOrders = ["ASC", "DESC"];
+  const orderDirection = validSortOrders.includes(sortOrder.toUpperCase()) ? sortOrder.toUpperCase() : "ASC";
+
   const [countResult] = await db
     .promise()
     .query<RowDataPacket[]>(countQuery, [
@@ -30,16 +40,6 @@ export const getAllProductTypes = async (
 
   const total = countResult[0].total;
 
-  const validSortFields = ["id","name", "weightage", "active"];
-
-  let orderBy = "product_types.name";
-
-  if (validSortFields.includes(sortField)) {
-    orderBy = sortField;
-  }
-
-  const validSortOrders = ["ASC", "DESC"];
-  const orderDirection = validSortOrders.includes(sortOrder) ? sortOrder : "ASC";
 
   // Fetch the actual records
   const query = `

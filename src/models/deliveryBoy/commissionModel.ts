@@ -6,13 +6,26 @@ export const getAllDetailedCommissions = async (
   searchTerm: string = "",
   limit: number = 10,
   offset: number = 0,
-  categoryId: string = ""
+  categoryId: string = "",
+  sortField:string,
+  sortOrder:string
 ): Promise<{ data: any[]; totalCount: number }> => {
   const searchPattern = `%${searchTerm}%`;
 
   const categoryFilter =
     categoryId && categoryId !== "All" ? " AND c.id = ?" : "";
 
+    const validSortFields: Record<string, string> = {
+      name: "p.name",
+      unitSize: "p.unit",
+      mrp: "p.price",
+      standeredCommission: "sc.commission",
+    };
+
+    const sortColumn = validSortFields[sortField] || validSortFields.name;
+    const validSortOrder = sortOrder === "DESC" ? "DESC" : "ASC";
+
+    
   const queryData = `
     SELECT 
         sc.id AS commission_id,
@@ -65,6 +78,7 @@ export const getAllDetailedCommissions = async (
         foods p ON sc.product_id = p.id
    WHERE 
       (p.name LIKE ? OR p.unit LIKE ? OR p.price LIKE ?)${categoryFilter}
+   ORDER BY ${sortColumn} ${validSortOrder} 
     LIMIT ? OFFSET ?;
 
   `;

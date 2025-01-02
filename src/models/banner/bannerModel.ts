@@ -22,7 +22,9 @@ export interface Banner {
 export const getAllBanners = async (
   page: number,
   limit: number,
-  searchTerm: string
+  searchTerm: string,
+  sortField: string,
+  sortOrder: string
 ): Promise<{ banners: Banner[]; total: number }> => {
   const offset = (page - 1) * limit;
 
@@ -74,7 +76,19 @@ export const getAllBanners = async (
     params.push(`%${searchTerm}%`);
   }
 
-  query += ` ORDER BY CAST(b.banner_weightage AS UNSIGNED) ASC LIMIT ? OFFSET ?;`;
+  const validSortFields: Record<string, string> = {
+    bannerName: "b.banner_name",
+    bannerType: "b.banner_type",
+    bannerLocation: "b.banner_location",
+    startDate: "b.date_from", 
+    endDate: "b.date_to", 
+    weightage: "CAST(b.banner_weightage AS UNSIGNED)",
+    status: "b.status",
+    created_at: "b.created_at",
+    updated_at: "b.updated_at",
+  };
+  
+  query += ` ORDER BY ${validSortFields[sortField] || "b.banner_weightage"} ${sortOrder.toUpperCase()} LIMIT ? OFFSET ?;`;
   params.push(limit, offset);
 
   const [rows]: [RowDataPacket[], any] = await db

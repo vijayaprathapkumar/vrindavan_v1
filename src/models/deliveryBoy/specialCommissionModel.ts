@@ -6,7 +6,9 @@ export const getAllDetailedSpecialCommissions = async (
   limit: number = 10,
   offset: number = 0,
   categoryId: string = "",
-  deliveryBoyId: string = ""
+  deliveryBoyId: string = "",
+  sortField: string,
+  sortOrder: string
 ): Promise<{ data: any[]; totalCount: number }> => {
   const searchPattern = `%${searchTerm}%`;
   const categoryFilter =
@@ -15,6 +17,16 @@ export const getAllDetailedSpecialCommissions = async (
     deliveryBoyId && deliveryBoyId !== "All"
       ? " AND sc.delivery_boy_id = ?"
       : "";
+  const validSortFields: Record<string, string> = {
+    name: "p.name",
+    unitSize: "p.unit",
+    mrp: "p.price",
+    standardCommission: "scs.commission",
+    specialCommission: "sc.special_commission",
+  };
+
+  const sortColumn = validSortFields[sortField] || validSortFields.name;
+  const validSortOrder = sortOrder === "DESC" ? "DESC" : "ASC";
 
   const queryData = `
       SELECT 
@@ -90,6 +102,7 @@ export const getAllDetailedSpecialCommissions = async (
           delivery_boys db ON sc.delivery_boy_id = db.id
       WHERE 
           (p.name LIKE ? OR c.name LIKE ?)${categoryFilter}${deliveryBoyFilter}
+      ORDER BY ${sortColumn} ${validSortOrder} 
       LIMIT ? OFFSET ?;
     `;
 

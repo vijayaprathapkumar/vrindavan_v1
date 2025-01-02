@@ -5,9 +5,23 @@ import { RowDataPacket, OkPacket } from "mysql2";
 export const getAllLocalities = async (
   page: number,
   limit: number,
-  searchTerm: string
+  searchTerm: string,
+  sortField: string,
+  sortOrder: string
 ): Promise<{ localities: RowDataPacket[]; totalRecords: number }> => {
   const offset = (page - 1) * limit;
+
+  const validSortFields: Record<string, string> = {
+    localityName: "l.name",
+    deliveryBoy: "db.name",
+    address: "l.address",
+    city: "l.city",
+    active: "l.active",
+  };
+
+  const sortColumn = validSortFields[sortField] || validSortFields.localityName;
+
+  const validSortOrder = sortOrder === "DESC" ? "DESC" : "ASC";
 
   const localitiesQuery = `
       SELECT 
@@ -50,7 +64,7 @@ export const getAllLocalities = async (
           delivery_boys db ON lb.delivery_boy_id = db.id
       WHERE 
           (l.name LIKE ? OR l.city LIKE ? OR l.address LIKE ? OR h.name LIKE ?)
-     ORDER BY lb.created_at DESC
+    ORDER BY ${sortColumn} ${validSortOrder}
       LIMIT ? OFFSET ?;
   `;
 

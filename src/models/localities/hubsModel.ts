@@ -5,10 +5,20 @@ import { RowDataPacket, OkPacket, QueryResult, FieldPacket } from "mysql2";
 export const getAllHubs = async (
   page: number,
   limit: number,
-  searchTerm: string
+  searchTerm: string,
+  sortField: string,
+  sortOrder: string
 ): Promise<{ hubs: RowDataPacket[]; totalRecords: number }> => {
   const offset = (page - 1) * limit;
 
+  const validSortFields: Record<string, string> = {
+    hubName: "h.name",       
+    truckName: "t.name",   
+    other_details: "h.other_details", 
+    status: "h.active", 
+  };
+  const sortColumn = validSortFields[sortField] || validSortFields.hubName;
+  const validSortOrder = sortOrder === "DESC" ? "DESC" : "ASC";
   const hubsQuery = `
       SELECT 
         h.*, 
@@ -20,7 +30,7 @@ export const getAllHubs = async (
         hubs h
     LEFT JOIN truck_routes t ON 
       h.route_id = t.id WHERE h.name LIKE ?
-   ORDER BY  COALESCE(h.updated_at, h.created_at) DESC
+    ORDER BY ${sortColumn} ${validSortOrder} 
     LIMIT ? OFFSET ?;
     `;
   const [hubs]: [RowDataPacket[], FieldPacket[]] = await db

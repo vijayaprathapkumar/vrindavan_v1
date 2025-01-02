@@ -6,7 +6,9 @@ export const getAllCustomers = async (
   limit: number,
   locality?: string,
   status?: string,
-  searchTerm?: string
+  searchTerm?: string,
+  sortField?: string,
+  sortOrder?: string
 ): Promise<{ customers: any[]; total: number; statusCount: any }> => {
   const offset = (page - 1) * limit;
 
@@ -94,7 +96,17 @@ export const getAllCustomers = async (
     params.push(status);
   }
 
-  query += ` ORDER BY user_id DESC LIMIT ? OFFSET ?;`;
+  const validSortFields: Record<string, string> = {
+    id: "user_id",
+    name: "user_name",
+    status: "status",
+    email: "email",
+    phone: "phone",
+  };
+
+  const sortColumn = validSortFields[sortField] || "user_id";
+  query += ` ORDER BY ${sortColumn} ${sortOrder.toUpperCase()} LIMIT ? OFFSET ?;`;
+  params.push(limit, offset);
 
   params.push(limit, offset);
 

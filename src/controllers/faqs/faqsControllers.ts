@@ -19,7 +19,8 @@ export const getFaqs = async (req: Request, res: Response): Promise<void> => {
         ? undefined 
         : parseInt(req.query.faqCategoryId as string)
       : undefined;
-
+      const sortField = String(req.query.sortField || "");
+      const sortOrder = String(req.query.sortOrder || "");
     if (faqCategoryId !== undefined && isNaN(faqCategoryId)) {
       res.status(400).json({
         status: 400,
@@ -28,7 +29,7 @@ export const getFaqs = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    const { faqs, total } = await getAllFaqs(page, limit, searchTerm, faqCategoryId);
+    const { faqs, total } = await getAllFaqs(page, limit, searchTerm, faqCategoryId,sortField,sortOrder);
 
     res.status(200).json({
       status: 200,

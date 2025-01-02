@@ -9,12 +9,27 @@ import {
 import { createResponse } from "../../utils/responseHandler";
 
 // Fetch all truck routes with pagination and filters
-export const getTruckRoutes = async (req: Request, res: Response): Promise<void> => {
-  const { page = 1, limit = 10, searchTerm = "" } = req.query; // Default searchTerm to empty string
+export const getTruckRoutes = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  const {
+    page = 1,
+    limit = 10,
+    searchTerm = "",
+    sortField = "name",
+    sortOrder = "ASC",
+  } = req.query;
   const validLimit = Number(limit) > 0 ? Number(limit) : 10;
 
   try {
-    const { routes, totalRecords } = await getAllTruckRoutes(Number(page), validLimit, searchTerm.toString());
+    const { routes, totalRecords } = await getAllTruckRoutes(
+      Number(page),
+      validLimit,
+      searchTerm.toString(),
+      sortField.toString(),
+      sortOrder.toString()
+    );
     const totalPages = Math.ceil(totalRecords / validLimit);
 
     res.status(200).json({
@@ -29,13 +44,18 @@ export const getTruckRoutes = async (req: Request, res: Response): Promise<void>
       },
     });
   } catch (error) {
-    console.error("Error fetching truck routes:", error); 
-    res.status(500).json(createResponse(500, "Error fetching truck routes", error.message));
+    console.error("Error fetching truck routes:", error);
+    res
+      .status(500)
+      .json(createResponse(500, "Error fetching truck routes", error.message));
   }
 };
 
 // Add a new truck route
-export const addTruckRoute = async (req: Request, res: Response): Promise<void> => {
+export const addTruckRoute = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
   const { name, active } = req.body;
   try {
     await createTruckRoute(name, active);
@@ -44,17 +64,21 @@ export const addTruckRoute = async (req: Request, res: Response): Promise<void> 
       statusCode: 201,
       message: "Truck route created successfully",
       data: {
-        truckRoute: null, 
+        truckRoute: null,
       },
     });
   } catch (error) {
-    res.status(500).json(createResponse(500, "Error creating truck route", error.message));
+    res
+      .status(500)
+      .json(createResponse(500, "Error creating truck route", error.message));
   }
 };
 
-
 // Get truck route by ID
-export const getTruckRoute = async (req: Request, res: Response): Promise<void> => {
+export const getTruckRoute = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
   const { id } = req.params;
   try {
     const truckRoute = await getTruckRouteById(parseInt(id));
@@ -65,12 +89,12 @@ export const getTruckRoute = async (req: Request, res: Response): Promise<void> 
         statusCode: 200,
         message: "Truck route fetched successfully",
         data: {
-          truckRoute: [ 
+          truckRoute: [
             {
               id: truckRoute.id,
               name: truckRoute.name,
               active: truckRoute.active,
-              created_at: truckRoute.created_at, 
+              created_at: truckRoute.created_at,
               updated_at: truckRoute.updated_at,
             },
           ],
@@ -78,18 +102,22 @@ export const getTruckRoute = async (req: Request, res: Response): Promise<void> 
       });
     }
   } catch (error) {
-    res.status(500).json(createResponse(500, "Error fetching truck route", error.message));
+    res
+      .status(500)
+      .json(createResponse(500, "Error fetching truck route", error.message));
   }
 };
 
-
 // Update truck route by ID
-export const updateTruckRoute = async (req: Request, res: Response): Promise<void> => {
+export const updateTruckRoute = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
   const { id } = req.params;
   const { name, active } = req.body;
 
   try {
-    await updateTruckRouteById(parseInt(id), name, parseInt(active, 10)); 
+    await updateTruckRouteById(parseInt(id), name, parseInt(active, 10));
 
     res.status(200).json({
       statusCode: 200,
@@ -101,12 +129,17 @@ export const updateTruckRoute = async (req: Request, res: Response): Promise<voi
       },
     });
   } catch (error) {
-    res.status(400).json(createResponse(400, "Error updating truck route", error.message));
+    res
+      .status(400)
+      .json(createResponse(400, "Error updating truck route", error.message));
   }
 };
 
 // Delete truck route by ID
-export const deleteTruckRoute = async (req: Request, res: Response): Promise<void> => {
+export const deleteTruckRoute = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
   const { id } = req.params;
   try {
     await deleteTruckRouteById(parseInt(id));
@@ -120,6 +153,8 @@ export const deleteTruckRoute = async (req: Request, res: Response): Promise<voi
       },
     });
   } catch (error) {
-    res.status(500).json(createResponse(500, "Error deleting truck route", error.message));
+    res
+      .status(500)
+      .json(createResponse(500, "Error deleting truck route", error.message));
   }
 };
