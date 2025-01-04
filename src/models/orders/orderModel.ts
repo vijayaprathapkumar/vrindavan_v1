@@ -1,3 +1,4 @@
+import moment from "moment";
 import { db } from "../../config/databaseConnection";
 import { ResultSetHeader, RowDataPacket } from "mysql2";
 
@@ -1212,7 +1213,10 @@ export const updateSubscriptionOrders = async (
     const [subscriptionItems]: [RowDataPacket[], any] = await db
       .promise()
       .query(
-        `SELECT user_id, product_id FROM user_subscriptions WHERE id = ?`,
+        `SELECT user_id, product_id, monday_qty, tuesday_qty, wednesday_qty, 
+                thursday_qty, friday_qty, saturday_qty, sunday_qty 
+         FROM user_subscriptions 
+         WHERE id = ?`,
         [subscriptionId]
       );
 
@@ -1221,17 +1225,15 @@ export const updateSubscriptionOrders = async (
       return;
     }
 
-    const { user_id, product_id } = subscriptionItems[0];
+    const { user_id, product_id, ...dailyQuantities } = subscriptionItems[0];
 
-    // Attempt to update subscription quantity
     const [updateResult]: [ResultSetHeader, any] = await db.promise().query(
       `UPDATE subscription_quantity_changes 
-         SET quantity = ?, order_date = ? 
-         WHERE user_subscription_id = ?`,
-      [quantity, orderDate, subscriptionId]
+       SET quantity = ? 
+       WHERE user_subscription_id = ? AND order_date = ?`,
+      [quantity, subscriptionId, orderDate]
     );
 
-    // If no rows were updated, insert a new record
     if (updateResult.affectedRows === 0) {
       await db.promise().query(
         `INSERT INTO subscription_quantity_changes (
@@ -1239,6 +1241,30 @@ export const updateSubscriptionOrders = async (
         ) VALUES (?, ?, ?, ?, ?, ?)`,
         [subscriptionId, 2, user_id, product_id, quantity, orderDate]
       );
+    }
+
+    if (orderDate) {
+      const orderMoment = moment(orderDate, "YYYY-MM-DD");
+      const dayName = orderMoment.format("dddd").toLowerCase();
+
+      if (dailyQuantities[`${dayName}_qty`]) {
+        const nextDate = orderMoment.add(1, "days").format("YYYY-MM-DD");
+        await db.promise().query(
+          `INSERT INTO subscription_quantity_changes (
+            user_subscription_id, order_type, user_id, product_id, quantity, order_date
+          ) VALUES (?, ?, ?, ?, ?, ?)
+          ON DUPLICATE KEY UPDATE quantity = ?`,
+          [
+            subscriptionId,
+            2,
+            user_id,
+            product_id,
+            dailyQuantities[`${dayName}_qty`],
+            nextDate,
+            dailyQuantities[`${dayName}_qty`],
+          ]
+        );
+      }
     }
   } catch (error) {
     console.error("Error updating subscription quantities:", error);
@@ -1274,4 +1300,262 @@ export const deletePlaceOrderById = async (id: number) => {
   if (result.affectedRows === 0) {
     throw new Error("Order not found.");
   }
+};
+
+export const cancelOrder = async (
+  subscriptionId: number,
+  cancelOrderDate: string,
+  reason: string,
+  otherReason?: string
+): Promise<void> => {
+  try {
+    const formattedCancelOrderDate = new Date(cancelOrderDate).toISOString().split('T')[0];
+
+    const [userRow]: any[] = await db.promise().query(
+      `SELECT user_id, start_date, end_date FROM user_subscriptions WHERE id = ?`,
+      [subscriptionId]
+    );
+
+    if (userRow.length === 0) {
+      throw new Error(`No subscription found with ID ${subscriptionId}`);
+    }
+
+    const userId = userRow[0].user_id;
+    const startDate = userRow[0].start_date;
+    const endDate = userRow[0].end_date;
+
+    const [rows]: any[] = await db.promise().query(
+      `SELECT id FROM subscription_quantity_changes 
+       WHERE user_subscription_id = ? AND cancel_order_date = ?`,
+      [subscriptionId, formattedCancelOrderDate]
+    );
+
+    if (rows.length > 0) {
+      await db.promise().query(
+        `UPDATE subscription_quantity_changes
+         SET cancel_order = 1, reason = ?, other_reason = ?, user_id = ?
+         WHERE id = ?`,
+        [reason, otherReason || null, userId, rows[0].id]
+      );
+    } else {
+      await db.promise().query(
+        `INSERT INTO subscription_quantity_changes (
+           user_subscription_id, user_id, cancel_order_date, cancel_order, reason, other_reason, start_date, end_date
+         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [subscriptionId, userId, formattedCancelOrderDate, 1, reason, otherReason || null, startDate, endDate]
+      );
+    }
+  } catch (error) {
+    throw new Error(`Error canceling the order: ${error.message}`);
+  }
+};
+
+export const getUpcomingOrdersModel = (
+  userId: number,
+  currentDate: Date
+): Promise<any[]> => {
+  const formattedDate = currentDate.toISOString().split('T')[0]; // Format to YYYY-MM-DD
+
+  const query = `
+  SELECT 
+  us.id AS user_subscription_id,
+  us.user_id,
+  us.product_id,
+  us.subscription_type,
+  us.start_date,
+  us.end_date,
+  us.quantity,
+  us.monday_qty,
+  us.tuesday_qty,
+  us.wednesday_qty,
+  us.thursday_qty,
+  us.friday_qty,
+  us.saturday_qty,
+  us.sunday_qty,
+  us.cancel_subscription,
+  us.is_pause_subscription,
+  us.pause_until_i_come_back,
+  us.pause_specific_period_startDate,
+  us.pause_specific_period_endDate,
+  COALESCE(
+    sqc.quantity, 
+    CASE 
+      WHEN us.subscription_type = 'customize' THEN
+        CASE 
+          WHEN DAYNAME(?) = 'Monday' AND us.monday_qty IS NOT NULL THEN us.monday_qty
+          WHEN DAYNAME(?) = 'Tuesday' AND us.tuesday_qty IS NOT NULL THEN us.tuesday_qty
+          WHEN DAYNAME(?) = 'Wednesday' AND us.wednesday_qty IS NOT NULL THEN us.wednesday_qty
+          WHEN DAYNAME(?) = 'Thursday' AND us.thursday_qty IS NOT NULL THEN us.thursday_qty
+          WHEN DAYNAME(?) = 'Friday' AND us.friday_qty IS NOT NULL THEN us.friday_qty
+          WHEN DAYNAME(?) = 'Saturday' AND us.saturday_qty IS NOT NULL THEN us.saturday_qty
+          WHEN DAYNAME(?) = 'Sunday' AND us.sunday_qty IS NOT NULL THEN us.sunday_qty
+          ELSE NULL  -- Return null if no quantity is set for that day
+        END
+      ELSE us.quantity
+    END
+  ) AS day_specific_quantity,
+  us.active,
+  CASE 
+    WHEN sqc.cancel_order_date = DATE(?) AND sqc.cancel_order = 1 THEN 1  
+    ELSE NULL 
+  END AS cancel_status,
+  COALESCE(sqc.pause_subscription, us.is_pause_subscription) AS pause_status,
+  f.name AS product_name,
+  f.price AS product_price,
+  f.discount_price AS product_discount_price,
+  f.description AS product_description,
+  f.perma_link AS product_permalink,
+  f.ingredients AS product_ingredients,
+  f.package_items_count AS product_package_items_count,
+  f.weight AS product_weight,
+  f.unit AS product_unit,
+  f.sku_code AS product_sku_code,
+  f.barcode AS product_barcode,
+  f.cgst AS product_cgst,
+  f.sgst AS product_sgst,
+  f.subscription_type AS product_subscription_type,
+  f.track_inventory AS product_track_inventory,
+  f.featured AS product_featured,
+  f.deliverable AS product_deliverable,
+  f.restaurant_id AS product_restaurant_id,
+  f.category_id AS product_category_id,
+  f.subcategory_id AS product_subcategory_id,
+  f.product_type_id AS product_product_type_id,
+  f.hub_id AS product_hub_id,
+  f.locality_id AS product_locality_id,
+  f.product_brand_id AS product_brand_id,
+  f.weightage AS product_weightage,
+  f.status AS product_status,
+  f.created_at AS product_created_at,
+  f.updated_at AS product_updated_at,
+  f.food_locality AS product_food_locality
+FROM user_subscriptions us
+LEFT JOIN subscription_quantity_changes sqc
+  ON us.id = sqc.user_subscription_id
+  AND (sqc.order_date = DATE(?) OR sqc.cancel_order_date = DATE(?))
+LEFT JOIN foods f
+  ON us.product_id = f.id
+WHERE us.user_id = ?
+  AND us.start_date <= ?
+  AND (us.end_date IS NULL OR us.end_date >= ?)
+  AND us.active = 1
+  AND (
+    us.subscription_type = 'everyday'
+    OR 
+    (us.subscription_type = 'alternative_day' AND DATEDIFF(?, us.start_date) % 2 = 0)
+    OR 
+    (us.subscription_type = 'every_3_day' AND DATEDIFF(?, us.start_date) % 3 = 0)
+    OR 
+    (us.subscription_type = 'every_7_day' AND DATEDIFF(?, us.start_date) % 7 = 0)
+    OR 
+    (us.subscription_type = 'customize' AND 
+      (
+        (DAYNAME(?) = 'Monday' AND us.monday_qty IS NOT NULL) OR
+        (DAYNAME(?) = 'Tuesday' AND us.tuesday_qty IS NOT NULL) OR
+        (DAYNAME(?) = 'Wednesday' AND us.wednesday_qty IS NOT NULL) OR
+        (DAYNAME(?) = 'Thursday' AND us.thursday_qty IS NOT NULL) OR
+        (DAYNAME(?) = 'Friday' AND us.friday_qty IS NOT NULL) OR
+        (DAYNAME(?) = 'Saturday' AND us.saturday_qty IS NOT NULL) OR
+        (DAYNAME(?) = 'Sunday' AND us.sunday_qty IS NOT NULL)
+      )
+    )
+  )
+  `;
+
+  return new Promise((resolve, reject) => {
+    const queryParams = [
+      formattedDate, // Monday
+      formattedDate, // Tuesday
+      formattedDate, // Wednesday
+      formattedDate, // Thursday
+      formattedDate, // Friday
+      formattedDate, // Saturday
+      formattedDate, // Sunday
+      formattedDate, // Cancel date comparison
+      formattedDate, // Order date comparison
+      formattedDate, // Cancel date comparison
+      userId,        // User ID
+      formattedDate, // Start date filter
+      formattedDate, // End date filter
+      formattedDate, // Alternative day calculation
+      formattedDate, // Every 3-day calculation
+      formattedDate, // Every 7-day calculation
+      formattedDate, // Monday in customize
+      formattedDate, // Tuesday in customize
+      formattedDate, // Wednesday in customize
+      formattedDate, // Thursday in customize
+      formattedDate, // Friday in customize
+      formattedDate, // Saturday in customize
+      formattedDate  // Sunday in customize
+    ];
+
+    db.query<RowDataPacket[]>(query, queryParams, (error, results) => {
+      if (error) {
+        console.error('SQL Error:', error);
+        return reject(error);
+      }
+
+      const mappedResults = results.map((row) => ({
+        user_subscription_id: row.user_subscription_id,
+        user_id: row.user_id,
+        product_id: row.product_id,
+        subscription_type: row.subscription_type,
+        start_date: row.start_date,
+        end_date: row.end_date,
+        quantity: row.quantity,
+        monday_qty: row.monday_qty,
+        tuesday_qty: row.tuesday_qty,
+        wednesday_qty: row.wednesday_qty,
+        thursday_qty: row.thursday_qty,
+        friday_qty: row.friday_qty,
+        saturday_qty: row.saturday_qty,
+        sunday_qty: row.sunday_qty,
+        cancel_subscription: row.cancel_subscription,
+        is_pause_subscription: row.is_pause_subscription,
+        pause_until_i_come_back: row.pause_until_i_come_back,
+        pause_specific_period_startDate: row.pause_specific_period_startDate,
+        pause_specific_period_endDate: row.pause_specific_period_endDate,
+        day_specific_quantity: row.subscription_type === "customize" 
+        ? null 
+        : row.day_specific_quantity, 
+      
+        active: row.active,
+        cancel_status: row.cancel_status,
+        pause_status: row.pause_status,
+        product: {
+          name: row.product_name,
+          price: row.product_price,
+          discount_price: row.product_discount_price,
+          description: row.product_description,
+          permalink: row.product_permalink,
+          ingredients: row.product_ingredients,
+          package_items_count: row.product_package_items_count,
+          weight: row.product_weight,
+          unit: row.product_unit,
+          sku_code: row.product_sku_code,
+          barcode: row.product_barcode,
+          cgst: row.product_cgst,
+          sgst: row.product_sgst,
+          subscription_type: row.product_subscription_type,
+          track_inventory: row.product_track_inventory,
+          featured: row.product_featured,
+          deliverable: row.product_deliverable,
+          restaurant_id: row.product_restaurant_id,
+          category_id: row.product_category_id,
+          subcategory_id: row.product_subcategory_id,
+          product_type_id: row.product_product_type_id,
+          hub_id: row.product_hub_id,
+          locality_id: row.product_locality_id,
+          brand_id: row.product_brand_id,
+          weightage: row.product_weightage,
+          status: row.product_status,
+          created_at: row.product_created_at,
+          updated_at: row.product_updated_at,
+          food_locality: row.product_food_locality
+        }
+      }));
+
+      resolve(mappedResults);
+    });
+  });
 };
