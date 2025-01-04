@@ -1,14 +1,15 @@
 import { Request, Response } from "express";
 import { createResponse } from "../../utils/responseHandler";
 import {
+  cancelOrder,
   deletePlaceOrderById,
   getAllOrders,
   getAllOrdersWithOutUserId,
   getPlaceOrderById,
+  getUpcomingOrdersModel,
   updateOneTimeOrders,
   updateSubscriptionOrders,
 } from "../../models/orders/orderModel";
-import moment from "moment";
 
 export const fetchAllOrders = async (
   req: Request,
@@ -180,66 +181,29 @@ export const fetchOrderById = async (
 
 
 //update  Qnty Change
-export const updateOrderqty = async (
+export const updateOrderQty = async (
   req: Request,
   res: Response
 ): Promise<Response> => {
-  const { orderId, quantity, orderDate, orderType, subcriptionId } = req.body;
+  const { orderId, quantity, orderDate, orderType, subscriptionId } = req.body;
 
-  // Validate orderId and subcriptionId presence and number
-  if (isNaN(orderId) || (orderType === 2 && isNaN(subcriptionId))) {
-    return res
-      .status(400)
-      .json(
-        createResponse(
-          400,
-          "Order ID or Subscription ID is missing or incorrect."
-        )
-      );
-  }
-
-  // Validate quantity and orderDate
-  if (
-    (quantity === undefined || quantity === null) &&
-    (orderDate === undefined || orderDate === null)
-  ) {
-    return res
-      .status(400)
-      .json(createResponse(400, "Quantity or Order Date is missing."));
-  }
-
-  // Check orderDate format
-  if (orderDate && !moment(orderDate, "YYYY-MM-DD", true).isValid()) {
-    return res
-      .status(400)
-      .json(createResponse(400, "Order date is incorrect."));
-  }
-
-  // Check quantity type
-  if (quantity !== undefined && isNaN(quantity)) {
-    return res.status(400).json(createResponse(400, "Quantity is incorrect."));
-  }
-
-  // Check subcriptionId type for subscription orders
-  if (orderType === 2 && isNaN(subcriptionId)) {
-    return res
-      .status(400)
-      .json(createResponse(400, "Subscription ID is incorrect."));
+  if ( (orderType === 2 && !subscriptionId)) {
+    return res.status(400).json({ message: 'Subscription ID is required.' });
   }
 
   try {
     if (orderType === 1) {
       await updateOneTimeOrders(orderId, quantity, orderDate);
     } else if (orderType === 2) {
-      await updateSubscriptionOrders(subcriptionId, quantity, orderDate);
+      await updateSubscriptionOrders(subscriptionId, quantity, orderDate);
     } else {
-      return res.status(400).json(createResponse(400, "Invalid order type."));
+      return res.status(400).json({ message: 'Invalid order type.' });
     }
 
-    return res.json(createResponse(200, "Order updated successfully."));
+    return res.json({ message: 'Order updated successfully.' });
   } catch (error) {
     console.error("Error updating order:", error);
-    return res.status(500).json(createResponse(500, "Failed to update order."));
+    return res.status(500).json({ message: 'Failed to update order.' });
   }
 };
 
@@ -264,5 +228,51 @@ export const removeOrder = async (
     return res
       .status(500)
       .json(createResponse(500, "Failed to delete place order."));
+  }
+};
+
+export const cancelSubscriptionOrder = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  const { subscriptionId, cancelOrderDate, reason, otherReason } = req.body;
+
+  if (!subscriptionId || !cancelOrderDate) {
+    res.status(400).json({ message: 'Subscription ID and cancelOrderDate are required.' });
+    return;
+  }
+
+  try {
+    const formattedDate = new Date(cancelOrderDate).toISOString().split('T')[0];
+    await cancelOrder(subscriptionId, formattedDate, reason, otherReason);
+    res.status(200).json({ message: 'Subscription order canceled successfully.' });
+  } catch (error) {
+    console.error('Error canceling subscription order:', error);
+    res.status(500).json({ message: 'Failed to cancel subscription order.', error: error.message });
+  }
+};
+
+
+export const getUpcomingOrders = async (req: Request, res: Response) => {
+  const userId = parseInt(req.params.id);
+  const dateParam = req.query.date || req.body.date; // Accepts date from query or body
+  const currentDate = dateParam ? new Date(dateParam) : new Date(); // Use provided date or current date
+
+  // Validate userId and date
+  if (isNaN(userId)) {
+    return res.status(400).json(createResponse(400, 'Invalid user ID.'));
+  }
+
+  if (isNaN(currentDate.getTime())) {
+    return res.status(400).json(createResponse(400, 'Invalid date format.'));
+  }
+
+  try {
+    const upcomingOrders = await getUpcomingOrdersModel(userId, currentDate);
+
+    res.status(200).json(createResponse(200, 'Upcoming orders fetched successfully.', { upcomingOrders }));
+  } catch (error) {
+    console.error('Error fetching upcoming orders:', error);
+    res.status(500).json(createResponse(500, 'Failed to fetch upcoming orders.', error.message));
   }
 };
