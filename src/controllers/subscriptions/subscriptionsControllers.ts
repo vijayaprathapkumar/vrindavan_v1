@@ -36,28 +36,7 @@ export const addSubscription = async (req: Request, res: Response) => {
   try {
     const result = await addSubscriptionModel(subscription);
     const user_subscription_id = result.insertId;
-
-    const cancel_subscription = subscription.cancel_subscription || 0;
-    const pause_subscription = subscription.is_pause_subscription || false;
-    let cancel_subscription_date =
-      cancel_subscription === 1 ? new Date() : null;
-    let pause_date = pause_subscription ? new Date() : null;
-
-    await addSubscriptionQuantityChangeModel(
-      user_subscription_id,
-      subscription.user_id,
-      subscription.quantity,
-      subscription.product_id,
-      subscription.start_date,
-      subscription.end_date,
-      cancel_subscription,
-      pause_subscription,
-      null,
-      pause_date,
-      null,
-      cancel_subscription_date
-    );
-
+  
     res.status(201).json(
       createResponse(201, "Subscription created successfully.", {
         id: user_subscription_id,
