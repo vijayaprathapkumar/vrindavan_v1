@@ -13,9 +13,11 @@ export const fetchDeals = async (req: Request, res: Response): Promise<Response>
   const page = Number(req.query.page) || 1;
   const limit = Number(req.query.limit) || 10;
   const searchTerm = (req.query.searchTerm as string) || '';
+  const sortField = (req.query.sortField as string) || 'weightage'; 
+  const sortOrder = (req.query.sortOrder as string) || 'ASC'; 
 
   try {
-    const { deals, total } = await getAllDeals(page, limit, searchTerm);
+    const { deals, total } = await getAllDeals(page, limit, searchTerm,sortField, sortOrder);
 
     if (!deals || deals.length === 0 || total === 0) {
       return res.status(404).json(createResponse(404, "No deals found."));

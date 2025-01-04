@@ -23,11 +23,15 @@ export const getDeliveryBoysWithLocalities = async (
     const searchTerm = req.query.searchTerm
       ? (req.query.searchTerm as string)
       : "";
-
+      const sortField = req.query.sortField ? (req.query.sortField as string) : "name"; // Default to 'name'
+      const sortOrder = req.query.sortOrder ? (req.query.sortOrder as string) : "ASC"; // Default to 'ASC'
+  
     const { deliveryBoys, totalCount } = await getAllDeliveryBoysWithLocalities(
       limit,
       offset,
-      searchTerm
+      searchTerm,
+      sortField,
+      sortOrder
     );
 
     res.status(200).json(
@@ -122,7 +126,7 @@ export const updateDeliveryBoy = async (
     localityIds,
   } = req.body;
 
-  const connection = await db.promise().getConnection(); 
+  const connection = await db.promise().getConnection();
 
   try {
     await connection.beginTransaction();
@@ -150,20 +154,28 @@ export const updateDeliveryBoy = async (
       [id]
     );
 
-
     if (localityIds && localityIds.length > 0) {
-      const values = localityIds.map((localityId) => [id, localityId, new Date(), new Date()]);
+      const values = localityIds.map((localityId) => [
+        id,
+        localityId,
+        new Date(),
+        new Date(),
+      ]);
       await connection.query(
         `INSERT INTO locality_delivery_boys (delivery_boy_id, locality_id, created_at, updated_at) VALUES ?`,
         [values]
       );
     }
 
-    await connection.commit(); 
-    res.status(200).json(createResponse(200, "Delivery boy updated successfully"));
+    await connection.commit();
+    res
+      .status(200)
+      .json(createResponse(200, "Delivery boy updated successfully"));
   } catch (error) {
-    await connection.rollback(); 
-    res.status(500).json(createResponse(500, "Error updating delivery boy", error));
+    await connection.rollback();
+    res
+      .status(500)
+      .json(createResponse(500, "Error updating delivery boy", error));
   } finally {
     connection.release();
   }
@@ -197,9 +209,7 @@ export const deleteLocalitiesForDeliveryBoy = async (
 
   // Validate deliveryBoyId
   if (isNaN(parsedDeliveryBoyLocalityId)) {
-    res
-      .status(400)
-      .json(createResponse(400, "Invalid deliveryBoyId provided"));
+    res.status(400).json(createResponse(400, "Invalid deliveryBoyId provided"));
     return;
   }
 
@@ -211,9 +221,6 @@ export const deleteLocalitiesForDeliveryBoy = async (
     return;
   }
 
-
-
-
   try {
     await deleteLocalitiesByDeliveryBoyId(parsedDeliveryBoyLocalityId);
     res
@@ -221,8 +228,7 @@ export const deleteLocalitiesForDeliveryBoy = async (
       .json(createResponse(200, "Localities removed successfully"));
   } catch (error: any) {
     if (
-      error.message ===
-      "No matching locality assignments found for deletion."
+      error.message === "No matching locality assignments found for deletion."
     ) {
       res
         .status(404)

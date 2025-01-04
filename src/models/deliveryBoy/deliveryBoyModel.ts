@@ -4,7 +4,9 @@ import { RowDataPacket, OkPacket } from "mysql2";
 export const getAllDeliveryBoysWithLocalities = async (
   limit: number,
   offset: number,
-  searchTerm: string
+  searchTerm: string,
+  sortField: string,
+  sortOrder: string
 ): Promise<{
   deliveryBoys: Array<{
     delivery_boy_id: number;
@@ -44,7 +46,16 @@ export const getAllDeliveryBoysWithLocalities = async (
     : "";
   const searchParams = searchTerm ? [`%${searchTerm}%`, `%${searchTerm}%`] : [];
 
-  // Subquery to select distinct delivery_boy_id with LIMIT and OFFSET
+  const validSortFields: Record<string, string> = {
+    name: "db.name",
+    mobile: "db.mobile",
+    active: "db.active",
+    cashCollection: "db.cash_collection",
+  };
+
+  const sortColumn = validSortFields[sortField] || validSortFields.name;
+  const validSortOrder = sortOrder.toUpperCase() === "DESC" ? "DESC" : "ASC";
+
   const [rows] = await db.promise().query<RowDataPacket[]>(
     `SELECT 
         db.id AS delivery_boy_id,
@@ -86,7 +97,7 @@ export const getAllDeliveryBoysWithLocalities = async (
       LEFT JOIN delivery_boys db ON limited_db.id = db.id
       LEFT JOIN locality_delivery_boys ldb ON db.id = ldb.delivery_boy_id
       LEFT JOIN localities l ON ldb.locality_id = l.id
-      ORDER BY db.id DESC`,
+     ORDER BY ${sortColumn} ${validSortOrder}`,
     [...searchParams, limit, offset]
   );
 
@@ -118,7 +129,7 @@ export const getAllDeliveryBoysWithLocalities = async (
 
     if (row.locality_id) {
       deliveryBoysMap.get(deliveryBoyId).localities.push({
-        localityDeliveryBoysId:row.delivery_boy_locality_id,
+        localityDeliveryBoysId: row.delivery_boy_locality_id,
         locality_id: row.locality_id,
         route_id: row.route_id,
         hub_id: row.hub_id,
@@ -150,8 +161,6 @@ export const getAllDeliveryBoysWithLocalities = async (
   return { deliveryBoys, totalCount };
 };
 
-
-
 export interface DeliveryBoyData {
   userId: number;
   name: string | null;
@@ -169,7 +178,9 @@ export interface DeliveryBoyData {
 }
 
 // Create a new delivery boy
-export const createDeliveryBoy = async (data: DeliveryBoyData): Promise<void> => {
+export const createDeliveryBoy = async (
+  data: DeliveryBoyData
+): Promise<void> => {
   const {
     userId,
     name,
@@ -186,7 +197,7 @@ export const createDeliveryBoy = async (data: DeliveryBoyData): Promise<void> =>
     localityIds,
   } = data;
 
-  const connection = await db.promise().getConnection(); 
+  const connection = await db.promise().getConnection();
 
   try {
     await connection.beginTransaction();
@@ -217,7 +228,12 @@ export const createDeliveryBoy = async (data: DeliveryBoyData): Promise<void> =>
 
     // Insert into locality_delivery_boys table if localityIds exist
     if (localityIds && localityIds.length > 0) {
-      const values = localityIds.map((localityId) => [deliveryBoyId, localityId, new Date(), new Date()]);
+      const values = localityIds.map((localityId) => [
+        deliveryBoyId,
+        localityId,
+        new Date(),
+        new Date(),
+      ]);
       await connection.query(
         `INSERT INTO locality_delivery_boys (delivery_boy_id, locality_id, created_at, updated_at) VALUES ?`,
         [values]
@@ -226,13 +242,12 @@ export const createDeliveryBoy = async (data: DeliveryBoyData): Promise<void> =>
 
     await connection.commit();
   } catch (error) {
-    await connection.rollback(); 
+    await connection.rollback();
     throw error;
   } finally {
-    connection.release(); 
+    connection.release();
   }
 };
-
 
 // Fetch delivery boy by ID
 export const getDeliveryBoyById = async (
@@ -293,7 +308,7 @@ export const deleteLocalitiesByDeliveryBoyId = async (
   id: number
 ): Promise<void> => {
   const connection = await db.promise().getConnection();
-console.log('deliveryBoyId',id);
+  console.log("deliveryBoyId", id);
 
   try {
     await connection.beginTransaction();

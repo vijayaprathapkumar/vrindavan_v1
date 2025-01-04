@@ -16,12 +16,15 @@ export const getLocalities = async (
   const page = Number(req.query.page) || 1;
   const limit = Number(req.query.limit) || 10;
   const searchTerm = String(req.query.searchTerm || "");
-
+  const sortField = String(req.query.sortField || "");
+  const sortOrder = String(req.query.sortOrder || "");
   try {
     const { localities, totalRecords } = await getAllLocalities(
       page,
       limit,
-      searchTerm
+      searchTerm,
+      sortField,
+      sortOrder
     );
     const totalPages = Math.ceil(totalRecords / limit);
 

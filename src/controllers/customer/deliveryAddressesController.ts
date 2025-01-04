@@ -12,9 +12,11 @@ export const getDeliveryAddresses = async (
   const page = parseInt(req.query.page as string, 10) || 1;
   const limit = parseInt(req.query.limit as string, 10) || 10;
   const searchTerm = req.query.searchTerm ? (req.query.searchTerm as string) : "";
+  const sortField = req.query.sortField as string || "created_at";
+  const sortOrder = req.query.sortOrder === "DESC" ? "DESC" : "ASC";
 
   try {
-    const { deliveryAddresses, total } = await getDeliveryAddress(page, limit, searchTerm);
+    const { deliveryAddresses, total } = await getDeliveryAddress(page, limit, searchTerm,sortField,sortOrder);
 
     const totalPages = Math.ceil(total / limit);
 
@@ -27,6 +29,8 @@ export const getDeliveryAddresses = async (
         currentPage: page,
         limit,
         totalPages,
+        sortField,
+        sortOrder
       },
     });
   } catch (error: any) {
