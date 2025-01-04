@@ -5,21 +5,33 @@ import { RowDataPacket, OkPacket } from "mysql2";
 export const getAllFaqCategories = async (
   page: number = 1,
   limit: number = 10,
-  searchTerm: string = ""
+  searchTerm: string = "",
+  sortField: string,
+  sortOrder: string
 ): Promise<{ faqCategories: RowDataPacket[]; total: number }> => {
   const offset = (page - 1) * limit;
+
+  const validSortFields: Record<string, string> = {
+    name: "faq_categories.name",
+    weightage: "CAST(faq_categories.weightage AS UNSIGNED)",
+    updated_at: "faq_categories.updated_at",
+  };
+
+  const sortColumn = validSortFields[sortField] || validSortFields.name;
+
+  const validSortOrder = sortOrder === "DESC" ? "DESC" : "ASC";
 
   const searchQuery = `
     SELECT id, name, weightage, created_at, updated_at 
     FROM faq_categories
     WHERE name LIKE ?
+    ORDER BY ${sortColumn} ${validSortOrder}
     LIMIT ? OFFSET ?
   `;
 
-  const [rows] = await db.promise().query<RowDataPacket[]>(
-    searchQuery,
-    [`%${searchTerm}%`, limit, offset]
-  );
+  const [rows] = await db
+    .promise()
+    .query<RowDataPacket[]>(searchQuery, [`%${searchTerm}%`, limit, offset]);
 
   const totalQuery = `
     SELECT COUNT(*) AS total 
@@ -27,10 +39,9 @@ export const getAllFaqCategories = async (
     WHERE name LIKE ?
   `;
 
-  const [[{ total }]] = await db.promise().query<RowDataPacket[]>(
-    totalQuery,
-    [`%${searchTerm}%`]
-  );
+  const [[{ total }]] = await db
+    .promise()
+    .query<RowDataPacket[]>(totalQuery, [`%${searchTerm}%`]);
 
   return { faqCategories: rows, total };
 };
