@@ -21,7 +21,9 @@ export interface Notification {
 export const getAllNotifications = async (
   page: number,
   limit: number,
-  searchTerm?: string
+  searchTerm?: string,
+  sortField?:string,
+  sortOrder?:string
 ): Promise<{ notifications: Notification[]; total: number }> => {
   const offset = (page - 1) * limit;
 
@@ -29,6 +31,16 @@ export const getAllNotifications = async (
     ? `AND (un.title LIKE ? OR un.description LIKE ?)`
     : "";
 
+    const validSortFields = {
+      id: "un.id",
+      type: "un.notification_type",
+      title: "un.title",
+      description: "un.description",
+      createdAt: "un.created_at",
+    };
+
+    const sortColumn = sortField && validSortFields[sortField] ? validSortFields[sortField] : "un.created_at";
+    const order = sortOrder === "DESC" ? "DESC" : "ASC";
   const query = `
         SELECT
           un.id,
@@ -73,7 +85,11 @@ export const getAllNotifications = async (
         LEFT JOIN media m ON un.id = m.model_id 
           AND (m.model_type = 'App\\\\Models\\\\UserNotification')
         WHERE 1=1 ${searchCondition}  
-        ORDER BY un.created_at DESC
+<<<<<<< HEAD
+         ORDER BY ${validSortFields[sortField]} ${sortOrder}
+=======
+        ORDER BY ${sortColumn} ${order}
+>>>>>>> 551a781 (upcoming orders apis)
         LIMIT ? OFFSET ?;
 
     `;
