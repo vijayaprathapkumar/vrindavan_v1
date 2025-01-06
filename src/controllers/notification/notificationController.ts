@@ -23,11 +23,9 @@ export const fetchNotifications = async (
   const searchTerm = req.query.searchTerm
     ? String(req.query.searchTerm)
     : undefined;
+    const sortField=req.query.sortField ? String(req.query.sortField) : undefined;
+    const sortOrder=req.query.sortOrder ? String(req.query.sortOrder) : undefined;
 
-    const sortField = (req.query.sortField as string) || "created_at";
-    const sortOrder = (req.query.sortOrder as string) || "DESC";
-  
-  
   try {
     const { notifications, total } = await getAllNotifications(
       page,
