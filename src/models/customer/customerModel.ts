@@ -96,17 +96,23 @@ export const getAllCustomers = async (
     params.push(status);
   }
 
-  const validSortFields: Record<string, string> = {
+  const validSortFields: { [key: string]: string } = {
     id: "user_id",
     name: "user_name",
     status: "status",
     email: "email",
     phone: "phone",
+    created_at: "created_at",
   };
-
-  const sortColumn = validSortFields[sortField] || "user_id";
-  query += ` ORDER BY ${sortColumn} ${sortOrder.toUpperCase()} LIMIT ? OFFSET ?;`;
-  params.push(limit, offset);
+  
+  if (sortField && validSortFields[sortField]) {
+    const order = sortOrder === "DESC" ? "DESC" : "ASC";
+    query += ` ORDER BY ${validSortFields[sortField]} ${order}`;
+  } else {
+    query += " ORDER BY user_id DESC";
+  }
+  
+  query += ` LIMIT ? OFFSET ?;`;
 
   params.push(limit, offset);
 
@@ -170,7 +176,7 @@ export const getAllCustomers = async (
         complete_address: row.complete_address,
         is_approve: row.is_approve,
         is_default: row.is_default,
-        locality_id: row.da_locality_id, 
+        locality_id: row.da_locality_id,
         locality_name: row.locality_name,
         created_at: row.address_created_at,
         updated_at: row.address_updated_at,
@@ -192,7 +198,6 @@ export const getAllCustomers = async (
   };
 };
 
-
 export const createCustomer = async (
   localityId: number,
   name: string,
@@ -203,14 +208,7 @@ export const createCustomer = async (
   status?: string,
   password?: string
 ): Promise<number | null> => {
-  if (
-    !localityId ||
-    !name ||
-    !email ||
-    !mobile ||
-    !houseNo ||
-    !completeAddress
-  ) {
+  if (!localityId || !name || !email || !mobile || !houseNo) {
     throw new Error("All fields are required.");
   }
 
@@ -282,7 +280,6 @@ export const createCustomer = async (
     );
   }
 };
-
 
 // Fetch customer by ID
 export const getCustomerById = async (id: number): Promise<any | null> => {

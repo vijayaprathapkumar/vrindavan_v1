@@ -38,7 +38,11 @@ export const getAllCategories = async (
       m.generated_conversions,
       m.responsive_images,
       m.order_column,
-      CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name) AS original_url
+               CASE 
+             WHEN m.conversions_disk = 'public1' 
+             THEN CONCAT('https://imagefileupload-1.s3.us-east-1.amazonaws.com/category/', m.file_name)
+             ELSE CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name)
+           END AS original_url
     FROM 
       categories c
     LEFT JOIN 
@@ -116,7 +120,11 @@ export const getCategoryById = async (id: number): Promise<RowDataPacket[]> => {
       m.order_column,
       m.created_at AS media_created_at,
       m.updated_at AS media_updated_at,
-    CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name) AS original_url
+      CASE 
+      WHEN m.conversions_disk = 'public1' 
+      THEN CONCAT('https://imagefileupload-1.s3.us-east-1.amazonaws.com/category/', m.file_name)
+      ELSE CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name)
+    END AS original_url
     FROM 
       categories c
     LEFT JOIN 
