@@ -19,7 +19,7 @@ export const getAllFaqCategories = async (
 
   const sortColumn = validSortFields[sortField] || validSortFields.name;
 
-  const validSortOrder = sortOrder === "DESC" ? "DESC" : "ASC";
+  const validSortOrder = sortOrder === "desc" ? "desc" : "asc";
 
   const searchQuery = `
     SELECT id, name, weightage, created_at, updated_at 

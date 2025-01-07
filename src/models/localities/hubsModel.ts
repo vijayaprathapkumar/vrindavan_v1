@@ -12,13 +12,13 @@ export const getAllHubs = async (
   const offset = (page - 1) * limit;
 
   const validSortFields: Record<string, string> = {
-    hubName: "h.name",       
-    truckName: "t.name",   
+    name: "h.name",       
+    truckRoute: "t.name",   
     other_details: "h.other_details", 
-    status: "h.active", 
+    active: "h.active", 
   };
   const sortColumn = validSortFields[sortField] || validSortFields.hubName;
-  const validSortOrder = sortOrder === "DESC" ? "DESC" : "ASC";
+  const validSortOrder = sortOrder === "desc" ? "desc" : "desc";
   const hubsQuery = `
       SELECT 
         h.*, 

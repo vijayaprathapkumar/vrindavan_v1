@@ -59,13 +59,13 @@ export const getAllSubCategoriesWithCategory = async (
 
   const validSortFields: Record<string, string> = {
     categoryName: "categories.name",
-    subCategoryName: "sub_categories.name",
+    subcategory_name: "sub_categories.name",
     weightage: "CAST(sub_categories.weightage AS UNSIGNED)",
-    updated_at: "sub_categories.updated_at",
+    subcategory_updated_at: "sub_categories.updated_at",
   };
 
   if (sortField && validSortFields[sortField]) {
-    query += ` ORDER BY ${validSortFields[sortField]} ${sortOrder === "DESC" ? "DESC" : "ASC"}`;
+    query += ` ORDER BY ${validSortFields[sortField]} ${sortOrder === "desc" ? "desc" : "asc"}`;
   } else {
     query += " ORDER BY CAST(sub_categories.weightage AS UNSIGNED) ASC";
   }

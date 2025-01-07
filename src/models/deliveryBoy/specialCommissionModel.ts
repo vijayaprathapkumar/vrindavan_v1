@@ -18,15 +18,15 @@ export const getAllDetailedSpecialCommissions = async (
       ? " AND sc.delivery_boy_id = ?"
       : "";
   const validSortFields: Record<string, string> = {
-    name: "p.name",
-    unitSize: "p.unit",
+    food_name: "p.name",
+    unit: "p.unit",
     mrp: "p.price",
     standardCommission: "scs.commission",
-    specialCommission: "sc.special_commission",
+    value: "sc.special_commission",
   };
 
   const sortColumn = validSortFields[sortField] || validSortFields.name;
-  const validSortOrder = sortOrder === "DESC" ? "DESC" : "ASC";
+  const validSortOrder = sortOrder === "desc" ? "desc" : "asc";
 
   const queryData = `
       SELECT 
