@@ -25,13 +25,13 @@ export const getAllBrands = async (
   }
 
   const validSortFields: Record<string, string> = {
-    name: "name",
+    brand_name: "name",
     active: "active",
   };
 
   if (sortField && validSortFields[sortField]) {
     const sortOrderFormatted =
-      sortOrder.toUpperCase() === "DESC" ? "DESC" : "ASC";
+      sortOrder === "desc" ? "desc" : "asc";
     query += ` ORDER BY ${validSortFields[sortField]} ${sortOrderFormatted}`;
   } else {
     query += " ORDER BY created_at DESC";

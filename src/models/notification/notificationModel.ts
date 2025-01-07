@@ -33,14 +33,14 @@ export const getAllNotifications = async (
 
     const validSortFields = {
       id: "un.id",
-      type: "un.notification_type",
+      notification_type: "un.notification_type",
       title: "un.title",
       description: "un.description",
       createdAt: "un.created_at",
     };
 
     const sortColumn = sortField && validSortFields[sortField] ? validSortFields[sortField] : "un.created_at";
-    const order = sortOrder === "DESC" ? "DESC" : "ASC";
+    const order = sortOrder === "desc" ? "desc" : "asc";
   const query = `
         SELECT
           un.id,
