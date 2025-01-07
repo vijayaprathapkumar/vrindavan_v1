@@ -33,7 +33,11 @@ export const getAllSubCategoriesWithCategory = async (
       m.order_column,
       m.created_at AS media_created_at,
       m.updated_at AS media_updated_at,
-      CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/conversions/', REPLACE(m.file_name, '.png', '-icon.jpg')) AS original_url
+     CASE 
+      WHEN m.conversions_disk = 'public1' 
+      THEN CONCAT('https://imagefileupload-1.s3.us-east-1.amazonaws.com/subCategory/', m.file_name)
+      ELSE CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name)
+    END AS original_url
     FROM 
       sub_categories
     LEFT JOIN 
