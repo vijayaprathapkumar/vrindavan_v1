@@ -9,9 +9,19 @@ import {
 import { createResponse } from "../../utils/responseHandler";
 import { checkUserProfileStatus } from "../../models/authLogin/authLoginModel";
 
-export const getCustomers = async (req: Request, res: Response): Promise<void> => {
-  const { page = 1, limit = 10, locality, status, searchTerm ,sortField = "id", 
-    sortOrder = "ASC" } = req.query;
+export const getCustomers = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  const {
+    page = 1,
+    limit = 10,
+    locality,
+    status,
+    searchTerm,
+    sortField,
+    sortOrder,
+  } = req.query;
 
   const validPage = Math.max(1, Number(page));
   const validLimit = Math.min(Math.max(1, Number(limit)), 100);
@@ -39,7 +49,9 @@ export const getCustomers = async (req: Request, res: Response): Promise<void> =
       })
     );
   } catch (error) {
-    res.status(500).json(createResponse(500, "Error fetching customers", error));
+    res
+      .status(500)
+      .json(createResponse(500, "Error fetching customers", error));
   }
 };
 
@@ -88,7 +100,6 @@ export const addCustomer = async (
       .json(createResponse(500, "Error creating customer", error.message));
   }
 };
-
 
 export const getCustomer = async (
   req: Request,

@@ -1171,8 +1171,7 @@ export const getPlaceOrderById = async (orderId: number,searchTerm: string | nul
 // Update Order
 export const updateOneTimeOrders = async (
   orderId: number,
-  quantity?: number,
-  orderDate?: string
+  quantity?: number
 ): Promise<void> => {
   try {
     const updates: string[] = [];
@@ -1182,11 +1181,6 @@ export const updateOneTimeOrders = async (
     if (quantity !== undefined) {
       updates.push("quantity = ?");
       params.push(quantity);
-    }
-
-    if (orderDate !== undefined) {
-      updates.push("order_date = ?");
-      params.push(orderDate);
     }
 
     if (updates.length > 0) {
@@ -1201,8 +1195,10 @@ export const updateOneTimeOrders = async (
     }
   } catch (error) {
     console.error("Error updating order:", error);
+    throw error;
   }
 };
+
 
 export const updateSubscriptionOrders = async (
   subscriptionId: number,
@@ -1377,18 +1373,19 @@ export const getUpcomingOrdersModel = (
   us.pause_until_i_come_back,
   us.pause_specific_period_startDate,
   us.pause_specific_period_endDate,
+  sqc.order_type,
   COALESCE(
     sqc.quantity, 
     CASE 
       WHEN us.subscription_type = 'customize' THEN
         CASE 
-          WHEN DAYNAME(?) = 'Monday' AND us.monday_qty IS NOT NULL THEN us.monday_qty
-          WHEN DAYNAME(?) = 'Tuesday' AND us.tuesday_qty IS NOT NULL THEN us.tuesday_qty
-          WHEN DAYNAME(?) = 'Wednesday' AND us.wednesday_qty IS NOT NULL THEN us.wednesday_qty
-          WHEN DAYNAME(?) = 'Thursday' AND us.thursday_qty IS NOT NULL THEN us.thursday_qty
-          WHEN DAYNAME(?) = 'Friday' AND us.friday_qty IS NOT NULL THEN us.friday_qty
-          WHEN DAYNAME(?) = 'Saturday' AND us.saturday_qty IS NOT NULL THEN us.saturday_qty
-          WHEN DAYNAME(?) = 'Sunday' AND us.sunday_qty IS NOT NULL THEN us.sunday_qty
+          WHEN DAYNAME(?) = 'Monday' THEN us.monday_qty
+          WHEN DAYNAME(?) = 'Tuesday' THEN us.tuesday_qty
+          WHEN DAYNAME(?) = 'Wednesday' THEN us.wednesday_qty
+          WHEN DAYNAME(?) = 'Thursday' THEN us.thursday_qty
+          WHEN DAYNAME(?) = 'Friday' THEN us.friday_qty
+          WHEN DAYNAME(?) = 'Saturday' THEN us.saturday_qty
+          WHEN DAYNAME(?) = 'Sunday' THEN us.sunday_qty
           ELSE NULL  -- Return null if no quantity is set for that day
         END
       ELSE us.quantity
@@ -1428,14 +1425,38 @@ export const getUpcomingOrdersModel = (
   f.status AS product_status,
   f.created_at AS product_created_at,
   f.updated_at AS product_updated_at,
-  f.food_locality AS product_food_locality
-FROM user_subscriptions us
-LEFT JOIN subscription_quantity_changes sqc
-  ON us.id = sqc.user_subscription_id
-  AND (sqc.order_date = DATE(?) OR sqc.cancel_order_date = DATE(?))
-LEFT JOIN foods f
-  ON us.product_id = f.id
-WHERE us.user_id = ?
+  f.food_locality AS product_food_locality,
+  m.id AS media_id,
+  m.model_type,
+  m.model_id,
+  m.uuid,
+  m.collection_name,
+  m.name AS media_name,
+  m.file_name AS media_file_name,
+  m.mime_type AS media_mime_type,
+  m.disk,
+  m.conversions_disk,
+  m.size,
+  m.manipulations,
+  m.custom_properties,
+  m.generated_conversions,
+  m.responsive_images,
+  m.order_column,
+  m.created_at AS media_created_at,
+  m.updated_at AS media_updated_at,
+  CASE 
+    WHEN m.conversions_disk = 'public1' 
+    THEN CONCAT('https://imagefileupload-1.s3.us-east-1.amazonaws.com/foods/', m.file_name)
+    ELSE CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name)
+  END AS original_url
+  FROM user_subscriptions us
+  LEFT JOIN subscription_quantity_changes sqc
+    ON us.id = sqc.user_subscription_id
+    AND (sqc.order_date = DATE(?) OR sqc.cancel_order_date = DATE(?))
+  LEFT JOIN foods f
+    ON us.product_id = f.id
+  LEFT JOIN media m ON f.id = m.model_id AND (m.model_type = 'App\\\\Models\\\\Food')
+  WHERE us.user_id = ?
   AND us.start_date <= ?
   AND (us.end_date IS NULL OR us.end_date >= ?)
   AND us.active = 1
@@ -1511,14 +1532,12 @@ WHERE us.user_id = ?
         saturday_qty: row.saturday_qty,
         sunday_qty: row.sunday_qty,
         cancel_subscription: row.cancel_subscription,
+        order_type:row.order_type,
         is_pause_subscription: row.is_pause_subscription,
         pause_until_i_come_back: row.pause_until_i_come_back,
         pause_specific_period_startDate: row.pause_specific_period_startDate,
         pause_specific_period_endDate: row.pause_specific_period_endDate,
-        day_specific_quantity: row.subscription_type === "customize" 
-        ? null 
-        : row.day_specific_quantity, 
-      
+        day_specific_quantity: row.day_specific_quantity,      
         active: row.active,
         cancel_status: row.cancel_status,
         pause_status: row.pause_status,
@@ -1552,6 +1571,27 @@ WHERE us.user_id = ?
           created_at: row.product_created_at,
           updated_at: row.product_updated_at,
           food_locality: row.product_food_locality
+        },
+        media:{
+          id: row.media_id,
+          model_type: row.model_type,
+          model_id: row.model_id,
+          uuid: row.uuid,
+          collection_name: row.collection_name,
+          name: row.media_name,
+          file_name: row.media_file_name,
+          mime_type: row.media_mime_type,
+          disk: row.disk,
+          conversions_disk: row.conversions_disk,
+          size: row.size,
+          manipulations: row.manipulations,
+          custom_properties: row.custom_properties,
+          generated_conversions: row.generated_conversions,
+          responsive_images: row.responsive_images,
+          order_column: row.order_column,
+          created_at: row.media_created_at,
+          updated_at: row.media_updated_at,
+          original_url: row.original_url
         }
       }));
 

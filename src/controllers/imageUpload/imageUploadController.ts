@@ -49,15 +49,14 @@ export const imageUpload = async (
 
     // Upload file to S3
     const uploadPromise = s3
-      .upload({
-        Bucket: "imagefileupload-1",
-        Key: fileKey,
-        Body: file.buffer,
-        ContentType: file.mimetype,
-        ACL: "public-read",
-      })
-      .promise();
-
+    .upload({
+      Bucket: "media-image-upload",
+      Key: fileKey,
+      Body: file.buffer,
+      ContentType: file.mimetype,
+    })
+    .promise();
+    
     const uploadResult = await uploadPromise;
 
     return res.status(201).json({
