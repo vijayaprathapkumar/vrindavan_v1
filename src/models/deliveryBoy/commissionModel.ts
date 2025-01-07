@@ -16,14 +16,14 @@ export const getAllDetailedCommissions = async (
     categoryId && categoryId !== "All" ? " AND c.id = ?" : "";
 
     const validSortFields: Record<string, string> = {
-      name: "p.name",
-      unitSize: "p.unit",
+      food_name: "p.name",
+      unit: "p.unit",
       mrp: "p.price",
-      standeredCommission: "sc.commission",
+      value: "sc.commission",
     };
 
     const sortColumn = validSortFields[sortField] || validSortFields.name;
-    const validSortOrder = sortOrder === "DESC" ? "DESC" : "ASC";
+    const validSortOrder = sortOrder === "desc" ? "desc" : "asc";
 
     
   const queryData = `

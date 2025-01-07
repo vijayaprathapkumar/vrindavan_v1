@@ -3,18 +3,25 @@ import { db } from "../../config/databaseConnection";
 import cron from "node-cron";
 
 export const handlePaymentsOrders = async (placeOrderData) => {
-  const { user_id, food_price, quantity, order_id, status } = placeOrderData;
+  const { user_id, food_price, quantity, order_id, status, food_name, unit } =
+    placeOrderData;
 
-  const totalOrderValue = food_price * quantity || 0;
+  const totalOrderValue =
+    parseFloat(food_price || "0") * parseInt(quantity || "0");
 
-  // Fetch current wallet balance
   const [walletRows]: [RowDataPacket[], any] = await db
     .promise()
     .query(`SELECT balance FROM wallet_balances WHERE user_id = ?`, [user_id]);
 
-  const beforeBalance = walletRows[0]?.balance;
+  const beforeBalance = parseFloat(walletRows[0]?.balance || "0");
 
-  const afterBalance = (beforeBalance - totalOrderValue).toFixed(2);
+  if (isNaN(beforeBalance) || beforeBalance === 0) {
+    console.log("Wallet balance not found or is 0. Skipping deduction.");
+  }
+
+  const afterBalance = parseFloat((beforeBalance - totalOrderValue).toFixed(2));
+
+  const transactionDescription = `₹${totalOrderValue} deducted for ${food_name} ${unit} x ${quantity}. Balance ₹${afterBalance}`;
 
   // Log wallet transaction
   await logWalletTransaction(
@@ -23,7 +30,7 @@ export const handlePaymentsOrders = async (placeOrderData) => {
     beforeBalance,
     totalOrderValue,
     afterBalance,
-    `Rs ${totalOrderValue} deducted for user ID ${user_id}`
+    transactionDescription
   );
 
   const deductionSuccess = await deductFromWalletBalance(
@@ -125,11 +132,15 @@ export const getAllPlaceOrdersUsers = async () => {
         o.id AS order_id,
         o.user_id,
         fo.price AS food_price,
-        fo.quantity
+        fo.quantity,
+        f.name AS food_name,
+        f.unit
       FROM 
         orders o
       LEFT JOIN 
         food_orders fo ON o.id = fo.order_id
+      LEFT JOIN 
+        foods f ON f.id = fo.food_id
       WHERE 
         DATE(o.order_date) = CURDATE() AND active= 1;
     `;
@@ -157,7 +168,7 @@ export const processTodayOrderPayments = async () => {
 };
 
 export const everyDayPaymentProcessJob = () => {
-  cron.schedule("07 17 * * *", async () => {
+  cron.schedule("32 13 * * *", async () => {
     console.log("Cron job running...");
 
     await processTodayOrderPayments();

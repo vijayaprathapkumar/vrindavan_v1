@@ -17,8 +17,8 @@ export const getTruckRoutes = async (
     page = 1,
     limit = 10,
     searchTerm = "",
-    sortField = "name",
-    sortOrder = "ASC",
+    sortField = "",
+    sortOrder = "",
   } = req.query;
   const validLimit = Number(limit) > 0 ? Number(limit) : 10;
 

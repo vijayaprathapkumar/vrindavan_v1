@@ -28,11 +28,11 @@ export const getAllDeals = async (
   const offset = (page - 1) * limit;
 
   const validSortFields: Record<string, string> = {
-    id: "d.id",
-    name: "f.name",
-    unitSize: "d.unit",
+    food_id: "f.id",
+    food_name: "f.name",
+    unit: "d.unit",
     price: "d.price",
-    discountPrice: "d.offer_price",
+    offer_price: "d.offer_price",
     weightage: "CAST(d.weightage AS UNSIGNED)",
     status: "d.status",
   };

@@ -12,16 +12,16 @@ export const getAllLocalities = async (
   const offset = (page - 1) * limit;
 
   const validSortFields: Record<string, string> = {
-    localityName: "l.name",
-    deliveryBoy: "db.name",
-    address: "l.address",
-    city: "l.city",
-    active: "l.active",
+    localities_name: "l.name",
+    delivery_boy_name: "db.name",
+    localities_address: "l.address",
+    localities_city: "l.city",
+    localities_active: "l.active",
   };
 
   const sortColumn = validSortFields[sortField] || validSortFields.localityName;
 
-  const validSortOrder = sortOrder === "DESC" ? "DESC" : "ASC";
+  const validSortOrder = sortOrder === "desc" ? "desc" : "asc";
 
   const localitiesQuery = `
       SELECT 

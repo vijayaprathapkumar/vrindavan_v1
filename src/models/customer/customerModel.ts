@@ -97,8 +97,8 @@ export const getAllCustomers = async (
   }
 
   const validSortFields: { [key: string]: string } = {
-    id: "user_id",
-    name: "user_name",
+    user_id: "user_id",
+    user_name: "user_name",
     status: "status",
     email: "email",
     phone: "phone",
@@ -106,7 +106,7 @@ export const getAllCustomers = async (
   };
   
   if (sortField && validSortFields[sortField]) {
-    const order = sortOrder === "DESC" ? "DESC" : "ASC";
+    const order = sortOrder === "desc" ? "desc" : "asc";
     query += ` ORDER BY ${validSortFields[sortField]} ${order}`;
   } else {
     query += " ORDER BY user_id DESC";
