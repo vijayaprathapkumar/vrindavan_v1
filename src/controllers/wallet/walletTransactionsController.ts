@@ -45,6 +45,27 @@ export const walletRecharges = async (req: Request, res: Response) => {
       description,
     });
 
+    const balanceQuery = `SELECT balance FROM wallet_balances WHERE user_id = ?`;
+    const [balanceResult]: any = await db.promise().query(balanceQuery, [user_id]);
+
+    if (balanceResult.length === 0) {
+      throw new Error("Balance not found after update");
+    }
+
+    const newBalance = Number(balanceResult[0].balance);
+
+    const logDescription = `₹${transaction_amount.toFixed(2)} Recharged for Wallet. Balance ₹${newBalance.toFixed(2)}`;
+    await insertWalletLog({
+      user_id,
+      order_id: transaction_id,
+      order_date: new Date(),
+      before_balance: newBalance - transaction_amount,
+      amount: transaction_amount,
+      after_balance: newBalance,
+      wallet_type: "recharge",
+      description: logDescription,
+    });
+
     return res.status(200).json(
       createResponse(200, "Transaction stored successfully", {
         transaction_id,

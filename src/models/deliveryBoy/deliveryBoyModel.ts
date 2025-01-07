@@ -47,14 +47,14 @@ export const getAllDeliveryBoysWithLocalities = async (
   const searchParams = searchTerm ? [`%${searchTerm}%`, `%${searchTerm}%`] : [];
 
   const validSortFields: Record<string, string> = {
-    name: "db.name",
+    delivery_boy_name: "db.name",
     mobile: "db.mobile",
     active: "db.active",
-    cashCollection: "db.cash_collection",
+    cash_collection: "db.cash_collection",
   };
 
   const sortColumn = validSortFields[sortField] || validSortFields.name;
-  const validSortOrder = sortOrder.toUpperCase() === "DESC" ? "DESC" : "ASC";
+  const validSortOrder = sortOrder.toUpperCase() === "desc" ? "desc" : "asc";
 
   const [rows] = await db.promise().query<RowDataPacket[]>(
     `SELECT 

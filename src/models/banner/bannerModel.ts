@@ -81,12 +81,12 @@ export const getAllBanners = async (
   }
 
   const validSortFields: Record<string, string> = {
-    bannerName: "b.banner_name",
-    bannerType: "b.banner_type",
-    bannerLocation: "b.banner_location",
-    startDate: "b.date_from", 
-    endDate: "b.date_to", 
-    weightage: "CAST(b.banner_weightage AS UNSIGNED)",
+    banner_name: "b.banner_name",
+    banner_type: "b.banner_type",
+    banner_location: "b.banner_location",
+    date_from: "b.date_from", 
+    date_to: "b.date_to", 
+    banner_weightage: "CAST(b.banner_weightage AS UNSIGNED)",
     status: "b.status",
     created_at: "b.created_at",
     updated_at: "b.updated_at",

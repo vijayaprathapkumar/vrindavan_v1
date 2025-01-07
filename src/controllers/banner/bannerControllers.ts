@@ -20,8 +20,8 @@ export const fetchBanners = async (
   const page = Number(req.query.page) || 1;
   const limit = Number(req.query.limit) || 10;
   const searchTerm = (req.query.searchTerm as string) || "";
-  const sortField = (req.query.sortField as string) || "banner_weightage"; // Default sorting field
-  const sortOrder = (req.query.sortOrder as string) || "ASC";
+  const sortField = (req.query.sortField as string) || "";
+  const sortOrder = (req.query.sortOrder as string) || "";
 
   try {
     const { banners, total } = await getAllBanners(page, limit, searchTerm,sortField, sortOrder);

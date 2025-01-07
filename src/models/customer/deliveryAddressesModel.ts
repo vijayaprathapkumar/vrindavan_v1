@@ -49,11 +49,11 @@ export const getDeliveryAddress = async (
   const searchValue = `%${searchTerm}%`;
 
   const validSortFields: Record<string, string> = {
-    customerName: "u.name",
-    mobile: "u.phone",
-    address: "da.complete_address",
-    approveStatus: "da.is_approve",
-    created_at: "da.created_at",
+    name: "u.name",
+    phone: "u.phone",
+    complete_address: "da.complete_address",
+    is_approve: "da.is_approve",
+    address_created_at: "da.created_at",
   };
 
   const orderBy = validSortFields[sortField] || "da.created_at";

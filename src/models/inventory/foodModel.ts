@@ -72,7 +72,8 @@ export const getAllFoods = async (
   }
 
   const validSortFields: Record<string, string> = {
-    id: "f.id",
+    _id: "f.id",
+    name: "f.name",
     track_inventory: "f.track_inventory",
     price: "f.price",
     unit: "f.unit",
@@ -81,7 +82,7 @@ export const getAllFoods = async (
   };
 
   if (sortField && validSortFields[sortField]) {
-    query += ` ORDER BY ${validSortFields[sortField]} ${sortOrder === "DESC" ? "DESC" : "ASC"}`;
+    query += ` ORDER BY ${validSortFields[sortField]} ${sortOrder === "desc" ? "desc" : "asc"}`;
   } else {
     query += " ORDER BY CAST(f.weightage AS UNSIGNED) ASC"; 
   }

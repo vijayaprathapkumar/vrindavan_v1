@@ -15,14 +15,14 @@ export const getAllFaqs = async (
   const validSortFields: Record<string, string> = {
     question: "f.question",
     answer: "f.answer",
-    faq_category: "fc.name",
+    category_name: "fc.name",
     weightage: "CAST(f.weightage AS UNSIGNED)",
     updated_at: "f.updated_at",
   };
 
   const sortColumn = validSortFields[sortField] || validSortFields.question;
 
-  const validSortOrder = sortOrder === "DESC" ? "DESC" : "ASC";
+  const validSortOrder = sortOrder === "desc" ? "desc" : "asc";
 
 
   // Build the WHERE clause dynamically
