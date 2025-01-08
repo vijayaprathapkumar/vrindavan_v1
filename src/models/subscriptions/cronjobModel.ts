@@ -197,7 +197,7 @@ const logWalletTransaction = async (
   const walletLogValues = [
     userId,
     orderId,
-    null, // Assuming order_item_id is not applicable here
+    null, 
     beforeBalance,
     amount,
     afterBalance,
@@ -236,7 +236,6 @@ const createOrderEntry = async (userId) => {
 
   const addressData = addressRows[0];
   const { route_id, hub_id, locality_id, delivery_address_id } = addressData;
-console.log('addressData',addressData);
 
   const orderSql = `
     INSERT INTO orders (

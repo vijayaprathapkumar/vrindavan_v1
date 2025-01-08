@@ -1,6 +1,6 @@
 import moment from "moment";
 import { db } from "../../config/databaseConnection";
-import { ResultSetHeader, RowDataPacket } from "mysql2";
+import { FieldPacket, ResultSetHeader, RowDataPacket } from "mysql2";
 
 export const getAllOrders = async (
   userId: number,
@@ -54,7 +54,11 @@ export const getAllOrders = async (
       m.name AS media_name, m.file_name, m.mime_type, m.disk, m.conversions_disk,
       m.size, m.manipulations, m.custom_properties,
       m.responsive_images, m.order_column,
-      CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name) AS original_url
+     CASE 
+        WHEN m.conversions_disk = 'public1' 
+        THEN CONCAT('https://media-image-upload.s3.ap-south-1.amazonaws.com/foods/', m.file_name)
+        ELSE CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name)
+      END AS original_url
     FROM 
       orders o
     LEFT JOIN food_orders fo ON o.id = fo.order_id
@@ -183,13 +187,12 @@ export const getAllOrdersWithOutUserId = async (
 
   const queryParams: (number | string)[] = [];
   let conditions = "";
-  
+
   if (searchTerm) {
     conditions += ` AND f.name LIKE ?`;
     const searchValue = `%${searchTerm}%`;
     queryParams.push(searchValue);
   }
-  
 
   // Date range conditions
   if (startDate) {
@@ -221,7 +224,7 @@ export const getAllOrdersWithOutUserId = async (
       queryParams.push(parsedDeliveryBoyId);
     }
   }
-  
+
   if (approveStatus !== "All") {
     conditions += " AND da.is_approve = ?";
     queryParams.push(parseInt(approveStatus, 10));
@@ -234,7 +237,7 @@ export const getAllOrdersWithOutUserId = async (
       queryParams.push(parsedProductId);
     }
   }
-  
+
   if (orderType && orderType !== "All") {
     conditions += " AND o.order_type = ?";
     queryParams.push(orderType);
@@ -316,7 +319,11 @@ export const getAllOrdersWithOutUserId = async (
     m.custom_properties,
     m.responsive_images, 
     m.order_column,
-    CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name) AS original_url,
+     CASE 
+        WHEN m.conversions_disk = 'public1' 
+        THEN CONCAT('https://media-image-upload.s3.ap-south-1.amazonaws.com/foods/', m.file_name)
+        ELSE CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name)
+      END AS original_url,
     
     tr.id AS truck_route_id, 
     tr.name AS truck_route_name, 
@@ -712,7 +719,10 @@ ldb.id AS locality_delivery_boy_id,
   return { total, placeOrders: orderData };
 };
 
-export const getPlaceOrderById = async (orderId: number,searchTerm: string | null): Promise<any> => {
+export const getPlaceOrderById = async (
+  orderId: number,
+  searchTerm: string | null
+): Promise<any> => {
   let query = `
     SELECT 
     o.id AS order_id, 
@@ -773,7 +783,11 @@ export const getPlaceOrderById = async (orderId: number,searchTerm: string | nul
     m.custom_properties,
     m.responsive_images, 
     m.order_column,
-    CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name) AS original_url,
+      CASE 
+        WHEN m.conversions_disk = 'public1' 
+        THEN CONCAT('https://media-image-upload.s3.ap-south-1.amazonaws.com/foods/', m.file_name)
+        ELSE CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name)
+      END AS original_url,
     
     tr.id AS truck_route_id, 
     tr.name AS truck_route_name, 
@@ -886,12 +900,13 @@ export const getPlaceOrderById = async (orderId: number,searchTerm: string | nul
     queryParams.push(`%${searchTerm}%`);
   }
 
-  const [rows]: [RowDataPacket[], any] = await db.promise().query(query, queryParams);
+  const [rows]: [RowDataPacket[], any] = await db
+    .promise()
+    .query(query, queryParams);
 
   if (rows.length === 0) {
     return null; // No order found
   }
-
 
   // Structure the result
   const orderData = [
@@ -1199,13 +1214,13 @@ export const updateOneTimeOrders = async (
   }
 };
 
-
 export const updateSubscriptionOrders = async (
   subscriptionId: number,
   quantity: number,
   orderDate?: string
 ): Promise<void> => {
   try {
+    // Fetch subscription items from the database
     const [subscriptionItems]: [RowDataPacket[], any] = await db
       .promise()
       .query(
@@ -1221,8 +1236,14 @@ export const updateSubscriptionOrders = async (
       return;
     }
 
+    if (orderDate) {
+      const date = new Date(orderDate);
+      orderDate = date.toISOString().split('T')[0];
+    }
+
     const { user_id, product_id, ...dailyQuantities } = subscriptionItems[0];
 
+    // Update subscription quantity changes
     const [updateResult]: [ResultSetHeader, any] = await db.promise().query(
       `UPDATE subscription_quantity_changes 
        SET quantity = ? 
@@ -1230,6 +1251,7 @@ export const updateSubscriptionOrders = async (
       [quantity, subscriptionId, orderDate]
     );
 
+    // If no rows were affected, insert the new data
     if (updateResult.affectedRows === 0) {
       await db.promise().query(
         `INSERT INTO subscription_quantity_changes (
@@ -1240,11 +1262,12 @@ export const updateSubscriptionOrders = async (
     }
 
     if (orderDate) {
-      const orderMoment = moment(orderDate, "YYYY-MM-DD");
-      const dayName = orderMoment.format("dddd").toLowerCase();
+      const dateObj = new Date(orderDate);
+      const dayOfWeek = dateObj.toLocaleString('en-us', { weekday: 'long' }).toLowerCase(); 
 
-      if (dailyQuantities[`${dayName}_qty`]) {
-        const nextDate = orderMoment.add(1, "days").format("YYYY-MM-DD");
+      const dayQuantityField = `${dayOfWeek}_qty`;
+
+      if (dailyQuantities[dayQuantityField]) {
         await db.promise().query(
           `INSERT INTO subscription_quantity_changes (
             user_subscription_id, order_type, user_id, product_id, quantity, order_date
@@ -1255,17 +1278,19 @@ export const updateSubscriptionOrders = async (
             2,
             user_id,
             product_id,
-            dailyQuantities[`${dayName}_qty`],
-            nextDate,
-            dailyQuantities[`${dayName}_qty`],
+            dailyQuantities[dayQuantityField],
+            orderDate,
+            dailyQuantities[dayQuantityField], // Update quantity if exists
           ]
         );
       }
     }
+    
   } catch (error) {
     console.error("Error updating subscription quantities:", error);
   }
 };
+
 
 export const deletePlaceOrderById = async (id: number) => {
   const updateSubscriptionSql = `
@@ -1305,12 +1330,16 @@ export const cancelOrder = async (
   otherReason?: string
 ): Promise<void> => {
   try {
-    const formattedCancelOrderDate = new Date(cancelOrderDate).toISOString().split('T')[0];
+    const formattedCancelOrderDate = new Date(cancelOrderDate)
+      .toISOString()
+      .split("T")[0];
 
-    const [userRow]: any[] = await db.promise().query(
-      `SELECT user_id, start_date, end_date FROM user_subscriptions WHERE id = ?`,
-      [subscriptionId]
-    );
+    const [userRow]: any[] = await db
+      .promise()
+      .query(
+        `SELECT user_id, start_date, end_date FROM user_subscriptions WHERE id = ?`,
+        [subscriptionId]
+      );
 
     if (userRow.length === 0) {
       throw new Error(`No subscription found with ID ${subscriptionId}`);
@@ -1338,7 +1367,16 @@ export const cancelOrder = async (
         `INSERT INTO subscription_quantity_changes (
            user_subscription_id, user_id, cancel_order_date, cancel_order, reason, other_reason, start_date, end_date
          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        [subscriptionId, userId, formattedCancelOrderDate, 1, reason, otherReason || null, startDate, endDate]
+        [
+          subscriptionId,
+          userId,
+          formattedCancelOrderDate,
+          1,
+          reason,
+          otherReason || null,
+          startDate,
+          endDate,
+        ]
       );
     }
   } catch (error) {
@@ -1350,7 +1388,7 @@ export const getUpcomingOrdersModel = (
   userId: number,
   currentDate: Date
 ): Promise<any[]> => {
-  const formattedDate = currentDate.toISOString().split('T')[0]; // Format to YYYY-MM-DD
+  const formattedDate = currentDate.toISOString().split("T")[0]; // Format to YYYY-MM-DD
 
   const query = `
   SELECT 
@@ -1374,6 +1412,7 @@ export const getUpcomingOrdersModel = (
   us.pause_specific_period_startDate,
   us.pause_specific_period_endDate,
   sqc.order_type,
+  sqc.order_date,
   COALESCE(
     sqc.quantity, 
     CASE 
@@ -1444,11 +1483,11 @@ export const getUpcomingOrdersModel = (
   m.order_column,
   m.created_at AS media_created_at,
   m.updated_at AS media_updated_at,
-  CASE 
-    WHEN m.conversions_disk = 'public1' 
-    THEN CONCAT('https://imagefileupload-1.s3.us-east-1.amazonaws.com/foods/', m.file_name)
-    ELSE CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name)
-  END AS original_url
+    CASE 
+        WHEN m.conversions_disk = 'public1' 
+        THEN CONCAT('https://media-image-upload.s3.ap-south-1.amazonaws.com/foods/', m.file_name)
+        ELSE CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name)
+      END AS original_url
   FROM user_subscriptions us
   LEFT JOIN subscription_quantity_changes sqc
     ON us.id = sqc.user_subscription_id
@@ -1495,7 +1534,7 @@ export const getUpcomingOrdersModel = (
       formattedDate, // Cancel date comparison
       formattedDate, // Order date comparison
       formattedDate, // Cancel date comparison
-      userId,        // User ID
+      userId, // User ID
       formattedDate, // Start date filter
       formattedDate, // End date filter
       formattedDate, // Alternative day calculation
@@ -1507,95 +1546,132 @@ export const getUpcomingOrdersModel = (
       formattedDate, // Thursday in customize
       formattedDate, // Friday in customize
       formattedDate, // Saturday in customize
-      formattedDate  // Sunday in customize
+      formattedDate, // Sunday in customize
     ];
 
     db.query<RowDataPacket[]>(query, queryParams, (error, results) => {
       if (error) {
-        console.error('SQL Error:', error);
+        console.error("SQL Error:", error);
         return reject(error);
       }
 
-      const mappedResults = results.map((row) => ({
-        user_subscription_id: row.user_subscription_id,
-        user_id: row.user_id,
-        product_id: row.product_id,
-        subscription_type: row.subscription_type,
-        start_date: row.start_date,
-        end_date: row.end_date,
-        quantity: row.quantity,
-        monday_qty: row.monday_qty,
-        tuesday_qty: row.tuesday_qty,
-        wednesday_qty: row.wednesday_qty,
-        thursday_qty: row.thursday_qty,
-        friday_qty: row.friday_qty,
-        saturday_qty: row.saturday_qty,
-        sunday_qty: row.sunday_qty,
-        cancel_subscription: row.cancel_subscription,
-        order_type:row.order_type,
-        is_pause_subscription: row.is_pause_subscription,
-        pause_until_i_come_back: row.pause_until_i_come_back,
-        pause_specific_period_startDate: row.pause_specific_period_startDate,
-        pause_specific_period_endDate: row.pause_specific_period_endDate,
-        day_specific_quantity: row.day_specific_quantity,      
-        active: row.active,
-        cancel_status: row.cancel_status,
-        pause_status: row.pause_status,
-        product: {
-          name: row.product_name,
-          price: row.product_price,
-          discount_price: row.product_discount_price,
-          description: row.product_description,
-          permalink: row.product_permalink,
-          ingredients: row.product_ingredients,
-          package_items_count: row.product_package_items_count,
-          weight: row.product_weight,
-          unit: row.product_unit,
-          sku_code: row.product_sku_code,
-          barcode: row.product_barcode,
-          cgst: row.product_cgst,
-          sgst: row.product_sgst,
-          subscription_type: row.product_subscription_type,
-          track_inventory: row.product_track_inventory,
-          featured: row.product_featured,
-          deliverable: row.product_deliverable,
-          restaurant_id: row.product_restaurant_id,
-          category_id: row.product_category_id,
-          subcategory_id: row.product_subcategory_id,
-          product_type_id: row.product_product_type_id,
-          hub_id: row.product_hub_id,
-          locality_id: row.product_locality_id,
-          brand_id: row.product_brand_id,
-          weightage: row.product_weightage,
-          status: row.product_status,
-          created_at: row.product_created_at,
-          updated_at: row.product_updated_at,
-          food_locality: row.product_food_locality
-        },
-        media:{
-          id: row.media_id,
-          model_type: row.model_type,
-          model_id: row.model_id,
-          uuid: row.uuid,
-          collection_name: row.collection_name,
-          name: row.media_name,
-          file_name: row.media_file_name,
-          mime_type: row.media_mime_type,
-          disk: row.disk,
-          conversions_disk: row.conversions_disk,
-          size: row.size,
-          manipulations: row.manipulations,
-          custom_properties: row.custom_properties,
-          generated_conversions: row.generated_conversions,
-          responsive_images: row.responsive_images,
-          order_column: row.order_column,
-          created_at: row.media_created_at,
-          updated_at: row.media_updated_at,
-          original_url: row.original_url
-        }
-      }));
+      const mappedResults = results.map((row) => {
+        const orderDate = new Date(row.order_date);
+        orderDate.setDate(orderDate.getDate() + 1); // Increment order_date by 1 day
+      
+        return {
+          user_subscription_id: row.user_subscription_id,
+          user_id: row.user_id,
+          product_id: row.product_id,
+          subscription_type: row.subscription_type,
+          start_date: row.start_date,
+          end_date: row.end_date,
+          quantity: row.quantity,
+          monday_qty: row.monday_qty,
+          tuesday_qty: row.tuesday_qty,
+          wednesday_qty: row.wednesday_qty,
+          thursday_qty: row.thursday_qty,
+          friday_qty: row.friday_qty,
+          saturday_qty: row.saturday_qty,
+          sunday_qty: row.sunday_qty,
+          cancel_subscription: row.cancel_subscription,
+          order_type: row.order_type,
+          order_date: orderDate.toISOString(), // Convert the next day to ISO string format
+          is_pause_subscription: row.is_pause_subscription,
+          pause_until_i_come_back: row.pause_until_i_come_back,
+          pause_specific_period_startDate: row.pause_specific_period_startDate,
+          pause_specific_period_endDate: row.pause_specific_period_endDate,
+          day_specific_quantity: row.day_specific_quantity,
+          active: row.active,
+          cancel_status: row.cancel_status,
+          pause_status: row.pause_status,
+          product: {
+            name: row.product_name,
+            price: row.product_price,
+            discount_price: row.product_discount_price,
+            description: row.product_description,
+            permalink: row.product_permalink,
+            ingredients: row.product_ingredients,
+            package_items_count: row.product_package_items_count,
+            weight: row.product_weight,
+            unit: row.product_unit,
+            sku_code: row.product_sku_code,
+            barcode: row.product_barcode,
+            cgst: row.product_cgst,
+            sgst: row.product_sgst,
+            subscription_type: row.product_subscription_type,
+            track_inventory: row.product_track_inventory,
+            featured: row.product_featured,
+            deliverable: row.product_deliverable,
+            restaurant_id: row.product_restaurant_id,
+            category_id: row.product_category_id,
+            subcategory_id: row.product_subcategory_id,
+            product_type_id: row.product_product_type_id,
+            hub_id: row.product_hub_id,
+            locality_id: row.product_locality_id,
+            brand_id: row.product_brand_id,
+            weightage: row.product_weightage,
+            status: row.product_status,
+            created_at: row.product_created_at,
+            updated_at: row.product_updated_at,
+            food_locality: row.product_food_locality,
+          },
+          media: {
+            id: row.media_id,
+            model_type: row.model_type,
+            model_id: row.model_id,
+            uuid: row.uuid,
+            collection_name: row.collection_name,
+            name: row.media_name,
+            file_name: row.media_file_name,
+            mime_type: row.media_mime_type,
+            disk: row.disk,
+            conversions_disk: row.conversions_disk,
+            size: row.size,
+            manipulations: row.manipulations,
+            custom_properties: row.custom_properties,
+            generated_conversions: row.generated_conversions,
+            responsive_images: row.responsive_images,
+            order_column: row.order_column,
+            created_at: row.media_created_at,
+            updated_at: row.media_updated_at,
+            original_url: row.original_url,
+          },
+        };
+      });
+      
 
       resolve(mappedResults);
     });
+  });
+};
+
+export const cancelOneTimeOrderModel = (
+  orderId: number
+): Promise<{ success: boolean }> => {
+  return new Promise(async (resolve, reject) => {
+    const connection = await db.promise().getConnection();
+    try {
+      await connection.beginTransaction();
+
+      const deleteFoodOrdersQuery =
+        "DELETE FROM food_orders WHERE order_id = ?";
+      await connection.query(deleteFoodOrdersQuery, [orderId]);
+
+      const deleteOrdersQuery = "DELETE FROM orders WHERE id = ?";
+      const [result]: [ResultSetHeader, FieldPacket[]] = await connection.query(
+        deleteOrdersQuery,
+        [orderId]
+      );
+
+      await connection.commit();
+      connection.release();
+
+      resolve({ success: result.affectedRows > 0 });
+    } catch (error) {
+      await connection.rollback();
+      connection.release();
+      reject(error);
+    }
   });
 };

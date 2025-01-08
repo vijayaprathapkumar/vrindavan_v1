@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { createResponse } from "../../utils/responseHandler";
 import {
+  cancelOneTimeOrderModel,
   cancelOrder,
   deletePlaceOrderById,
   getAllOrders,
@@ -257,7 +258,7 @@ export const getUpcomingOrders = async (req: Request, res: Response) => {
   const userId = parseInt(req.params.id);
   const dateParam = req.query.date || req.body.date; // Accepts date from query or body
   const currentDate = dateParam ? new Date(dateParam) : new Date(); // Use provided date or current date
-
+  
   // Validate userId and date
   if (isNaN(userId)) {
     return res.status(400).json(createResponse(400, 'Invalid user ID.'));
@@ -274,5 +275,37 @@ export const getUpcomingOrders = async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Error fetching upcoming orders:', error);
     res.status(500).json(createResponse(500, 'Failed to fetch upcoming orders.', error.message));
+  }
+};
+
+
+// cancel one time order
+export const cancelOneTimeOrder = async (req: Request, res: Response) => {
+  const { orderId } = req.params;
+
+  // Validate orderId
+  if (!orderId || isNaN(parseInt(orderId))) {
+    return res.status(400).json(createResponse(400, 'Invalid order ID.'));
+  }
+
+  try {
+    const now = new Date();
+    const nineThirtyPM = new Date();
+    nineThirtyPM.setHours(21, 30, 0, 0); // Set time to 9:30 PM
+
+    if (now > nineThirtyPM) {
+      return res.status(403).json(createResponse(403, 'You cannot cancel the order after 9:30 PM.'));
+    }
+
+    const result = await cancelOneTimeOrderModel(parseInt(orderId));
+
+    if (result.success) {
+      res.status(200).json(createResponse(200, 'Order canceled successfully.'));
+    } else {
+      res.status(404).json(createResponse(404, 'Order not found or already canceled.'));
+    }
+  } catch (error) {
+    console.error('Error canceling order:', error);
+    res.status(500).json(createResponse(500, 'Failed to cancel order.', error.message));
   }
 };

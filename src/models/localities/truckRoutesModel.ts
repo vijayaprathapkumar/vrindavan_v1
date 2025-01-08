@@ -6,20 +6,25 @@ export const getAllTruckRoutes = async (
   page: number,
   limit: number,
   searchTerm: string,
-  sortField: string,
-  sortOrder: string
+  sortField?: string,
+  sortOrder?: string
 ): Promise<{ routes: RowDataPacket[]; totalRecords: number }> => {
   const offset = (page - 1) * limit;
 
   const validSortFields: Record<string, string> = {
-    name: "name", 
-    active: "active", 
+    name: "name",
+    active: "active",
   };
+  const validSortOrders = ["asc", "desc"];
+  const validatedSortField = validSortFields[sortField] || "name";
+  const validatedSortOrder = validSortOrders.includes(sortOrder.toLowerCase())
+    ? sortOrder.toLowerCase()
+    : "asc";
 
   const routesQuery = `
       SELECT * FROM truck_routes 
       WHERE name LIKE ? 
-     ORDER BY ${validSortFields[sortField]} ${sortOrder} 
+      ORDER BY ${validatedSortField} ${validatedSortOrder} 
       LIMIT ? OFFSET ?
   `;
 
@@ -38,6 +43,7 @@ export const getAllTruckRoutes = async (
 
   return { routes, totalRecords: total };
 };
+
 
 // Create a new truck route
 export const createTruckRoute = async (

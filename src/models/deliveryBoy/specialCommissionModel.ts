@@ -25,7 +25,7 @@ export const getAllDetailedSpecialCommissions = async (
     value: "sc.special_commission",
   };
 
-  const sortColumn = validSortFields[sortField] || validSortFields.name;
+  const sortColumn = validSortFields[sortField] || "p.name";
   const validSortOrder = sortOrder === "desc" ? "desc" : "asc";
 
   const queryData = `
@@ -102,7 +102,7 @@ export const getAllDetailedSpecialCommissions = async (
           delivery_boys db ON sc.delivery_boy_id = db.id
       WHERE 
           (p.name LIKE ? OR c.name LIKE ?)${categoryFilter}${deliveryBoyFilter}
-      ORDER BY ${sortColumn} ${validSortOrder} 
+       ORDER BY CAST(${sortColumn} AS DECIMAL) ${validSortOrder}
       LIMIT ? OFFSET ?;
     `;
 
