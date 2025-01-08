@@ -17,8 +17,9 @@ export const getAllHubs = async (
     other_details: "h.other_details", 
     active: "h.active", 
   };
-  const sortColumn = validSortFields[sortField] || validSortFields.hubName;
-  const validSortOrder = sortOrder === "desc" ? "desc" : "desc";
+  const sortColumn = validSortFields[sortField] || "h.name";
+
+  const validSortOrder = sortOrder?.toLowerCase() === "desc" ? "desc" : "asc";
   const hubsQuery = `
       SELECT 
         h.*, 

@@ -9,30 +9,6 @@ export const handlePaymentsOrders = async (placeOrderData) => {
   const totalOrderValue =
     parseFloat(food_price || "0") * parseInt(quantity || "0");
 
-  const [walletRows]: [RowDataPacket[], any] = await db
-    .promise()
-    .query(`SELECT balance FROM wallet_balances WHERE user_id = ?`, [user_id]);
-
-  const beforeBalance = parseFloat(walletRows[0]?.balance || "0");
-
-  if (isNaN(beforeBalance) || beforeBalance === 0) {
-    console.log("Wallet balance not found or is 0. Skipping deduction.");
-  }
-
-  const afterBalance = parseFloat((beforeBalance - totalOrderValue).toFixed(2));
-
-  const transactionDescription = `₹${totalOrderValue} deducted for ${food_name} ${unit} x ${quantity}. Balance ₹${afterBalance}`;
-
-  // Log wallet transaction
-  await logWalletTransaction(
-    user_id,
-    order_id,
-    beforeBalance,
-    totalOrderValue,
-    afterBalance,
-    transactionDescription
-  );
-
   const deductionSuccess = await deductFromWalletBalance(
     user_id,
     totalOrderValue
@@ -55,6 +31,34 @@ export const handlePaymentsOrders = async (placeOrderData) => {
     if (paymentResult.affectedRows === 0) {
       throw new Error("Payment insertion failed.");
     }
+
+    const [walletRows]: [RowDataPacket[], any] = await db
+      .promise()
+      .query(`SELECT balance FROM wallet_balances WHERE user_id = ?`, [
+        user_id,
+      ]);
+
+    const beforeBalance = parseFloat(walletRows[0]?.balance || "0");
+
+    if (isNaN(beforeBalance) || beforeBalance === 0) {
+      console.log("Wallet balance not found or is 0. Skipping deduction.");
+    }
+
+    const afterBalance = parseFloat(
+      (beforeBalance - totalOrderValue).toFixed(2)
+    );
+
+    const transactionDescription = `₹${totalOrderValue} deducted for ${food_name} ${unit} x ${quantity}. Balance ₹${afterBalance}`;
+
+    // Log wallet transaction
+    await logWalletTransaction(
+      user_id,
+      order_id,
+      beforeBalance,
+      totalOrderValue,
+      afterBalance,
+      transactionDescription
+    );
 
     return true;
   } catch (error) {
@@ -155,6 +159,8 @@ export const processTodayOrderPayments = async () => {
   try {
     console.time("paymentProcessing");
     const orders = await getAllPlaceOrdersUsers();
+    console.log("orders", orders);
+
     if (orders.length === 0) {
       console.log("No orders to process for today.");
       return;
@@ -168,7 +174,7 @@ export const processTodayOrderPayments = async () => {
 };
 
 export const everyDayPaymentProcessJob = () => {
-  cron.schedule("32 13 * * *", async () => {
+  cron.schedule("41 10 * * *", async () => {
     console.log("Cron job running...");
 
     await processTodayOrderPayments();

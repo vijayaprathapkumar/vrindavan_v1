@@ -22,8 +22,8 @@ export const getAllDetailedCommissions = async (
       value: "sc.commission",
     };
 
-    const sortColumn = validSortFields[sortField] || validSortFields.name;
-    const validSortOrder = sortOrder === "desc" ? "desc" : "asc";
+    const sortColumn = validSortFields[sortField] || "p.name";
+  const validSortOrder = sortOrder === "desc" ? "desc" : "asc"; 
 
     
   const queryData = `
@@ -78,7 +78,8 @@ export const getAllDetailedCommissions = async (
         foods p ON sc.product_id = p.id
    WHERE 
       (p.name LIKE ? OR p.unit LIKE ? OR p.price LIKE ?)${categoryFilter}
-   ORDER BY ${sortColumn} ${validSortOrder} 
+    ORDER BY CAST(${sortColumn} AS DECIMAL) ${validSortOrder}
+
     LIMIT ? OFFSET ?;
 
   `;

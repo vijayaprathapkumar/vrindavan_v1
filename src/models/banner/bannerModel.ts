@@ -63,7 +63,7 @@ export const getAllBanners = async (
       m.updated_at AS media_updated_at,
       CASE 
         WHEN m.conversions_disk = 'public1' 
-        THEN CONCAT('https://imagefileupload-1.s3.us-east-1.amazonaws.com/banners/', m.file_name)
+        THEN CONCAT('https://media-image-upload.s3.ap-south-1.amazonaws.com/banners/', m.file_name)
         ELSE CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name)
       END AS original_url
     FROM
@@ -133,9 +133,9 @@ export const getAllBanners = async (
             m.name AS media_name,
             m.file_name AS media_file_name,
             m.mime_type AS media_mime_type,
-          CASE 
+         CASE 
         WHEN m.conversions_disk = 'public1' 
-        THEN CONCAT('https://imagefileupload-1.s3.us-east-1.amazonaws.com/banners/', m.file_name)
+        THEN CONCAT('https://media-image-upload.s3.ap-south-1.amazonaws.com/banners/', m.file_name)
         ELSE CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name)
       END AS original_url
           FROM foods f
@@ -285,11 +285,11 @@ export const getBannerById = async (
       m.order_column,
       m.created_at AS media_created_at,
       m.updated_at AS media_updated_at,
-      CASE 
-            WHEN m.order_column = 0 THEN CONCAT('https://imagefileupload-1.s3.us-east-1.amazonaws.com/category/', m.file_name)
-            WHEN m.order_column IS NULL THEN NULL
-            ELSE CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name)
-            END AS original_url
+    CASE 
+        WHEN m.conversions_disk = 'public1' 
+        THEN CONCAT('https://media-image-upload.s3.ap-south-1.amazonaws.com/banners/', m.file_name)
+        ELSE CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name)
+      END AS original_url
     FROM 
       banners b
     LEFT JOIN media m ON b.id = m.model_id AND (m.model_type = 'App\\\\Models\\\\Food' OR m.model_type = 'AppModelsBanner')

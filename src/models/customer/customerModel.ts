@@ -107,9 +107,13 @@ export const getAllCustomers = async (
   
   if (sortField && validSortFields[sortField]) {
     const order = sortOrder === "desc" ? "desc" : "asc";
-    query += ` ORDER BY ${validSortFields[sortField]} ${order}`;
+    if (sortField === "status") {
+      query += ` ORDER BY CAST(${validSortFields[sortField]} AS CHAR) ${order}`;
+    } else {
+      query += ` ORDER BY ${validSortFields[sortField]} ${order}`;
+    }
   } else {
-    query += " ORDER BY user_id DESC";
+    query += " ORDER BY user_id desc";
   }
   
   query += ` LIMIT ? OFFSET ?;`;

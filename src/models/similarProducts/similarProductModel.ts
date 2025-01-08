@@ -22,7 +22,11 @@ export const getSimilarProductsWithCount = async (
   const productsQuery = `
     SELECT 
       f.*, 
-      CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name) AS original_url
+      CASE 
+        WHEN m.conversions_disk = 'public1' 
+        THEN CONCAT('https://media-image-upload.s3.ap-south-1.amazonaws.com/foods/', m.file_name)
+        ELSE CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name)
+      END AS original_url
     FROM 
       foods f
     LEFT JOIN 
