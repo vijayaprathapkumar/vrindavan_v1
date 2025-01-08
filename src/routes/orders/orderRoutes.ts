@@ -1,5 +1,6 @@
 import { Router } from "express";
 import {
+  cancelOneTimeOrder,
   cancelSubscriptionOrder,
   fetchAllOrders,
   fetchAllOrdersWithOutUserID,
@@ -31,5 +32,6 @@ router.put('/cancel-order', cancelSubscriptionOrder);
 
 router.get('/upcoming/:id', getUpcomingOrders);
 
+router.delete('/cancelOneTimeOrder/:orderId', cancelOneTimeOrder);
 
 export default router;

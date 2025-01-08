@@ -6,8 +6,8 @@ export const getAllLocalities = async (
   page: number,
   limit: number,
   searchTerm: string,
-  sortField: string,
-  sortOrder: string
+  sortField?: string,
+  sortOrder?: string
 ): Promise<{ localities: RowDataPacket[]; totalRecords: number }> => {
   const offset = (page - 1) * limit;
 
@@ -19,9 +19,10 @@ export const getAllLocalities = async (
     localities_active: "l.active",
   };
 
-  const sortColumn = validSortFields[sortField] || validSortFields.localityName;
+  
+  const sortColumn = validSortFields[sortField] || validSortFields.localities_name;
+  const validSortOrder = sortOrder?.toLowerCase() === "desc" ? "desc" : "asc";
 
-  const validSortOrder = sortOrder === "desc" ? "desc" : "asc";
 
   const localitiesQuery = `
       SELECT 

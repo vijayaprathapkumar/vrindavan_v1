@@ -197,7 +197,7 @@ const logWalletTransaction = async (
   const walletLogValues = [
     userId,
     orderId,
-    null, // Assuming order_item_id is not applicable here
+    null, 
     beforeBalance,
     amount,
     afterBalance,

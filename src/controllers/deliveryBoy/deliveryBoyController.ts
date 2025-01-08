@@ -23,15 +23,19 @@ export const getDeliveryBoysWithLocalities = async (
     const searchTerm = req.query.searchTerm
       ? (req.query.searchTerm as string)
       : "";
-      const sortField = req.query.sortField ? (req.query.sortField as string) : "name"; // Default to 'name'
-      const sortOrder = req.query.sortOrder ? (req.query.sortOrder as string) : "ASC"; // Default to 'ASC'
-  
+    const sortField = req.query.sortField
+      ? (req.query.sortField as string)
+      : "";
+    const sortOrder = req.query.sortOrder
+      ? (req.query.sortOrder as string)
+      : "";
+
     const { deliveryBoys, totalCount } = await getAllDeliveryBoysWithLocalities(
       limit,
       offset,
       searchTerm,
-      sortField,
-      sortOrder
+      sortField.toString(),
+      sortOrder.toString()
     );
 
     res.status(200).json(

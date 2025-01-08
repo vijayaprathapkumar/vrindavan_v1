@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import {
   getWalletBalanceByUserId,
   getWalletBalanceByWithOutUserId,
+  getWalletLogsWithFoodDetails,
   WalletBalance,
 } from "../../models/wallet/walletBalanceModel";
 import { createResponse } from "../../utils/responseHandler";
@@ -86,5 +87,19 @@ export const getWalletBalanceWithOutUserId = async (
       .json(
         createResponse(500, "Error retrieving wallet balance", error.message)
       );
+  }
+};
+
+
+export const getWalletLogs = async (req, res) => {
+  const { userId } = req.params;
+  try {
+    const walletLogsWithFood = await getWalletLogsWithFoodDetails(userId);
+    if (walletLogsWithFood.length === 0) {
+      return res.status(404).json({ message: 'No wallet logs found for this user' });
+    }
+    return res.status(200).json(walletLogsWithFood);
+  } catch (error) {
+    return res.status(500).json({ message: 'Internal Server Error' });
   }
 };

@@ -71,25 +71,20 @@ export const getAllNotifications = async (
           m.order_column,
           m.created_at AS media_created_at,
           m.updated_at AS media_updated_at,
-         CASE 
-          WHEN m.conversions_disk = 'public1' THEN 
-            CONCAT(
-              'https://vrindavanmilk.com/storage/app/public/', m.id, '/conversions/',
-              REPLACE(REPLACE(SUBSTRING_INDEX(m.file_name, '-icon', 1), '.png', ''), '.jpg', ''),
-              '-icon.jpg'
-            )
-          ELSE 
-            CONCAT('https://imagefileupload-1.s3.us-east-1.amazonaws.com/notification/', m.file_name)
-        END AS original_url
+             CASE 
+        WHEN m.conversions_disk = 'public1' 
+        THEN  CONCAT('https://media-image-upload.s3.ap-south-1.amazonaws.com/notification/', m.file_name)
+        ELSE CONCAT(
+            'https://vrindavanmilk.com/storage/app/public/', m.id, '/conversions/',
+            REPLACE(REPLACE(SUBSTRING_INDEX(m.file_name, '-icon', 1), '.png', ''), '.jpg', ''), 
+            '-icon.jpg'
+        )
+      END AS original_url
         FROM user_notifications un
         LEFT JOIN media m ON un.id = m.model_id 
           AND (m.model_type = 'App\\\\Models\\\\UserNotification')
         WHERE 1=1 ${searchCondition}  
-<<<<<<< HEAD
-         ORDER BY ${validSortFields[sortField]} ${sortOrder}
-=======
         ORDER BY ${sortColumn} ${order}
->>>>>>> 551a781 (upcoming orders apis)
         LIMIT ? OFFSET ?;
 
     `;
@@ -129,7 +124,6 @@ export const getAllNotifications = async (
       notification_send: row.notification_send,
       created_at: row.created_at,
       updated_at: row.updated_at,
-      original_url: row.original_url,
       media: {
         mediaId: row.media_id,
         model_type: row.model_type,
@@ -236,19 +230,19 @@ export const getNotificationById = async (
           m.order_column,
           m.created_at AS media_created_at,
           m.updated_at AS media_updated_at,
-           CASE 
-          WHEN m.conversions_disk = 'public1' THEN 
-            CONCAT(
+          CASE 
+          WHEN m.conversions_disk = 'public1' 
+          THEN  CONCAT('https://media-image-upload.s3.ap-south-1.amazonaws.com/notification/', m.file_name)
+          ELSE CONCAT(
               'https://vrindavanmilk.com/storage/app/public/', m.id, '/conversions/',
-              REPLACE(REPLACE(SUBSTRING_INDEX(m.file_name, '-icon', 1), '.png', ''), '.jpg', ''),
+              REPLACE(REPLACE(SUBSTRING_INDEX(m.file_name, '-icon', 1), '.png', ''), '.jpg', ''), 
               '-icon.jpg'
-            )
-          ELSE 
-            CONCAT('https://imagefileupload-1.s3.us-east-1.amazonaws.com/notification/', m.file_name)
+          )
         END AS original_url
+
         FROM user_notifications un
         LEFT JOIN media m ON un.id = m.model_id 
-          AND (m.model_type = 'App\\\\Models\\\\UserNotification' OR m.model_type = 'AppModelsNotification')
+          AND (m.model_type = 'App\\Models\\UserNotification')
       LEFT JOIN user_notification_logs ul ON un.id = ul.user_notification_id 
       WHERE un.id = ? 
       ORDER BY un.created_at DESC;

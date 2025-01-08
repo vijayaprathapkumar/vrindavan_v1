@@ -13,7 +13,7 @@ export const getDeliveryAddresses = async (
   const limit = parseInt(req.query.limit as string, 10) || 10;
   const searchTerm = req.query.searchTerm ? (req.query.searchTerm as string) : "";
   const sortField = req.query.sortField as string || "created_at";
-  const sortOrder = req.query.sortOrder === "DESC" ? "DESC" : "ASC";
+  const sortOrder = req.query.sortOrder === "desc" ? "desc" : "asc";
 
   try {
     const { deliveryAddresses, total } = await getDeliveryAddress(page, limit, searchTerm,sortField,sortOrder);
