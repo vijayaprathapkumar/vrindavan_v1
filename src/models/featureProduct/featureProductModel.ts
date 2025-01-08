@@ -23,7 +23,11 @@ export const getFeaturedCategories = async (
   let query = `
         SELECT fc.*, c.name AS category_name, c.description AS category_description, 
                f.*,
-               CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name) AS original_url
+                CASE 
+                WHEN m.conversions_disk = 'public1' 
+                THEN CONCAT('https://media-image-upload.s3.ap-south-1.amazonaws.com/foods/', m.file_name)
+                ELSE CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name)
+              END AS original_url
         FROM featured_categories AS fc
         JOIN categories AS c ON fc.category_id = c.id
         JOIN foods AS f ON fc.category_id = f.category_id

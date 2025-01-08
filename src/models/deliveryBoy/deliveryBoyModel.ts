@@ -52,9 +52,11 @@ export const getAllDeliveryBoysWithLocalities = async (
     active: "db.active",
     cash_collection: "db.cash_collection",
   };
+  
+  const sortColumn = validSortFields[sortField] || "db.created_at";
+const validSortOrder = sortOrder === "desc" ? "DESC" : "ASC"; // Ensure DESC and ASC are uppercase for SQL
 
-  const sortColumn = validSortFields[sortField] || validSortFields.name;
-  const validSortOrder = sortOrder.toUpperCase() === "desc" ? "desc" : "asc";
+  
 
   const [rows] = await db.promise().query<RowDataPacket[]>(
     `SELECT 
@@ -97,7 +99,7 @@ export const getAllDeliveryBoysWithLocalities = async (
       LEFT JOIN delivery_boys db ON limited_db.id = db.id
       LEFT JOIN locality_delivery_boys ldb ON db.id = ldb.delivery_boy_id
       LEFT JOIN localities l ON ldb.locality_id = l.id
-     ORDER BY ${sortColumn} ${validSortOrder}`,
+         ORDER BY ${sortColumn}  ${validSortOrder}`,
     [...searchParams, limit, offset]
   );
 
