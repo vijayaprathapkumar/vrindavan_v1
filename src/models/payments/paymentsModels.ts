@@ -174,7 +174,7 @@ export const processTodayOrderPayments = async () => {
 };
 
 export const everyDayPaymentProcessJob = () => {
-  cron.schedule("41 10 * * *", async () => {
+  cron.schedule("00 15 * * *", async () => {
     console.log("Cron job running...");
 
     await processTodayOrderPayments();
