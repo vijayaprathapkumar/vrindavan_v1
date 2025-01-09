@@ -14,9 +14,9 @@ export const getAllProductTypes = async (
   `;
   let activeValue: number | null = null;
 
-  if (searchTerm.toLowerCase() === "true") {
+  if (searchTerm.toLowerCase() === "active") {
     activeValue = 1;
-  } else if (searchTerm.toLowerCase() === "false") {
+  } else if (searchTerm.toLowerCase() === "inactive") {
     activeValue = 0; 
   }
 

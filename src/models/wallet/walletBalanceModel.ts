@@ -130,101 +130,95 @@ export const getWalletBalanceByWithOutUserId = async (
   
 
   //wallet logs
-  export const getWalletLogsWithFoodDetails = async (userId: string): Promise<WalletLog[] | null> => {
-    console.log("Fetching wallet logs for user ID:", userId);
-
+  export const getWalletLogsWithFoodDetails = async (userId: string, page: number, limit: number): Promise<any[] | null> => {
+   
     try {
       const query = `
-       SELECT 
-  wl.id AS wallet_log_id,
-  wl.user_id,
-  wl.order_id,
-  wl.order_date,
-  wl.order_item_id,
-  wl.before_balance,
-  wl.amount,
-  wl.after_balance,
-  wl.wallet_type,
-  wl.description,
-  wl.created_at,
-  wl.updated_at,
-
-  fo.id AS food_order_id,
-  fo.price,
-  fo.quantity,
-  fo.food_id,
-  fo.created_at AS food_order_created_at,
-  fo.updated_at AS food_order_updated_at,
-
-  f.name AS food_name,
-  f.price AS food_price,
-  f.discount_price AS food_discount_price,
-  f.description AS food_description,
-  f.perma_link AS food_perma_link,
-  f.ingredients AS food_ingredients,
-  f.package_items_count AS food_package_items_count,
-  f.weight AS food_weight,
-  f.unit AS food_unit,
-  f.sku_code AS food_sku_code,
-  f.barcode AS food_barcode,
-  f.cgst AS food_cgst,
-  f.sgst AS food_sgst,
-  f.subscription_type AS food_subscription_type,
-  f.track_inventory AS food_track_inventory,
-  f.featured AS food_featured,
-  f.deliverable AS food_deliverable,
-  f.restaurant_id AS food_restaurant_id,
-  f.category_id AS food_category_id,
-  f.subcategory_id AS food_subcategory_id,
-  f.product_type_id AS food_product_type_id,
-  f.hub_id AS food_hub_id,
-  f.locality_id AS food_locality_id,
-  f.product_brand_id AS food_product_brand_id,
-  f.weightage AS food_weightage,
-  f.status AS food_status,
-  f.created_at AS food_created_at,
-  f.updated_at AS food_updated_at,
-
-  m.id AS media_id,
-  m.model_id,
-  m.file_name,
-  m.mime_type,
-  m.disk,
-  m.conversions_disk,
-  m.size,
-  m.manipulations,
-  m.custom_properties,
-  m.generated_conversions,
-  m.responsive_images,
-  m.order_column,
-  CASE 
-    WHEN m.conversions_disk = 'public1' 
-    THEN CONCAT('https://media-image-upload.s3.ap-south-1.amazonaws.com/foods/', m.file_name)
-    ELSE CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name)
-  END AS original_url
-FROM wallet_logs wl
-LEFT JOIN food_orders fo ON wl.order_id = fo.order_id
-LEFT JOIN foods f ON fo.food_id = f.id
-LEFT JOIN media m ON f.id = m.model_id AND m.model_type = 'App\\\\Models\\\\Food'
-WHERE wl.user_id = ?
-ORDER BY wl.order_date DESC;
-
+        SELECT 
+          wl.id AS wallet_log_id,
+          wl.user_id,
+          wl.order_id,
+          wl.order_date,
+          wl.order_item_id,
+          wl.before_balance,
+          wl.amount,
+          wl.after_balance,
+          wl.wallet_type,
+          wl.description,
+          wl.created_at,
+          wl.updated_at,
+    
+          fo.id AS food_order_id,
+          fo.price,
+          fo.quantity,
+          fo.food_id,
+          fo.created_at AS food_order_created_at,
+          fo.updated_at AS food_order_updated_at,
+    
+          f.name AS food_name,
+          f.price AS food_price,
+          f.discount_price AS food_discount_price,
+          f.description AS food_description,
+          f.perma_link AS food_perma_link,
+          f.ingredients AS food_ingredients,
+          f.package_items_count AS food_package_items_count,
+          f.weight AS food_weight,
+          f.unit AS food_unit,
+          f.sku_code AS food_sku_code,
+          f.barcode AS food_barcode,
+          f.cgst AS food_cgst,
+          f.sgst AS food_sgst,
+          f.subscription_type AS food_subscription_type,
+          f.track_inventory AS food_track_inventory,
+          f.featured AS food_featured,
+          f.deliverable AS food_deliverable,
+          f.restaurant_id AS food_restaurant_id,
+          f.category_id AS food_category_id,
+          f.subcategory_id AS food_subcategory_id,
+          f.product_type_id AS food_product_type_id,
+          f.hub_id AS food_hub_id,
+          f.locality_id AS food_locality_id,
+          f.product_brand_id AS food_product_brand_id,
+          f.weightage AS food_weightage,
+          f.status AS food_status,
+          f.created_at AS food_created_at,
+          f.updated_at AS food_updated_at,
+    
+          m.id AS media_id,
+          m.model_id,
+          m.file_name,
+          m.mime_type,
+          m.disk,
+          m.conversions_disk,
+          m.size,
+          m.manipulations,
+          m.custom_properties,
+          m.generated_conversions,
+          m.responsive_images,
+          m.order_column,
+          CASE 
+            WHEN m.conversions_disk = 'public1' 
+            THEN CONCAT('https://media-image-upload.s3.ap-south-1.amazonaws.com/foods/', m.file_name)
+            ELSE CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name)
+          END AS original_url
+        FROM wallet_logs wl
+        LEFT JOIN food_orders fo ON wl.order_id = fo.order_id
+        LEFT JOIN foods f ON fo.food_id = f.id
+        LEFT JOIN media m ON f.id = m.model_id AND m.model_type = 'App\\\\Models\\\\Food'
+        WHERE wl.user_id = ?
+        ORDER BY wl.order_date DESC
+        LIMIT ? OFFSET ?;
       `;
       
-      const [rows]: [RowDataPacket[], any] = await db.promise().query(query, [userId]);
-  console.log('vkrows',rows);
+      const [rows]: [RowDataPacket[], any] = await db.promise().query(query, [userId, limit, (page - 1) * limit]);
   
       if (rows.length === 0) {
         return null;
       }
-   
   
-      
-      const walletLogsWithFoodDetails: any[] = rows.map((row) => {
-
+      const walletLogsWithFoodDetails = rows.map((row) => {
         const totalPrice = parseFloat(row.food_price) * row.quantity;
-        console.log("Query result rows:", rows);
-
+  
         return {
           wallet_log_id: row.wallet_log_id,
           user_id: row.user_id,
@@ -239,7 +233,6 @@ ORDER BY wl.order_date DESC;
           created_at: row.created_at,
           updated_at: row.updated_at,
   
-          // Keeping food and media as objects
           food: {
             food_order_id: row.food_order_id,
             price: parseFloat(row.price),
@@ -247,7 +240,7 @@ ORDER BY wl.order_date DESC;
             food_id: row.food_id,
             food_order_created_at: row.food_order_created_at,
             food_order_updated_at: row.food_order_updated_at,
-            total_price: totalPrice, // Add the total price to the food object
+            total_price: totalPrice,
           },
   
           media: {
@@ -266,7 +259,6 @@ ORDER BY wl.order_date DESC;
             original_url: row.original_url,
           },
   
-          // Flattening food properties directly under the `food` object
           food_details: {
             food_name: row.food_name,
             food_price: parseFloat(row.food_price),
@@ -306,4 +298,5 @@ ORDER BY wl.order_date DESC;
       console.error("Stack Trace:", error.stack);
       throw new Error("Failed to fetch wallet logs with food details");
     }
-  }    
+  };
+  
