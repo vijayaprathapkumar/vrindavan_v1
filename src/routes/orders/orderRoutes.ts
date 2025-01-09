@@ -5,6 +5,7 @@ import {
   fetchAllOrders,
   fetchAllOrdersWithOutUserID,
   fetchOrderById,
+  getCalender,
   getUpcomingOrders,
   removeOrder,
   updateOrderQty,
@@ -31,6 +32,9 @@ router.delete("/:id", verifyDeviceToken, removeOrder);
 router.put('/cancel-order', cancelSubscriptionOrder);
 
 router.get('/upcoming/:id', getUpcomingOrders);
+
+router.get('/calender/:userId', getCalender);
+
 
 router.delete('/cancelOneTimeOrder/:orderId', cancelOneTimeOrder);
 

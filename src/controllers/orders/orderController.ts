@@ -6,6 +6,9 @@ import {
   deletePlaceOrderById,
   getAllOrders,
   getAllOrdersWithOutUserId,
+
+  getCalenderOrdersModel,
+
   getPlaceOrderById,
   getUpcomingOrdersModel,
   updateOneTimeOrders,
@@ -94,12 +97,10 @@ export const fetchAllOrdersWithOutUserID = async (
   const deliveryBoyId = req.query.deliveryBoyId
     ? parseInt(req.query.deliveryBoyId as string)
     : null;
-    
-    
-    const productId = req.query.productId
+
+  const productId = req.query.productId
     ? parseInt(req.query.productId as string)
     : null;
-  
 
   const startDate = req.query.startDate
     ? new Date(req.query.startDate as string)
@@ -180,7 +181,6 @@ export const fetchOrderById = async (
   }
 };
 
-
 //update  Qnty Change
 export const updateOrderQty = async (
   req: Request,
@@ -189,7 +189,7 @@ export const updateOrderQty = async (
   const { orderId, quantity, orderDate, orderType, subscriptionId } = req.body;
 
   if (orderType === 2 && !subscriptionId) {
-    return res.status(400).json({ message: 'Subscription ID is required.' });
+    return res.status(400).json({ message: "Subscription ID is required." });
   }
 
   try {
@@ -198,13 +198,13 @@ export const updateOrderQty = async (
     } else if (orderType === 2) {
       await updateSubscriptionOrders(subscriptionId, quantity, orderDate);
     } else {
-      return res.status(400).json({ message: 'Invalid order type.' });
+      return res.status(400).json({ message: "Invalid order type." });
     }
 
-    return res.json({ message: 'Order updated successfully.' });
+    return res.json({ message: "Order updated successfully." });
   } catch (error) {
     console.error("Error updating order:", error);
-    return res.status(500).json({ message: 'Failed to update order.' });
+    return res.status(500).json({ message: "Failed to update order." });
   }
 };
 
@@ -239,45 +239,79 @@ export const cancelSubscriptionOrder = async (
   const { subscriptionId, cancelOrderDate, reason, otherReason } = req.body;
 
   if (!subscriptionId || !cancelOrderDate) {
-    res.status(400).json({ message: 'Subscription ID and cancelOrderDate are required.' });
+    res
+      .status(400)
+      .json({ message: "Subscription ID and cancelOrderDate are required." });
     return;
   }
 
   try {
-    const formattedDate = new Date(cancelOrderDate).toISOString().split('T')[0];
+    const formattedDate = new Date(cancelOrderDate).toISOString().split("T")[0];
     await cancelOrder(subscriptionId, formattedDate, reason, otherReason);
-    res.status(200).json({ message: 'Subscription order canceled successfully.' });
+    res
+      .status(200)
+      .json({ message: "Subscription order canceled successfully." });
   } catch (error) {
-    console.error('Error canceling subscription order:', error);
-    res.status(500).json({ message: 'Failed to cancel subscription order.', error: error.message });
+    console.error("Error canceling subscription order:", error);
+    res
+      .status(500)
+      .json({
+        message: "Failed to cancel subscription order.",
+        error: error.message,
+      });
   }
 };
-
 
 export const getUpcomingOrders = async (req: Request, res: Response) => {
   const userId = parseInt(req.params.id);
   const dateParam = req.query.date || req.body.date; // Accepts date from query or body
   const currentDate = dateParam ? new Date(dateParam) : new Date(); // Use provided date or current date
-  
+
+  const { page = 1, limit = 10 } = req.query;
+  const currentPage = parseInt(page as string, 10);
+  const recordsPerPage = parseInt(limit as string, 10);
+
   // Validate userId and date
   if (isNaN(userId)) {
-    return res.status(400).json(createResponse(400, 'Invalid user ID.'));
+    return res.status(400).json(createResponse(400, "Invalid user ID."));
   }
 
   if (isNaN(currentDate.getTime())) {
-    return res.status(400).json(createResponse(400, 'Invalid date format.'));
+    return res.status(400).json(createResponse(400, "Invalid date format."));
   }
 
   try {
-    const upcomingOrders = await getUpcomingOrdersModel(userId, currentDate);
+    const allUpcomingOrders = await getUpcomingOrdersModel(userId, currentDate);
 
-    res.status(200).json(createResponse(200, 'Upcoming orders fetched successfully.', { upcomingOrders }));
+    const totalRecord = allUpcomingOrders.length;
+
+    const totalPages = Math.ceil(totalRecord / recordsPerPage);
+
+    const upcomingOrders = allUpcomingOrders.slice(
+      (currentPage - 1) * recordsPerPage,
+      currentPage * recordsPerPage
+    );
+
+    res
+      .status(200)
+      .json(
+        createResponse(200, "Upcoming orders fetched successfully.", {
+          upcomingOrders,
+          totalRecord,
+          currentPage,
+          limit: recordsPerPage,
+          totalPages,
+        })
+      );
   } catch (error) {
-    console.error('Error fetching upcoming orders:', error);
-    res.status(500).json(createResponse(500, 'Failed to fetch upcoming orders.', error.message));
+    console.error("Error fetching upcoming orders:", error);
+    res
+      .status(500)
+      .json(
+        createResponse(500, "Failed to fetch upcoming orders.", error.message)
+      );
   }
 };
-
 
 // cancel one time order
 export const cancelOneTimeOrder = async (req: Request, res: Response) => {
@@ -285,7 +319,7 @@ export const cancelOneTimeOrder = async (req: Request, res: Response) => {
 
   // Validate orderId
   if (!orderId || isNaN(parseInt(orderId))) {
-    return res.status(400).json(createResponse(400, 'Invalid order ID.'));
+    return res.status(400).json(createResponse(400, "Invalid order ID."));
   }
 
   try {
@@ -294,18 +328,86 @@ export const cancelOneTimeOrder = async (req: Request, res: Response) => {
     nineThirtyPM.setHours(21, 30, 0, 0); // Set time to 9:30 PM
 
     if (now > nineThirtyPM) {
-      return res.status(403).json(createResponse(403, 'You cannot cancel the order after 9:30 PM.'));
+      return res
+        .status(403)
+        .json(
+          createResponse(403, "You cannot cancel the order after 9:30 PM.")
+        );
     }
 
     const result = await cancelOneTimeOrderModel(parseInt(orderId));
 
     if (result.success) {
-      res.status(200).json(createResponse(200, 'Order canceled successfully.'));
+      res.status(200).json(createResponse(200, "Order canceled successfully."));
     } else {
-      res.status(404).json(createResponse(404, 'Order not found or already canceled.'));
+      res
+        .status(404)
+        .json(createResponse(404, "Order not found or already canceled."));
     }
   } catch (error) {
-    console.error('Error canceling order:', error);
-    res.status(500).json(createResponse(500, 'Failed to cancel order.', error.message));
+    console.error("Error canceling order:", error);
+    res
+      .status(500)
+      .json(createResponse(500, "Failed to cancel order.", error.message));
+  }
+};
+
+
+export const getCalender = async (req: Request, res: Response) => {
+  const userId = parseInt(req.params.userId);
+  const startDate = req.query.startDate as string | null;
+  const endDate = req.query.endDate as string | null;
+console.log('userId',userId);
+
+  const { page = 1, limit = 10 } = req.query;
+  const currentPage = parseInt(page as string, 10);
+  const recordsPerPage = parseInt(limit as string, 10);
+
+  // Validate userId and dates
+  if (isNaN(userId)) {
+    return res.status(400).json(createResponse(400, "Invalid user ID."));
+  }
+
+  if (startDate && isNaN(Date.parse(startDate))) {
+    return res.status(400).json(createResponse(400, "Invalid start date format."));
+  }
+
+  if (endDate && isNaN(Date.parse(endDate))) {
+    return res.status(400).json(createResponse(400, "Invalid end date format."));
+  }
+
+  try {
+    const allUpcomingOrders = await getCalenderOrdersModel(
+      userId,
+      startDate,
+      endDate
+    );
+
+    const totalRecord = allUpcomingOrders.length;
+    const totalPages = Math.ceil(totalRecord / recordsPerPage);
+
+    const upcomingOrders = allUpcomingOrders.slice(
+      (currentPage - 1) * recordsPerPage,
+      currentPage * recordsPerPage
+    );
+
+    res
+      .status(200)
+      .json(
+        createResponse(200, "Upcoming orders fetched successfully.", {
+          upcomingOrders,
+          totalRecord,
+          currentPage,
+          limit: recordsPerPage,
+          totalPages,
+        })
+      );
+  } catch (error) {
+    console.error("Error fetching upcoming orders:", error);
+    res
+      .status(500)
+      .json(
+        createResponse(500, "Failed to fetch upcoming orders.", error.message)
+      );
   }
 };
