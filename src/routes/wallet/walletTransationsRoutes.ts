@@ -3,6 +3,7 @@ import { walletRecharges, getTransactionsByUserId, getAllTransactions, deductWal
 import { getWalletBalance, getWalletBalanceWithOutUserId, getWalletLogs } from "../../controllers/wallet/walletBalanceController";
 import {  fetchOrderBillingHistory, fetchOrderBillingHistoryForMobile } from "../../controllers/wallet/billingHistoryController";
 import { verifyDeviceToken } from "../../middlewares/authMiddleware";
+import { processRefund } from "../../controllers/refund/refundController";
 
 const router = Router();
 
@@ -15,6 +16,8 @@ router.get("/billing_history/:userId",verifyDeviceToken, fetchOrderBillingHistor
 router.get("/billing_history/:userId",verifyDeviceToken, fetchOrderBillingHistory);
 router.post("/deduct",verifyDeviceToken, deductWalletBalance);
 router.get("/logs/:userId", verifyDeviceToken, getWalletLogs);
+router.post("/refund", verifyDeviceToken, processRefund);
+
 export default router;
 
 
