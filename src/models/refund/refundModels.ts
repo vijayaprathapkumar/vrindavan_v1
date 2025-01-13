@@ -1,13 +1,11 @@
 import { db } from "../../config/databaseConnection";
 
-// Get the wallet balance for a specific user
 export const getWalletBalance = async (userId: string) => {
   const query = `SELECT balance FROM wallet_balances WHERE user_id = ?`;
   const [result]: any = await db.promise().query(query, [userId]);
   return result;
 };
 
-// Update the wallet balance for a specific user
 export const updateWalletBalance = async (userId: string, amount: number) => {
   const query = `
     UPDATE wallet_balances
@@ -17,7 +15,7 @@ export const updateWalletBalance = async (userId: string, amount: number) => {
   await db.promise().query(query, [amount, userId]);
 };
 
-// Insert a refund log into the wallet_logs table
+
 export const insertWalletLog = async (
   userId: string,
   orderDate: Date,
