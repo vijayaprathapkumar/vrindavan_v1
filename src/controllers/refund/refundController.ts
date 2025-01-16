@@ -19,19 +19,15 @@ export const processRefund = async (req: Request, res: Response) => {
 
     const currentBalance = Number(balanceResult[0].balance);
 
-    // Check if the wallet has sufficient balance
-    if (currentBalance < amount) {
-      return res
-        .status(400)
-        .json(createResponse(400, "Insufficient wallet balance for refund"));
-    }
+
+    // Calculate after balance
+    const afterBalance = currentBalance + Number(amount);
 
     // Update the wallet balance
-    await updateWalletBalance(user_id, +amount);
+    await updateWalletBalance(user_id, Number(amount));
 
     // Log the refund transaction
-    const afterBalance = currentBalance + amount;
-    const logDescription = `Refunded ₹${amount.toFixed(
+    const logDescription = `Refunded ₹${Number(amount).toFixed(
       2
     )} (${refund_reason}) | Wallet balance: ₹${afterBalance.toFixed(2)}`;
 
