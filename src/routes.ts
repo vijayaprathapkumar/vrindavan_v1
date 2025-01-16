@@ -31,6 +31,7 @@ import deliveryAddressesRoutes from "./routes/customer/deliveryAddressesRoutes";
 import customerPrioritiesRoutes from "./routes/customer/customerPrioritiesRoutes";
 import specialCommissionRoutes from "./routes/deliveryBoy/specialCommissionRoutes";
 import imageUploadRoutes from "./routes/imageUpload/imageUploadRoutes";
+import commissionPayoutRoutes from "./routes/deliveryBoy/commissionPayoutRoutes";
 
 const router = express.Router();
 
@@ -61,10 +62,10 @@ router.use("/faqs", faqsRoutes);
 router.use("/delivery_boys", deliveryBoyRoutes);
 router.use("/commissions", commissionRoutes);
 router.use("/special-commissions", specialCommissionRoutes);
-
+router.use("/commission-payouts", commissionPayoutRoutes);
 
 // orders
-router.use("/orders", orderRoutes); 
+router.use("/orders", orderRoutes);
 router.use("/route_orders", routeOrdersRoutes);
 router.use("/hub_orders", hubOrdersRoutes);
 router.use("/delivery_orders", devliveryBoyOrders);
@@ -94,10 +95,8 @@ router.use("/notifications", notificationRoutes);
 // feature_products
 router.use("/feature_products", featureProductRoutes);
 
-
 //similarProduct
 router.use("/similarProduct", similarProductsRoutes);
-
 
 // admin Login
 router.use("/admin", loginRoutes);
@@ -106,6 +105,6 @@ router.use("/admin", loginRoutes);
 router.use("/customer-priorities", customerPrioritiesRoutes);
 
 //image upload
-router.use("/imageUpload",imageUploadRoutes);
+router.use("/imageUpload", imageUploadRoutes);
 
 export default router;
