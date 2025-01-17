@@ -8,7 +8,6 @@ import { verifyDeviceToken } from "../../middlewares/authMiddleware";
 
 const router = express.Router();
 
-// Define routes for commissions
 router.get("/",verifyDeviceToken, getDetailedCommissions);
 router.put("/:commissionId",verifyDeviceToken, updateCommissionController);
 router.get("/:id", verifyDeviceToken, getDetailedCommission);
