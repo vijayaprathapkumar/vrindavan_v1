@@ -37,11 +37,11 @@ export const getCommissionPayouts = async (
 
     res.status(200).json(
       createResponse(200, "Commission payouts fetched successfully", {
+        commissionPayouts,
         totalCount,
         totalPages,
         currentPage: page,
         limit,
-        commissionPayouts,
       })
     );
   } catch (error) {

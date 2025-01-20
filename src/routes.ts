@@ -32,6 +32,7 @@ import customerPrioritiesRoutes from "./routes/customer/customerPrioritiesRoutes
 import specialCommissionRoutes from "./routes/deliveryBoy/specialCommissionRoutes";
 import imageUploadRoutes from "./routes/imageUpload/imageUploadRoutes";
 import commissionPayoutRoutes from "./routes/deliveryBoy/commissionPayoutRoutes";
+import cronLogsRoutes from "./routes/cronLogsRoutes/cronLogsRoutes";
 
 const router = express.Router();
 
@@ -106,5 +107,9 @@ router.use("/customer-priorities", customerPrioritiesRoutes);
 
 //image upload
 router.use("/imageUpload", imageUploadRoutes);
+
+//cron logs
+router.use("/cron-logs", cronLogsRoutes);
+
 
 export default router;
