@@ -24,82 +24,122 @@ export async function handleNextDayOrders() {
   const batchSize = 100;
 
   while (true) {
-    const subscriptions = await fetchSubscriptions(lastId, batchSize);
-    if (subscriptions.length === 0) break;
+    try {
+      const subscriptions = await withTimeout(
+        fetchSubscriptions(lastId, batchSize),
+        5000
+      );
+      if (subscriptions.length === 0) break;
 
-    await Promise.all(
-      subscriptions.map(async (sub) => {
-        let quantityToOrder = 0;
-        const lastOrderDate = moment(sub.last_order_date);
+      await Promise.allSettled(
+        subscriptions.map(async (sub) => {
+          try {
+            let quantityToOrder = 0;
+            const lastOrderDate = moment(sub.last_order_date);
 
-        switch (sub.subscription_type) {
-          case "everyday":
-            quantityToOrder = sub.quantity;
-            break;
-          case "alternative_day":
-            if (tomorrow.diff(lastOrderDate, "days") % 2 === 0) {
-              quantityToOrder = sub.quantity;
+            switch (sub.subscription_type) {
+              case "everyday":
+                quantityToOrder = sub.quantity;
+                break;
+              case "alternative_day":
+                if (tomorrow.diff(lastOrderDate, "days") % 2 === 0) {
+                  quantityToOrder = sub.quantity;
+                }
+                break;
+              case "every_3_day":
+                if (tomorrow.diff(lastOrderDate, "days") % 3 === 0) {
+                  quantityToOrder = sub.quantity;
+                }
+                break;
+              case "every_7_day":
+                if (tomorrow.diff(lastOrderDate, "days") % 7 === 0) {
+                  quantityToOrder = sub.quantity;
+                }
+                break;
+              case "customize":
+                quantityToOrder = sub[`${dayOfWeek}Qty`];
+                break;
+              default:
+                return;
             }
-            break;
-          case "every_3_day":
-            if (tomorrow.diff(lastOrderDate, "days") % 3 === 0) {
-              quantityToOrder = sub.quantity;
-            }
-            break;
-          case "every_7_day":
-            if (tomorrow.diff(lastOrderDate, "days") % 7 === 0) {
-              quantityToOrder = sub.quantity;
-            }
-            break;
-          case "customize":
-            quantityToOrder = sub[`${dayOfWeek}Qty`];
-            break;
-          default:
-            return;
-        }
 
-        if (quantityToOrder > 0) {
-          await createOrder(sub, quantityToOrder);
-        }
-      })
-    );
+            if (quantityToOrder > 0) {
+              const orderResult = await createOrder(sub, quantityToOrder);
+              if (!orderResult.success) {
+                if (orderResult.reason === "missing_product") {
+                  console.warn(
+                    `Subscription ID ${sub.id}: Missing product. Skipping.`
+                  );
+                } else {
+                  console.error(
+                    `Subscription ID ${sub.id}: Failed to create order.`
+                  );
+                }
+              }
+            }
+          } catch (error) {
+            console.error(`Error processing subscription ID ${sub.id}:`, error);
+          }
+        })
+      );
 
-    lastId = subscriptions[subscriptions.length - 1].id;
+      lastId = subscriptions[subscriptions.length - 1].id;
+    } catch (error) {
+      console.error("Error fetching or processing subscriptions:", error);
+      break; // Break the loop if fetching subscriptions fails consistently.
+    }
   }
 }
+
+
+const withTimeout = (promise, ms) => {
+  const timeout = new Promise((_, reject) =>
+    setTimeout(() => reject(new Error("Operation timed out")), ms)
+  );
+  return Promise.race([promise, timeout]);
+};
 
 export const createOrder = async (orderItem, quantityToOrder) => {
   const { product_id, user_id } = orderItem || {};
 
   try {
-    const productData = await getProductById(product_id);
+    const productData = await withTimeout(getProductById(product_id), 5000);
 
     if (!productData || productData.length === 0) {
       console.warn(
         `Product with ID ${product_id} not found. Skipping order for user ${user_id}.`
       );
-      return;
+      return { success: false, reason: "missing_product" };
     }
 
     const { discount_price, price } = productData[0];
-    const productAmount = discount_price ? discount_price : price;
+    const productAmount = discount_price || price;
 
     if (productAmount > 0) {
-      const orderData: any = await addOrdersEntry(user_id);
+      const orderData = await withTimeout(addOrdersEntry(user_id), 5000);
       if (orderData?.orderId) {
-        await addFoodOrderEntry(
-          productAmount,
-          quantityToOrder,
-          product_id,
-          orderData.orderId
+        await withTimeout(
+          addFoodOrderEntry(
+            productAmount,
+            quantityToOrder,
+            product_id,
+            orderData.orderId
+          ),
+          5000
         );
       }
     }
+
+    return { success: true };
   } catch (error) {
-    console.error(`Error creating order for user ${orderItem.user_id}:`, error);
-    throw new Error("Failed to create order.");
+    console.error(
+      `Error creating order for user ${user_id} with product ${product_id}:`,
+      error
+    );
+    return { success: false, reason: "error" };
   }
 };
+
 
 const getProductById = async (product_id) => {
   const query = `
@@ -198,13 +238,42 @@ const addFoodOrderEntry = async (
 };
 
 export const subcribtionsJob = () => {
-  cron.schedule("30 21 * * *", async () => {
+  cron.schedule("38 16 * * *", async () => {
     console.log("Cron job running...");
     console.time("subProcessing");
+
+    const currentDate = new Date();
+    const nextDate = new Date();
+    nextDate.setDate(currentDate.getDate() + 1);
+
+    const jobStartTime = moment().format('YYYY-MM-DD HH:mm:ss');
+    let jobEndTime = '';
+    let jobDuration = '';
+
     try {
       await handleNextDayOrders();
+      
+      jobEndTime = moment().format('YYYY-MM-DD HH:mm:ss');
+      jobDuration = moment(jobEndTime).diff(moment(jobStartTime), 'seconds') as any;
+
+      const logMessage = `Subscription orders placed for date ${
+        nextDate.toISOString().split("T")[0]
+      } and placed on ${currentDate.toLocaleString()}`;
+
+      const sqlQuery = `
+        INSERT INTO cron_logs (log_date, cron_logs, created_at, updated_at)
+        VALUES (?, ?, NOW(), NOW())
+      `;
+      const values = [
+        nextDate.toISOString().split("T")[0],
+        `Job Start: ${jobStartTime}, Job End: ${jobEndTime}, Duration: ${jobDuration}s, Message: ${logMessage}`,
+      ];
+
+      // Insert cron log into the database
+      await db.promise().query(sqlQuery, values);
+
       console.timeEnd("subProcessing"); 
-      console.log("Today's subcription processed successfully.");
+      console.log("Today's subscription processed successfully.");
     } catch (error) {
       console.error("Error running handleNextDayOrders:", error);
     }

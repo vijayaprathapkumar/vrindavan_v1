@@ -1,6 +1,7 @@
 import { OkPacket, RowDataPacket } from "mysql2";
 import { db } from "../../config/databaseConnection";
 import cron from "node-cron";
+import moment from "moment";
 
 export const handlePaymentsOrders = async (placeOrderData) => {
   const { user_id, food_price, quantity, order_id, status, food_name, unit } =
@@ -174,9 +175,41 @@ export const processTodayOrderPayments = async () => {
 };
 
 export const everyDayPaymentProcessJob = () => {
-  cron.schedule("00 15 * * *", async () => {
+  cron.schedule("50 16 * * *", async () => {
     console.log("Cron job running...");
+    console.time("paymentProcessing");
 
-    await processTodayOrderPayments();
+    const currentDate = new Date();
+    const jobStartTime = moment().format("YYYY-MM-DD HH:mm:ss");
+    let jobEndTime = "";
+    let jobDuration = "";
+
+    try {
+      await processTodayOrderPayments();
+
+      jobEndTime = moment().format("YYYY-MM-DD HH:mm:ss");
+      jobDuration = moment(jobEndTime).diff(
+        moment(jobStartTime),
+        "seconds"
+      ) as any;
+
+      const logMessage = `Subscription orders bill placed on ${currentDate.toLocaleString()}`;
+
+      const sqlQuery = `
+        INSERT INTO cron_logs (log_date, cron_logs, created_at, updated_at)
+        VALUES (NOW(), ?, NOW(), NOW())
+      `;
+      const values = [
+        `Job Start: ${jobStartTime}, Job End: ${jobEndTime}, Duration: ${jobDuration}s, Message: ${logMessage}`,
+      ];
+
+      // Insert cron log into the database
+      await db.promise().query(sqlQuery, values);
+
+      console.timeEnd("paymentProcessing");
+      console.log("Today's payment processed successfully.");
+    } catch (error) {
+      console.error("Error running processTodayOrderPayments:", error);
+    }
   });
 };

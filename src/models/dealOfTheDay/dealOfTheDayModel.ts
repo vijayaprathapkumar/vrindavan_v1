@@ -3,7 +3,7 @@ import { RowDataPacket, OkPacket, ResultSetHeader } from "mysql2";
 
 export interface DealOfTheDay {
   id: number;
-  food_id: string;
+  foodId: string;
   food_name: any;
   unit: string;
   price: number;
@@ -116,7 +116,7 @@ export const getAllDeals = async (
   return {
     deals: rows.map((row) => ({
       id: row.deal_id,
-      food_id: row.food_id,
+      foodId: row.food_id,
       food_name: row.food_name,
       unit: row.unit,
       price: row.price,
@@ -259,7 +259,7 @@ export const getDealById = async (id: number): Promise<DealOfTheDay | null> => {
 
   return {
     id: rows[0].deal_id,
-    food_id: rows[0].food_id,
+    foodId: rows[0].food_id,
     food_name: rows[0].food_name, // Include food_name in the return value
     unit: rows[0].unit,
     price: rows[0].price,

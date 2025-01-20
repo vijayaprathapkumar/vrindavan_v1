@@ -126,11 +126,12 @@ export const updateMediaRecord = async (
       file_name = ?, 
       mime_type = ?, 
       size = ?, 
+      conversions_disk = ?,
       updated_at = NOW()
      WHERE id = ?
   `;
 
-  const params = [ path.parse(file_name).name,file_name, mime_type, size, media_id];
+  const params = [ path.parse(file_name).name,file_name, mime_type, size, "public1", media_id];
 
   try {
     const [result] = await db.promise().query<OkPacket>(query, params);
