@@ -118,46 +118,45 @@ export const getAllOrders = async (
           order_id,
           {
             ...rest,
-            order_id,
-            food_orders: [
-              {
-                food_order_id,
-                food_id,
-                price,
-                quantity,
-                name,
-                discount_price,
-                description,
-                package_items_count,
-                weight,
-                unit,
-                cgst,
-                sgst,
-                subscription_type,
-                track_inventory,
-                featured,
-                deliverable,
-                weightage,
-                media: {
-                  media_id,
-                  model_type,
-                  model_id,
-                  uuid,
-                  collection_name,
-                  media_name,
-                  file_name,
-                  mime_type,
-                  disk,
-                  conversions_disk,
-                  size,
-                  manipulations,
-                  custom_properties,
-                  responsive_images,
-                  order_column,
-                  original_url,
-                },
+           
+            food_orders: {
+              order_id,
+              food_order_id,
+              food_id,
+              price,
+              quantity,
+              name,
+              discount_price,
+              description,
+              package_items_count,
+              weight,
+              unit,
+              cgst,
+              sgst,
+              subscription_type,
+              track_inventory,
+              featured,
+              deliverable,
+              weightage,
+              media: {
+                media_id,
+                model_type,
+                model_id,
+                uuid,
+                collection_name,
+                media_name,
+                file_name,
+                mime_type,
+                disk,
+                conversions_disk,
+                size,
+                manipulations,
+                custom_properties,
+                responsive_images,
+                order_column,
+                original_url,
               },
-            ],
+            },
             totalPrice: price * quantity,
             totalQuantity: quantity,
           },
@@ -245,10 +244,10 @@ export const getAllOrdersWithOutUserId = async (
   }
 
   if (walletFilter) {
-    if (walletFilter === '1') {
-      conditions += " AND o.is_wallet_deduct = 0";  // Non-deducted orders
-    } else if (walletFilter === '2') {
-      conditions += " AND o.is_wallet_deduct = 1";  // Deducted orders
+    if (walletFilter === "1") {
+      conditions += " AND o.is_wallet_deduct = 0"; // Non-deducted orders
+    } else if (walletFilter === "2") {
+      conditions += " AND o.is_wallet_deduct = 1"; // Deducted orders
     }
   }
 
@@ -1247,7 +1246,7 @@ export const updateSubscriptionOrders = async (
 
     if (orderDate) {
       const date = new Date(orderDate);
-      orderDate = date.toISOString().split('T')[0];
+      orderDate = date.toISOString().split("T")[0];
     }
 
     const { user_id, product_id, ...dailyQuantities } = subscriptionItems[0];
@@ -1272,7 +1271,9 @@ export const updateSubscriptionOrders = async (
 
     if (orderDate) {
       const dateObj = new Date(orderDate);
-      const dayOfWeek = dateObj.toLocaleString('en-us', { weekday: 'long' }).toLowerCase(); 
+      const dayOfWeek = dateObj
+        .toLocaleString("en-us", { weekday: "long" })
+        .toLowerCase();
 
       const dayQuantityField = `${dayOfWeek}_qty`;
 
@@ -1294,12 +1295,10 @@ export const updateSubscriptionOrders = async (
         );
       }
     }
-    
   } catch (error) {
     console.error("Error updating subscription quantities:", error);
   }
 };
-
 
 export const deletePlaceOrderById = async (id: number) => {
   const updateSubscriptionSql = `
@@ -1567,7 +1566,7 @@ export const getUpcomingOrdersModel = (
       const mappedResults = results.map((row) => {
         const orderDate = new Date(row.order_date);
         orderDate.setDate(orderDate.getDate() + 1); // Increment order_date by 1 day
-      
+
         return {
           user_subscription_id: row.user_subscription_id,
           user_id: row.user_id,
@@ -1648,7 +1647,6 @@ export const getUpcomingOrdersModel = (
           },
         };
       });
-      
 
       resolve(mappedResults);
     });
@@ -1692,7 +1690,6 @@ export const getCalendarWiseOrdersModel = (
 ): Promise<any[]> => {
   const formattedStartDate = startDate.toISOString().split("T")[0];
   const formattedEndDate = endDate.toISOString().split("T")[0];
-  
 
   const query = `
  WITH RECURSIVE calendar AS (
@@ -1826,12 +1823,16 @@ ORDER BY c.calendar_date ASC;
   `;
 
   return new Promise((resolve, reject) => {
-    db.query<RowDataPacket[]>(query, [formattedStartDate, formattedEndDate, userId], (error, results) => {
-      if (error) {
-        console.error("SQL Error:", error);
-        return reject(error);
+    db.query<RowDataPacket[]>(
+      query,
+      [formattedStartDate, formattedEndDate, userId],
+      (error, results) => {
+        if (error) {
+          console.error("SQL Error:", error);
+          return reject(error);
+        }
+        resolve(results);
       }
-      resolve(results);
-    });
+    );
   });
 };

@@ -146,7 +146,7 @@ export const getAllDetailedSpecialCommissions = async (
     const data = rows.map((row) => ({
       id: row.commission_id,
       categoryId: row.category_id,
-      productId: row.product_id,
+      productId: row.commission_product_id,
       value: row.commission_value,
       deliveryBoyId: row.Commission_delivery_boy_id,
       createdAt: row.commission_created_at,
