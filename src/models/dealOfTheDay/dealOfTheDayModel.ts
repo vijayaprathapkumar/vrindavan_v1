@@ -18,6 +18,7 @@ export interface DealOfTheDay {
 }
 
 // Fetch all deals
+// Fetch all deals
 export const getAllDeals = async (
   page: number,
   limit: number,
@@ -36,6 +37,7 @@ export const getAllDeals = async (
     weightage: "CAST(d.weightage AS UNSIGNED)",
     status: "d.status",
   };
+
   let query = `
     SELECT 
       d.id AS deal_id,
@@ -78,7 +80,7 @@ export const getAllDeals = async (
       foods f ON d.food_id = f.id 
     LEFT JOIN media m ON f.id = m.model_id AND m.model_type = 'App\\\\Models\\\\Food'
     WHERE 
-      d.id IS NOT NULL
+      d.id IS NOT NULL AND d.quantity > 0
   `;
 
   const params: any[] = [];
@@ -89,27 +91,24 @@ export const getAllDeals = async (
   }
 
   // Ensure the ORDER BY clause is specifying DESC
-  query += ` ORDER BY ${validSortFields[sortField]} ${sortOrder}`;
+  query += ` ORDER BY ${validSortFields[sortField]} ${sortOrder} LIMIT ? OFFSET ?`;
   params.push(limit, offset);
 
-  const [rows]: [RowDataPacket[], any] = await db
-    .promise()
-    .query(query, params);
+  const [rows]: [RowDataPacket[], any] = await db.promise().query(query, params);
 
   const totalCountQuery = `
     SELECT COUNT(*) AS total 
     FROM deal_of_the_days d
     JOIN foods f ON d.food_id = f.id
     LEFT JOIN media m ON f.id = m.model_id AND m.model_type = 'Food'
-    ${searchTerm ? "WHERE f.name LIKE ?" : ""}
+    WHERE d.quantity > 0 
+    ${searchTerm ? "AND f.name LIKE ?" : ""}
   `;
 
   const countParams: any[] = [];
   if (searchTerm) countParams.push(`%${searchTerm}%`);
 
-  const [totalCountRows]: [RowDataPacket[], any] = await db
-    .promise()
-    .query(totalCountQuery, countParams);
+  const [totalCountRows]: [RowDataPacket[], any] = await db.promise().query(totalCountQuery, countParams);
 
   const totalCount = totalCountRows[0]?.total || 0;
 
@@ -151,6 +150,7 @@ export const getAllDeals = async (
     total: totalCount,
   };
 };
+
 
 // Create a new deal
 export const createDeal = async (dealData: {
