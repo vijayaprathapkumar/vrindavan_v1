@@ -201,7 +201,6 @@ export const getNotificationById = async (
 ): Promise<Notification | null | any> => {
   const query = `
       SELECT
-      SELECT
           un.id,
           un.notification_type,
           un.title,

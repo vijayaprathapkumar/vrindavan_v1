@@ -142,7 +142,7 @@ export const getAllTransactions = async (req: Request, res: Response) => {
 };
 
 export const deductWalletBalance = async (req: Request, res: Response) => {
-  const { userId, deductionAmount, reason, walletType } = req.body;
+  const { userId, deductionAmount, reason, walletType,order_date } = req.body;
 
   try {
     const currentBalanceQuery = 'SELECT balance FROM wallet_balances WHERE user_id = ?';
@@ -164,7 +164,7 @@ export const deductWalletBalance = async (req: Request, res: Response) => {
     await insertWalletLog({
       user_id: userId,
       order_id: null,
-      order_date: '0001-01-01',
+      order_date: order_date,
       before_balance: currentBalance,
       amount: deductionAmount,
       after_balance: newBalance,

@@ -24,17 +24,25 @@ export interface TransactionsResponse {
 export const insertWalletTransaction = (
   transaction: WalletTransaction
 ): Promise<void> => {
+  const generateTransactionId = (): string => {
+    const prefix = "TXN";
+    const userId =   transaction.user_id; 
+    return `${prefix}${userId}`;
+  };
+  
   const query = `
         INSERT INTO wallet_transactions 
         (transaction_id, rp_payment_id, rp_order_id, user_id, plan_id, transaction_date, extra_percentage, plan_amount, extra_amount, transaction_amount, transaction_type, status, description, created_at, updated_at) 
         VALUES (?, ?, ?, ?, ?, NOW(), ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
     `;
 
+    const transactionId =  generateTransactionId();
+
   return new Promise((resolve, reject) => {
     db.query(
       query,
       [
-        transaction.transaction_id,
+        transactionId,
         transaction.rp_payment_id,
         transaction.rp_order_id,
         transaction.user_id,
