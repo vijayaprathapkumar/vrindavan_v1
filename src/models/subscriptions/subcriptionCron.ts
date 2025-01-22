@@ -91,7 +91,6 @@ export async function handleNextDayOrders() {
   }
 }
 
-
 const withTimeout = (promise, ms) => {
   const timeout = new Promise((_, reject) =>
     setTimeout(() => reject(new Error("Operation timed out")), ms)
@@ -139,7 +138,6 @@ export const createOrder = async (orderItem, quantityToOrder) => {
     return { success: false, reason: "error" };
   }
 };
-
 
 const getProductById = async (product_id) => {
   const query = `
@@ -246,15 +244,18 @@ export const subcribtionsJob = () => {
     const nextDate = new Date();
     nextDate.setDate(currentDate.getDate() + 1);
 
-    const jobStartTime = moment().format('YYYY-MM-DD HH:mm:ss');
-    let jobEndTime = '';
-    let jobDuration = '';
+    const jobStartTime = moment().format("YYYY-MM-DD HH:mm:ss");
+    let jobEndTime = "";
+    let jobDuration = "";
 
     try {
       await handleNextDayOrders();
-      
-      jobEndTime = moment().format('YYYY-MM-DD HH:mm:ss');
-      jobDuration = moment(jobEndTime).diff(moment(jobStartTime), 'seconds') as any;
+
+      jobEndTime = moment().format("YYYY-MM-DD HH:mm:ss");
+      jobDuration = moment(jobEndTime).diff(
+        moment(jobStartTime),
+        "seconds"
+      ) as any;
 
       const logMessage = `Subscription orders placed for date ${
         nextDate.toISOString().split("T")[0]
@@ -272,7 +273,7 @@ export const subcribtionsJob = () => {
       // Insert cron log into the database
       await db.promise().query(sqlQuery, values);
 
-      console.timeEnd("subProcessing"); 
+      console.timeEnd("subProcessing");
       console.log("Today's subscription processed successfully.");
     } catch (error) {
       console.error("Error running handleNextDayOrders:", error);

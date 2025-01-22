@@ -55,7 +55,7 @@ export const getDeliveryAddress = async (
     is_approve: "da.is_approve",
     address_created_at: "da.created_at",
   };
-
+  const isApproveValue = searchTerm.toLowerCase() === 'yes' ? 1 : searchTerm.toLowerCase() === 'no' ? 0 : undefined;
   const orderBy = validSortFields[sortField] || "da.created_at";
 
   const query = `
@@ -94,6 +94,7 @@ export const getDeliveryAddress = async (
         da.address LIKE ? OR 
         da.house_no LIKE ? OR 
         da.complete_address LIKE ?
+           ${isApproveValue !== undefined ? 'OR da.is_approve = ?' : ''}
       )
     ORDER BY 
        ${orderBy} ${sortOrder}
@@ -112,6 +113,7 @@ export const getDeliveryAddress = async (
       da.address LIKE ? OR 
       da.house_no LIKE ? OR 
       da.complete_address LIKE ?
+      ${isApproveValue !== undefined ? 'OR da.is_approve = ?' : ''}
     );
   `;
 
@@ -126,6 +128,7 @@ export const getDeliveryAddress = async (
         searchValue,
         searchValue,
         searchValue,
+        ...(isApproveValue !== undefined ? [isApproveValue] : [])
       ]);
 
     // Fetch paginated results
@@ -138,6 +141,7 @@ export const getDeliveryAddress = async (
         searchValue,
         searchValue,
         searchValue,
+        ...(isApproveValue !== undefined ? [isApproveValue] : []),
         limit,
         offset,
       ]);

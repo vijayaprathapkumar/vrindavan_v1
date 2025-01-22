@@ -12,14 +12,38 @@ export const getAllHubs = async (
   const offset = (page - 1) * limit;
 
   const validSortFields: Record<string, string> = {
-    name: "h.name",       
-    truckRoute: "t.name",   
-    other_details: "h.other_details", 
-    active: "h.active", 
+    name: "h.name",
+    truckRoute: "t.name",
+    other_details: "h.other_details",
+    active: "h.active",
   };
-  const sortColumn = validSortFields[sortField] || "h.name";
 
+  const sortColumn = validSortFields[sortField] || "h.name";
   const validSortOrder = sortOrder?.toLowerCase() === "desc" ? "desc" : "asc";
+
+  let whereClause = `WHERE 1=1`;
+  const params: any[] = [];
+
+  if (searchTerm) {
+    const lowerSearchTerm = searchTerm.toLowerCase();
+
+    if (lowerSearchTerm === "active") {
+      whereClause += ` AND h.active = ?`;
+      params.push(1);
+    } else if (lowerSearchTerm === "inactive") {
+      whereClause += ` AND h.active = ?`;
+      params.push(0);
+    } else {
+      whereClause += ` AND (h.name LIKE ? OR t.name LIKE ? OR h.other_details LIKE ? OR h.active LIKE ?)`;
+      params.push(
+        `%${searchTerm}%`,
+        `%${searchTerm}%`,
+        `%${searchTerm}%`,
+        `%${searchTerm}%`
+      );
+    }
+  }
+
   const hubsQuery = `
       SELECT 
         h.*, 
@@ -27,25 +51,31 @@ export const getAllHubs = async (
         t.active AS truck_route_active, 
         t.created_at AS truck_route_created_at, 
         t.updated_at AS truck_route_updated_at
-     FROM 
-        hubs h
-    LEFT JOIN truck_routes t ON 
-      h.route_id = t.id WHERE h.name LIKE ?
-    ORDER BY ${sortColumn} ${validSortOrder} 
-    LIMIT ? OFFSET ?;
-    `;
+      FROM hubs h
+      LEFT JOIN truck_routes t ON h.route_id = t.id 
+      ${whereClause}
+      ORDER BY ${sortColumn} ${validSortOrder} 
+      LIMIT ? OFFSET ?;
+  `;
+
+  params.push(limit, offset);
+
   const [hubs]: [RowDataPacket[], FieldPacket[]] = await db
     .promise()
-    .query(hubsQuery, [`%${searchTerm}%`, limit, offset]);
+    .query(hubsQuery, params);
 
   const countQuery = `
-        SELECT COUNT(*) as total FROM hubs 
-        WHERE name LIKE ?
-    `;
+      SELECT COUNT(*) as total 
+      FROM hubs h
+      LEFT JOIN truck_routes t ON h.route_id = t.id 
+      ${whereClause}
+  `;
+
   const [rows]: [RowDataPacket[], FieldPacket[]] = await db
     .promise()
-    .query(countQuery, [`%${searchTerm}%`]);
-  const total = (rows[0] as { total: number }).total;
+    .query(countQuery, params.slice(0, -2));
+
+  const total = rows[0]?.total || 0;
 
   return { hubs, totalRecords: total };
 };

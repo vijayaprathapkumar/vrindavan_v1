@@ -24,8 +24,6 @@ export const getAllFaqs = async (
 
   const validSortOrder = sortOrder === "desc" ? "desc" : "asc";
 
-
-  // Build the WHERE clause dynamically
   let whereClause = `
     WHERE 
       (f.question LIKE ? OR f.answer LIKE ? OR fc.name LIKE ?)
@@ -60,19 +58,23 @@ export const getAllFaqs = async (
     LIMIT ? OFFSET ?
   `;
 
-  const [rows] = await db.promise().query<RowDataPacket[]>(searchQuery, queryParams);
+  const [rows] = await db
+    .promise()
+    .query<RowDataPacket[]>(searchQuery, queryParams);
 
   const totalQuery = `
     SELECT COUNT(*) AS total
     FROM faqs f
     LEFT JOIN faq_categories fc ON f.faq_category_id = fc.id
-    ${whereClause.replace('LIMIT ? OFFSET ?', '')}  -- Exclude limit/offset
+    ${whereClause.replace("LIMIT ? OFFSET ?", "")}  -- Exclude limit/offset
   `;
 
-  const [[{ total }]] = await db.promise().query<RowDataPacket[]>(
-    totalQuery,
-    queryParams.slice(0, faqCategoryId ? 4 : 3) 
-  );
+  const [[{ total }]] = await db
+    .promise()
+    .query<RowDataPacket[]>(
+      totalQuery,
+      queryParams.slice(0, faqCategoryId ? 4 : 3)
+    );
 
   return { faqs: rows, total };
 };
@@ -109,7 +111,7 @@ export const getFaqById = async (id: number): Promise<RowDataPacket | null> => {
       LEFT JOIN faq_categories fc ON f.faq_category_id = fc.id
       WHERE f.id = ?
     `,
-    [id] 
+    [id]
   );
 
   return rows.length > 0 ? rows[0] : null;

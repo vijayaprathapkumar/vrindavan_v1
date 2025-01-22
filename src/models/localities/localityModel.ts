@@ -1,7 +1,6 @@
 import { db } from "../../config/databaseConnection";
 import { RowDataPacket, OkPacket } from "mysql2";
 
-// Fetch all localities, ordered by created_at
 export const getAllLocalities = async (
   page: number,
   limit: number,
@@ -19,10 +18,26 @@ export const getAllLocalities = async (
     localities_active: "l.active",
   };
 
-  
   const sortColumn = validSortFields[sortField] || validSortFields.localities_name;
   const validSortOrder = sortOrder?.toLowerCase() === "desc" ? "desc" : "asc";
 
+  let whereClause = `WHERE 1=1`;
+  const params: any[] = [];
+
+  if (searchTerm) {
+    const lowerSearchTerm = searchTerm.toLowerCase();
+
+    if (lowerSearchTerm === "active") {
+      whereClause += ` AND l.active = ?`;
+      params.push(1);
+    } else if (lowerSearchTerm === "inactive") {
+      whereClause += ` AND l.active = ?`;
+      params.push(0);
+    } else {
+      whereClause += ` AND (l.name LIKE ? OR l.city LIKE ? OR l.address LIKE ? OR h.name LIKE ? OR db.name LIKE ?)`;
+      params.push(`%${searchTerm}%`, `%${searchTerm}%`, `%${searchTerm}%`, `%${searchTerm}%`, `%${searchTerm}%`);
+    }
+  }
 
   const localitiesQuery = `
       SELECT 
@@ -58,46 +73,29 @@ export const getAllLocalities = async (
       FROM 
           localities l
       LEFT JOIN 
-        locality_delivery_boys lb ON l.id = lb.locality_id
+          locality_delivery_boys lb ON l.id = lb.locality_id
       LEFT JOIN 
           hubs h ON l.hub_id = h.id 
       LEFT JOIN 
           delivery_boys db ON lb.delivery_boy_id = db.id
-      WHERE 
-          (l.name LIKE ? OR l.city LIKE ? OR l.address LIKE ? OR h.name LIKE ?)
-    ORDER BY ${sortColumn} ${validSortOrder}
+      ${whereClause}
+      ORDER BY ${sortColumn} ${validSortOrder}
       LIMIT ? OFFSET ?;
   `;
 
-  const [localities]: [RowDataPacket[], any] = await db
-    .promise()
-    .query(localitiesQuery, [
-      `%${searchTerm}%`,
-      `%${searchTerm}%`,
-      `%${searchTerm}%`,
-      `%${searchTerm}%`,
-      limit,
-      offset,
-    ]);
+  params.push(limit, offset);
+
+  const [localities]: [RowDataPacket[], any] = await db.promise().query(localitiesQuery, params);
 
   const countQuery = `
     SELECT COUNT(DISTINCT l.id) AS total
     FROM localities l
     LEFT JOIN hubs h ON l.hub_id = h.id
-    WHERE l.name LIKE ?
-       OR l.city LIKE ?
-       OR l.address LIKE ?
-       OR h.name LIKE ?
+    LEFT JOIN delivery_boys db ON l.id = db.id
+    ${whereClause}
   `;
 
-  const [[{ total }]]: [RowDataPacket[], any] = await db
-    .promise()
-    .query(countQuery, [
-      `%${searchTerm}%`,
-      `%${searchTerm}%`,
-      `%${searchTerm}%`,
-      `%${searchTerm}%`,
-    ]);
+  const [[{ total }]]: [RowDataPacket[], any] = await db.promise().query(countQuery, params.slice(0, -2));
 
   return { localities, totalRecords: total };
 };

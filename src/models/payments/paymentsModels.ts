@@ -136,6 +136,7 @@ export const getAllPlaceOrdersUsers = async () => {
       SELECT 
         o.id AS order_id,
         o.user_id,
+        o.order_date,
         fo.price AS food_price,
         fo.quantity,
         f.name AS food_name,
@@ -147,7 +148,7 @@ export const getAllPlaceOrdersUsers = async () => {
       LEFT JOIN 
         foods f ON f.id = fo.food_id
       WHERE 
-        DATE(o.order_date) = CURDATE() AND active= 1;
+        DATE(o.order_date) = CURDATE();
     `;
 
   const [placeOrderRows]: [RowDataPacket[], any] = await db
@@ -175,7 +176,7 @@ export const processTodayOrderPayments = async () => {
 };
 
 export const everyDayPaymentProcessJob = () => {
-  cron.schedule("50 16 * * *", async () => {
+  cron.schedule("17 16 * * *", async () => {
     console.log("Cron job running...");
     console.time("paymentProcessing");
 

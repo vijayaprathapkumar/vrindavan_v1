@@ -63,8 +63,17 @@ export const getAllFoods = async (
   }
 
   if (filters.searchTerm) {
-    conditions.push("(f.name LIKE ? OR f.unit LIKE ?)");
-    values.push(`%${filters.searchTerm}%`, `%${filters.searchTerm}%`);
+    conditions.push(
+      "(f.name LIKE ? OR f.unit LIKE ? OR f.id LIKE ? OR f.price LIKE ? OR f.discount_price LIKE ? OR f.weightage LIKE ?)"
+    );
+    values.push(
+      `%${filters.searchTerm}%`,
+      `%${filters.searchTerm}%`,
+      `%${filters.searchTerm}%`,
+      `%${filters.searchTerm}%`,
+      `%${filters.searchTerm}%`,
+      `%${filters.searchTerm}%`
+    );
   }
 
   if (conditions.length > 0) {
@@ -77,14 +86,17 @@ export const getAllFoods = async (
     track_inventory: "f.track_inventory",
     price: "f.price",
     unit: "f.unit",
+    discount_price: "f.discount_price",
     size: "f.size",
     weightage: "CAST(f.weightage AS UNSIGNED)",
   };
 
   if (sortField && validSortFields[sortField]) {
-    query += ` ORDER BY ${validSortFields[sortField]} ${sortOrder === "desc" ? "desc" : "asc"}`;
+    query += ` ORDER BY ${validSortFields[sortField]} ${
+      sortOrder === "desc" ? "desc" : "asc"
+    }`;
   } else {
-    query += " ORDER BY CAST(f.weightage AS UNSIGNED) ASC"; 
+    query += " ORDER BY CAST(f.weightage AS UNSIGNED) ASC";
   }
 
   const countQuery = `
@@ -321,7 +333,7 @@ export const createFood = async (foodData: Food): Promise<number> => {
 
   try {
     const [result] = await db.promise().execute<ResultSetHeader>(query, values);
-    return  result.insertId;
+    return result.insertId;
   } catch (error) {
     console.error("Error inserting food:", error);
     throw new Error("Database insert failed");
