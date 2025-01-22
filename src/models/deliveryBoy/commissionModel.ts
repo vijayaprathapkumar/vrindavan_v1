@@ -22,7 +22,7 @@ export const getAllDetailedCommissions = async (
       value: "sc.commission",
     };
 
-    const sortColumn = validSortFields[sortField] || "p.name";
+    const sortColumn = validSortFields[sortField] ;
   const validSortOrder = sortOrder === "desc" ? "desc" : "asc"; 
 
     
@@ -77,9 +77,8 @@ export const getAllDetailedCommissions = async (
     LEFT JOIN 
         foods p ON sc.product_id = p.id
    WHERE 
-      (p.name LIKE ? OR p.unit LIKE ? OR p.price LIKE ?)${categoryFilter}
-    ORDER BY CAST(${sortColumn} AS DECIMAL) ${validSortOrder}
-
+       (p.name LIKE ? OR p.unit LIKE ? OR p.price LIKE ? OR sc.commission LIKE ?)${categoryFilter}
+  ORDER BY ${sortColumn} ${validSortOrder}  
     LIMIT ? OFFSET ?;
 
   `;
@@ -96,12 +95,14 @@ export const getAllDetailedCommissions = async (
     searchPattern,
     searchPattern,
     searchPattern,
+    searchPattern,
     ...(categoryId && categoryId !== "All" ? [parseInt(categoryId)] : []),
     limit,
     offset,
   ];
 
   const countParams = [
+    searchPattern,
     searchPattern,
     searchPattern,
     searchPattern,

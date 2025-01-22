@@ -110,6 +110,8 @@ export const fetchAllOrdersWithOutUserID = async (
   const walletFilter = req.query.walletOption
     ? (req.query.walletOption as string)
     : null;
+  const sortField = (req.query.sortField as string) || "";
+  const sortOrder = (req.query.sortOrder as string) || "asc";
 
   // Input validation
   if (isNaN(page) || page < 1) {
@@ -133,7 +135,9 @@ export const fetchAllOrdersWithOutUserID = async (
       approveStatus,
       orderType,
       deliveryBoyId,
-      walletFilter
+      walletFilter,
+      sortField,
+      sortOrder
     );
 
     const totalPages = Math.ceil(total / limit);
@@ -144,7 +148,7 @@ export const fetchAllOrdersWithOutUserID = async (
         currentPage: page,
         limit,
         totalPages,
-        totalRecords: total,
+        totalCount: total,
       })
     );
   } catch (error) {

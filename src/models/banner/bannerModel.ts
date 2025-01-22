@@ -76,23 +76,36 @@ export const getAllBanners = async (
   const params: any[] = [];
 
   if (searchTerm) {
-    query += ` AND b.banner_name LIKE ?`;
-    params.push(`%${searchTerm}%`);
+    const bannerType = mapBannerType(searchTerm);
+    const bannerLocation = mapBannerLocation(searchTerm);
+
+    if (bannerType !== -1) {
+      query += ` AND b.banner_type = ?`;
+      params.push(bannerType);
+    } else if (bannerLocation !== -1) {
+      query += ` AND b.banner_location = ?`;
+      params.push(bannerLocation);
+    } else {
+      query += ` AND b.banner_name LIKE ?`;
+      params.push(`%${searchTerm}%`);
+    }
   }
 
   const validSortFields: Record<string, string> = {
     banner_name: "b.banner_name",
     banner_type: "b.banner_type",
     banner_location: "b.banner_location",
-    date_from: "b.date_from", 
-    date_to: "b.date_to", 
+    date_from: "b.date_from",
+    date_to: "b.date_to",
     banner_weightage: "CAST(b.banner_weightage AS UNSIGNED)",
     status: "b.status",
     created_at: "b.created_at",
     updated_at: "b.updated_at",
   };
-  
-  query += ` ORDER BY ${validSortFields[sortField] || "b.banner_weightage"} ${sortOrder.toUpperCase()} LIMIT ? OFFSET ?;`;
+
+  query += ` ORDER BY ${
+    validSortFields[sortField] || "b.banner_weightage"
+  } ${sortOrder.toUpperCase()} LIMIT ? OFFSET ?;`;
   params.push(limit, offset);
 
   const [rows]: [RowDataPacket[], any] = await db
@@ -102,11 +115,20 @@ export const getAllBanners = async (
   const totalCountQuery = `
     SELECT COUNT(*) AS total 
     FROM banners b
-    ${searchTerm ? "WHERE b.banner_name LIKE ?" : ""};
+    ${
+      searchTerm
+        ? "WHERE (b.banner_name LIKE ? OR b.banner_type = ? OR b.banner_location = ?)"
+        : ""
+    };
   `;
 
   const countParams: any[] = [];
-  if (searchTerm) countParams.push(`%${searchTerm}%`);
+  if (searchTerm)
+    countParams.push(
+      `%${searchTerm}%`,
+      mapBannerType(searchTerm),
+      mapBannerLocation(searchTerm)
+    );
 
   const [totalCountRows]: [RowDataPacket[], any] = await db
     .promise()
@@ -114,16 +136,16 @@ export const getAllBanners = async (
 
   const totalCount = totalCountRows[0]?.total || 0;
 
-  const banners = await Promise.all(rows.map(async (row) => {
-    const foodIds = row.food_id ? row.food_id.split(',').map((id: string) => parseInt(id.trim())) : [];
+  const banners = await Promise.all(
+    rows.map(async (row) => {
+      const foodIds = row.food_id
+        ? row.food_id.split(",").map((id: string) => parseInt(id.trim()))
+        : [];
 
-    let foodItems = [];
-    if (foodIds.length > 0) {
-      const [foodRows]: [RowDataPacket[], any] = await db
-        .promise()
-        .query(
-          `
-          SELECT 
+      let foodItems = [];
+      if (foodIds.length > 0) {
+        const [foodRows]: [RowDataPacket[], any] = await db.promise().query(
+          `SELECT 
             f.*, 
             m.id AS media_id,
             m.model_type,
@@ -133,65 +155,94 @@ export const getAllBanners = async (
             m.name AS media_name,
             m.file_name AS media_file_name,
             m.mime_type AS media_mime_type,
-         CASE 
-        WHEN m.conversions_disk = 'public1' 
-        THEN CONCAT('https://media-image-upload.s3.ap-south-1.amazonaws.com/banners/', m.file_name)
-        ELSE CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name)
-      END AS original_url
+            CASE 
+              WHEN m.conversions_disk = 'public1' 
+              THEN CONCAT('https://media-image-upload.s3.ap-south-1.amazonaws.com/banners/', m.file_name)
+              ELSE CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name)
+            END AS original_url
           FROM foods f
           LEFT JOIN media m ON f.id = m.model_id AND (m.model_type = 'App\\\\Models\\\\Food')
-          WHERE f.id IN (${foodIds.map(() => '?').join(', ')})
-        `,
+          WHERE f.id IN (${foodIds.map(() => "?").join(", ")})
+          `,
           foodIds
         );
 
-      foodItems = foodRows;
-    }
+        foodItems = foodRows;
+      }
 
-
-    return {
-      id: row.banner_id,
-      banner_name: row.banner_name,
-      banner_type: row.banner_type,
-      banner_location: row.banner_location,
-      banner_link: row.banner_link,
-      banner_content: row.banner_content,
-      food_id: row.food_id,
-      banner_weightage: row.banner_weightage,
-      date_from: row.date_from,
-      date_to: row.date_to,
-      status: row.status,
-      created_at: row.created_at,
-      updated_at: row.updated_at,
-      media: {
-        id: row.media_id,
-        model_type: row.model_type,
-        model_id: row.model_id,
-        uuid: row.uuid,
-        collection_name: row.collection_name,
-        name: row.media_name,
-        file_name: row.file_name,
-        mime_type: row.mime_type,
-        disk: row.disk,
-        conversions_disk: row.conversions_disk,
-        size: row.size,
-        manipulations: row.manipulations,
-        custom_properties: row.custom_properties,
-        generated_conversions: row.generated_conversions,
-        responsive_images: row.responsive_images,
-        order_column: row.order_column,
-        created_at: row.media_created_at,
-        updated_at: row.media_updated_at,
-        original_url: row.original_url,
-      },
-      foods: foodItems,
-    };
-  }));
+      return {
+        id: row.banner_id,
+        banner_name: row.banner_name,
+        banner_type: row.banner_type,
+        banner_location: row.banner_location,
+        banner_link: row.banner_link,
+        banner_content: row.banner_content,
+        food_id: row.food_id,
+        banner_weightage: row.banner_weightage,
+        date_from: row.date_from,
+        date_to: row.date_to,
+        status: row.status,
+        created_at: row.created_at,
+        updated_at: row.updated_at,
+        media: {
+          id: row.media_id,
+          model_type: row.model_type,
+          model_id: row.model_id,
+          uuid: row.uuid,
+          collection_name: row.collection_name,
+          name: row.media_name,
+          file_name: row.file_name,
+          mime_type: row.mime_type,
+          disk: row.disk,
+          conversions_disk: row.conversions_disk,
+          size: row.size,
+          manipulations: row.manipulations,
+          custom_properties: row.custom_properties,
+          generated_conversions: row.generated_conversions,
+          responsive_images: row.responsive_images,
+          order_column: row.order_column,
+          created_at: row.media_created_at,
+          updated_at: row.media_updated_at,
+          original_url: row.original_url,
+        },
+        foods: foodItems,
+      };
+    })
+  );
 
   return {
     banners,
     total: totalCount,
   };
+};
+
+const mapBannerType = (searchTerm: string): number => {
+  const bannerTypeMap: Record<string, number> = {
+    "Non Clickable": 1,
+    "Product Based": 2,
+    "Category Based": 3,
+    "Sub Category Based": 4,
+    "Content Based": 5,
+  };
+
+  const matchedKey = Object.keys(bannerTypeMap).find((key) =>
+    key.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  return matchedKey ? bannerTypeMap[matchedKey] : -1;
+};
+
+const mapBannerLocation = (searchTerm: string): number => {
+  const bannerLocationMap: Record<string, number> = {
+    "Home Top": 1,
+    "Home Bottom": 2,
+  };
+
+  const matchedKey = Object.keys(bannerLocationMap).find((key) =>
+    key.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  return matchedKey ? bannerLocationMap[matchedKey] : -1;
 };
 
 // Create a new banner
@@ -244,14 +295,18 @@ export const createBanner = async (bannerData: {
     return result.insertId;
   } catch (error) {
     console.error("Error creating banner:", error);
-    throw error; 
+    throw error;
   }
 };
 
 // Fetch banner by ID
 export const getBannerById = async (
   id: number
-): Promise<{ banner: Banner; media: any | null; foods: any[] | null } | null>  => {
+): Promise<{
+  banner: Banner;
+  media: any | null;
+  foods: any[] | null;
+} | null> => {
   const query = `
     SELECT 
       b.id AS banner_id,
@@ -303,14 +358,14 @@ export const getBannerById = async (
 
   const row = rows[0];
 
-  const foodIds = row.food_id ? row.food_id.split(',').map((id: string) => parseInt(id.trim())) : [];
+  const foodIds = row.food_id
+    ? row.food_id.split(",").map((id: string) => parseInt(id.trim()))
+    : [];
   let foodItems = [];
 
   if (foodIds.length > 0) {
-    const [foodRows]: [RowDataPacket[], any] = await db
-      .promise()
-      .query(
-        `
+    const [foodRows]: [RowDataPacket[], any] = await db.promise().query(
+      `
         SELECT 
           f.*, 
           m.id AS media_id,
@@ -324,14 +379,14 @@ export const getBannerById = async (
           CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name) AS food_image_url
         FROM foods f
         LEFT JOIN media m ON f.id = m.model_id AND m.model_type = 'App\\\\Models\\\\Food'
-        WHERE f.id IN (${foodIds.map(() => '?').join(', ')})
+        WHERE f.id IN (${foodIds.map(() => "?").join(", ")})
       `,
-        foodIds
-      );
+      foodIds
+    );
 
     foodItems = foodRows;
   }
-  
+
   return {
     banner: {
       id: row.banner_id,
@@ -371,7 +426,7 @@ export const getBannerById = async (
           original_url: row.original_url,
         }
       : null,
-      foods: foodItems.length > 0 ? foodItems : null,
+    foods: foodItems.length > 0 ? foodItems : null,
   };
 };
 

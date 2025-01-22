@@ -314,7 +314,7 @@ export const deleteSubscriptionModel = (id: number): Promise<OkPacket> => {
 export const pauseSubscriptionModel = (id: number): Promise<OkPacket> => {
   return new Promise((resolve, reject) => {
     db.query<OkPacket>(
-      "UPDATE user_subscriptions SET is_pause_subscription = 1 WHERE id = ?",
+      "UPDATE user_subscriptions SET is_pause_subscription = 1  updated_at= NOW() WHERE id = ?",
       [id],
       (error, results) => {
         if (error) {

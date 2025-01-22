@@ -33,6 +33,7 @@ import specialCommissionRoutes from "./routes/deliveryBoy/specialCommissionRoute
 import imageUploadRoutes from "./routes/imageUpload/imageUploadRoutes";
 import commissionPayoutRoutes from "./routes/deliveryBoy/commissionPayoutRoutes";
 import cronLogsRoutes from "./routes/cronLogsRoutes/cronLogsRoutes";
+import discontinuedCustomersRoutes from "./routes/discontinuedCustomersRoutes/discontinuedCustomersRoutes";
 
 const router = express.Router();
 
@@ -110,6 +111,9 @@ router.use("/imageUpload", imageUploadRoutes);
 
 //cron logs
 router.use("/cron-logs", cronLogsRoutes);
+
+//discontinued Customers Routes
+router.use("/discontinued", discontinuedCustomersRoutes);
 
 
 export default router;

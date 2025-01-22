@@ -13,7 +13,7 @@ export const getAllBrands = async (
 
   if (searchTerm) {
     const isActive =
-      searchTerm === "true" ? 1 : searchTerm === "false" ? 0 : null;
+      searchTerm.toLowerCase() == "active" ? 1 : searchTerm.toLowerCase() == "inactive" ? 0 : null;
 
     if (isActive !== null) {
       query += " AND active = ?";

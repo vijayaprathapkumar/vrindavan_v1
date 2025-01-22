@@ -49,6 +49,8 @@ export const getWalletBalanceWithOutUserId = async (
     const startDate = req.query.startDate as string | undefined;
     const endDate = req.query.endDate as string | undefined;
     const searchTerm = req.query.searchTerm as string | undefined;
+    const sortField = req.query.sortField as string | undefined;
+    const sortOrder = req.query.sortOrder as string | undefined;
 
     const { walletBalances, totalCount } =
       await getWalletBalanceByWithOutUserId(
@@ -56,7 +58,9 @@ export const getWalletBalanceWithOutUserId = async (
         limit,
         startDate,
         endDate,
-        searchTerm
+        searchTerm,
+        sortField,
+        sortOrder
       );
 
     if (!walletBalances || walletBalances.length === 0) {
@@ -69,7 +73,7 @@ export const getWalletBalanceWithOutUserId = async (
 
     const response = {
       walletBalances,
-      page,
+      currentPage: page,
       limit,
       totalCount,
       totalPages,
@@ -90,7 +94,6 @@ export const getWalletBalanceWithOutUserId = async (
   }
 };
 
-
 export const getWalletLogs = async (req: Request, res: Response) => {
   const { userId } = req.params;
   const page = parseInt(req.query.page as string) || 1;
@@ -98,13 +101,17 @@ export const getWalletLogs = async (req: Request, res: Response) => {
 
   try {
     // Fetch wallet logs with food details
-    const walletLogsWithFood = await getWalletLogsWithFoodDetails(userId, page, limit);
+    const walletLogsWithFood = await getWalletLogsWithFoodDetails(
+      userId,
+      page,
+      limit
+    );
 
     // Handle case where no wallet logs are found
     if (!walletLogsWithFood || walletLogsWithFood.length === 0) {
       return res
         .status(404)
-        .json(createResponse(404, 'No wallet logs found for this user'));
+        .json(createResponse(404, "No wallet logs found for this user"));
     }
 
     const totalCount = walletLogsWithFood.length;
@@ -120,11 +127,13 @@ export const getWalletLogs = async (req: Request, res: Response) => {
 
     return res
       .status(200)
-      .json(createResponse(200, 'Wallet logs retrieved successfully', response));
+      .json(
+        createResponse(200, "Wallet logs retrieved successfully", response)
+      );
   } catch (error) {
     console.error("Error fetching wallet logs:", error.message);
     return res
       .status(500)
-      .json(createResponse(500, 'Internal Server Error', error.message));
+      .json(createResponse(500, "Internal Server Error", error.message));
   }
 };

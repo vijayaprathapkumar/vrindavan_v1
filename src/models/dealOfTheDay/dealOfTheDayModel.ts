@@ -18,7 +18,6 @@ export interface DealOfTheDay {
 }
 
 // Fetch all deals
-// Fetch all deals
 export const getAllDeals = async (
   page: number,
   limit: number,
@@ -29,7 +28,7 @@ export const getAllDeals = async (
   const offset = (page - 1) * limit;
 
   const validSortFields: Record<string, string> = {
-    food_id: "f.id",
+    foodId: "f.id",
     food_name: "f.name",
     unit: "d.unit",
     price: "d.price",
@@ -69,7 +68,7 @@ export const getAllDeals = async (
       m.order_column,
       m.created_at AS media_created_at,
       m.updated_at AS media_updated_at,
-       CASE 
+      CASE 
         WHEN m.conversions_disk = 'public1' 
         THEN CONCAT('https://media-image-upload.s3.ap-south-1.amazonaws.com/foods/', m.file_name)
         ELSE CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name)
@@ -86,29 +85,71 @@ export const getAllDeals = async (
   const params: any[] = [];
 
   if (searchTerm) {
-    query += ` AND f.name LIKE ?`;
-    params.push(`%${searchTerm}%`);
+    const lowerSearchTerm = searchTerm.toLowerCase();
+
+    if (lowerSearchTerm === "active") {
+      query += ` AND d.status = ?`;
+      params.push(1);
+    } else if (lowerSearchTerm === "inactive") {
+      query += ` AND d.status = ?`;
+      params.push(0);
+    } else {
+      query += ` AND (f.name LIKE ? OR f.id LIKE ? OR d.unit LIKE ? OR d.price LIKE ? OR d.offer_price LIKE ?)`;
+      params.push(
+        `%${searchTerm}%`,
+        `%${searchTerm}%`,
+        `%${searchTerm}%`,
+        `%${searchTerm}%`,
+        `%${searchTerm}%`
+      );
+    }
   }
 
-  // Ensure the ORDER BY clause is specifying DESC
-  query += ` ORDER BY ${validSortFields[sortField]} ${sortOrder} LIMIT ? OFFSET ?`;
+  query += ` ORDER BY ${validSortFields[sortField] || "d.id"} ${
+    sortOrder === "desc" ? "DESC" : "ASC"
+  } LIMIT ? OFFSET ?`;
+
   params.push(limit, offset);
 
-  const [rows]: [RowDataPacket[], any] = await db.promise().query(query, params);
+  const [rows]: [RowDataPacket[], any] = await db
+    .promise()
+    .query(query, params);
 
-  const totalCountQuery = `
+  // Count query
+  let totalCountQuery = `
     SELECT COUNT(*) AS total 
     FROM deal_of_the_days d
     JOIN foods f ON d.food_id = f.id
-    LEFT JOIN media m ON f.id = m.model_id AND m.model_type = 'Food'
-    WHERE d.quantity > 0 
-    ${searchTerm ? "AND f.name LIKE ?" : ""}
+    LEFT JOIN media m ON f.id = m.model_id AND m.model_type = 'App\\\\Models\\\\Food'
+    WHERE d.quantity > 0
   `;
 
   const countParams: any[] = [];
-  if (searchTerm) countParams.push(`%${searchTerm}%`);
 
-  const [totalCountRows]: [RowDataPacket[], any] = await db.promise().query(totalCountQuery, countParams);
+  if (searchTerm) {
+    const lowerSearchTerm = searchTerm.toLowerCase();
+
+    if (lowerSearchTerm === "active") {
+      totalCountQuery += ` AND d.status = ?`;
+      countParams.push(1);
+    } else if (lowerSearchTerm === "inactive") {
+      totalCountQuery += ` AND d.status = ?`;
+      countParams.push(0);
+    } else {
+      totalCountQuery += ` AND (f.name LIKE ? OR f.id LIKE ? OR d.unit LIKE ? OR d.price LIKE ? OR d.offer_price LIKE ?)`;
+      countParams.push(
+        `%${searchTerm}%`,
+        `%${searchTerm}%`,
+        `%${searchTerm}%`,
+        `%${searchTerm}%`,
+        `%${searchTerm}%`
+      );
+    }
+  }
+
+  const [totalCountRows]: [RowDataPacket[], any] = await db
+    .promise()
+    .query(totalCountQuery, countParams);
 
   const totalCount = totalCountRows[0]?.total || 0;
 
@@ -150,7 +191,6 @@ export const getAllDeals = async (
     total: totalCount,
   };
 };
-
 
 // Create a new deal
 export const createDeal = async (dealData: {
