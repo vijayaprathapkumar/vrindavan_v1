@@ -11,35 +11,55 @@ export const getAllTruckRoutes = async (
 ): Promise<{ routes: RowDataPacket[]; totalRecords: number }> => {
   const offset = (page - 1) * limit;
 
+  // Define valid sort fields to prevent SQL injection
   const validSortFields: Record<string, string> = {
     name: "name",
     active: "active",
   };
+
+  // Validate sort field and order
   const validSortOrders = ["asc", "desc"];
-  const validatedSortField = validSortFields[sortField] || "name";
-  const validatedSortOrder = validSortOrders.includes(sortOrder.toLowerCase())
+  const validatedSortField = validSortFields[sortField] || "created_at";
+  const validatedSortOrder = validSortOrders.includes(sortOrder?.toLowerCase() || "")
     ? sortOrder.toLowerCase()
     : "asc";
 
+  let whereClause = "WHERE 1=1"; 
+  const params: any[] = [];
+
+  if (searchTerm) {
+    const lowerSearchTerm = searchTerm.toLowerCase();
+
+    if (lowerSearchTerm === "active") {
+      whereClause += " AND active = ?";
+      params.push(1);
+    } else if (lowerSearchTerm === "inactive") {
+      whereClause += " AND active = ?";
+      params.push(0);
+    } else {
+      whereClause += " AND name LIKE ?";
+      params.push(`%${searchTerm}%`);
+    }
+  }
+
   const routesQuery = `
-      SELECT * FROM truck_routes 
-      WHERE name LIKE ? 
-      ORDER BY ${validatedSortField} ${validatedSortOrder} 
-      LIMIT ? OFFSET ?
+    SELECT * FROM truck_routes 
+    ${whereClause}
+    ORDER BY ${validatedSortField} ${validatedSortOrder} 
+    LIMIT ? OFFSET ?
   `;
 
-  const [routes]: [RowDataPacket[], any] = await db
-    .promise()
-    .query(routesQuery, [`%${searchTerm}%`, limit, offset]);
+  params.push(limit, offset);
 
+  const [routes]: [RowDataPacket[], any] = await db.promise().query(routesQuery, params);
+
+  // Count query for total records
   const countQuery = `
-      SELECT COUNT(*) as total FROM truck_routes 
-      WHERE name LIKE ?
+    SELECT COUNT(*) as total FROM truck_routes 
+    ${whereClause}
   `;
 
-  const [[{ total }]]: [RowDataPacket[], any] = await db
-    .promise()
-    .query(countQuery, [`%${searchTerm}%`]);
+  const [[{ total }]]: [RowDataPacket[], any] = await db.promise().query(countQuery, params.slice(0, -2));
 
   return { routes, totalRecords: total };
 };

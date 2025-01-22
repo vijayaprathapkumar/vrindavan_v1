@@ -2,6 +2,7 @@
 import { Request, Response } from "express";
 import { getCronLogs } from "../../models/cronLogsModel/cronLogsModel";
 import { createResponse } from "../../utils/responseHandler";
+
 export const getCronLogsController = async (req: Request, res: Response) => {
   try {
     const page = parseInt(req.query.page as string) || 1;
@@ -15,6 +16,8 @@ export const getCronLogsController = async (req: Request, res: Response) => {
       : undefined;
 
     const searchTerm = req.query.searchTerm as string;
+    const sortField = req.query.sortField as string;
+    const sortOrder = req.query.sortOrder as string;
 
     const { cronLogs, totalCount, totalPages } = await getCronLogs({
       page,
@@ -22,6 +25,8 @@ export const getCronLogsController = async (req: Request, res: Response) => {
       startDate,
       endDate,
       searchTerm,
+      sortField,
+      sortOrder,
     });
 
     res.status(200).json(

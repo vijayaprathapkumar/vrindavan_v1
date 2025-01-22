@@ -22,26 +22,12 @@ export const getAllNotifications = async (
   page: number,
   limit: number,
   searchTerm?: string,
-  sortField?:string,
-  sortOrder?:string
+  sortField?: string,
+  sortOrder?: string
 ): Promise<{ notifications: Notification[]; total: number }> => {
   const offset = (page - 1) * limit;
 
-  const searchCondition = searchTerm
-    ? `AND (un.title LIKE ? OR un.description LIKE ?)`
-    : "";
-
-    const validSortFields = {
-      id: "un.id",
-      notification_type: "un.notification_type",
-      title: "un.title",
-      description: "un.description",
-      createdAt: "un.created_at",
-    };
-
-    const sortColumn = sortField && validSortFields[sortField] ? validSortFields[sortField] : "un.created_at";
-    const order = sortOrder === "desc" ? "desc" : "asc";
-  const query = `
+  let query = `
         SELECT
           un.id,
           un.notification_type,
@@ -71,38 +57,64 @@ export const getAllNotifications = async (
           m.order_column,
           m.created_at AS media_created_at,
           m.updated_at AS media_updated_at,
-             CASE 
-        WHEN m.conversions_disk = 'public1' 
-        THEN  CONCAT('https://media-image-upload.s3.ap-south-1.amazonaws.com/notification/', m.file_name)
-        ELSE CONCAT(
-            'https://vrindavanmilk.com/storage/app/public/', m.id, '/conversions/',
-            REPLACE(REPLACE(SUBSTRING_INDEX(m.file_name, '-icon', 1), '.png', ''), '.jpg', ''), 
-            '-icon.jpg'
-        )
-      END AS original_url
+          CASE 
+            WHEN m.conversions_disk = 'public1' 
+            THEN  CONCAT('https://media-image-upload.s3.ap-south-1.amazonaws.com/notification/', m.file_name)
+            ELSE CONCAT(
+                'https://vrindavanmilk.com/storage/app/public/', m.id, '/conversions/',
+                REPLACE(REPLACE(SUBSTRING_INDEX(m.file_name, '-icon', 1), '.png', ''), '.jpg', ''), 
+                '-icon.jpg'
+            )
+          END AS original_url
         FROM user_notifications un
         LEFT JOIN media m ON un.id = m.model_id 
           AND (m.model_type = 'App\\\\Models\\\\UserNotification')
-        WHERE 1=1 ${searchCondition}  
-        ORDER BY ${sortColumn} ${order}
-        LIMIT ? OFFSET ?;
-
+        WHERE 1=1
     `;
 
-  // If searchTerm exists, use it in the query
-  const queryParams = searchTerm
-    ? [`%${searchTerm}%`, `%${searchTerm}%`, limit, offset]
-    : [limit, offset];
+  const params: any[] = [];
+
+  if (searchTerm) {
+    const notificationType = mapNotificationType(searchTerm);
+
+    if (notificationType !== -1) {
+      query += ` AND un.notification_type = ?`;
+      params.push(notificationType);
+    } else {
+      query += ` AND (un.title LIKE ? OR un.description LIKE ?)`;
+      params.push(`%${searchTerm}%`, `%${searchTerm}%`);
+    }
+  }
+
+  const validSortFields: Record<string, string> = {
+    id: "un.id",
+    notification_type: "un.notification_type",
+    title: "un.title",
+    description: "un.description",
+    createdAt: "un.created_at",
+  };
+
+  const sortColumn =
+    sortField && validSortFields[sortField]
+      ? validSortFields[sortField]
+      : "un.created_at";
+  const order = sortOrder === "desc" ? "DESC" : "ASC";
+
+  query += ` ORDER BY ${sortColumn} ${order} LIMIT ? OFFSET ?;`;
+  params.push(limit, offset);
 
   const [rows]: [RowDataPacket[], any] = await db
     .promise()
-    .query(query, queryParams);
+    .query(query, params);
 
   const totalCountQuery = `
       SELECT COUNT(*) AS total
       FROM user_notifications un
-      WHERE 1=1 ${searchCondition};  -- Add search condition in total count query
+      WHERE 1=1 ${
+        searchTerm ? "AND (un.title LIKE ? OR un.description LIKE ?)" : ""
+      };
     `;
+
   const totalCountParams = searchTerm
     ? [`%${searchTerm}%`, `%${searchTerm}%`]
     : [];
@@ -148,6 +160,19 @@ export const getAllNotifications = async (
     })),
     total: totalCount,
   };
+};
+
+const mapNotificationType = (searchTerm: string): number => {
+  const notificationTypeMap: Record<string, number> = {
+    "Text Notifications": 1,
+    "Product Notifications": 2,
+  };
+
+  const matchedKey = Object.keys(notificationTypeMap).find((key) =>
+    key.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  return matchedKey ? notificationTypeMap[matchedKey] : -1;
 };
 
 // Create a new notification

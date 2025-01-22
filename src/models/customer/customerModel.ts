@@ -82,9 +82,18 @@ export const getAllCustomers = async (
 
   if (searchTerm) {
     const searchValue = `%${searchTerm}%`;
-    query += ` AND (user_name LIKE ? OR email LIKE ? OR phone LIKE ?) `;
-    params.push(searchValue, searchValue, searchValue);
+    query += ` AND (user_name LIKE ? OR email LIKE ? OR phone LIKE ? OR user_id LIKE ? `;
+  
+    if (searchTerm.toLowerCase() === "active") {
+      query += ` OR status = 1 `;
+    } else if (searchTerm.toLowerCase() === "inactive") {
+      query += ` OR status = 0 `;
+    }
+  
+    query += `) `;
+    params.push(searchValue, searchValue, searchValue, searchValue);
   }
+  
 
   if (locality && locality !== "All") {
     query += ` AND locality_id = ? `;

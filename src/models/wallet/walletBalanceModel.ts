@@ -1,139 +1,176 @@
 import { RowDataPacket } from "mysql2";
-import { db } from "../../config/databaseConnection"; 
+import { db } from "../../config/databaseConnection";
 
 export interface WalletBalance {
-    user_id: string;
-    balance: number;  
-    created_at: string;
-    updated_at: string;
+  user_id: string;
+  balance: number;
+  created_at: string;
+  updated_at: string;
 }
 
-export const getWalletBalanceByUserId = (userId: string): Promise<WalletBalance | null> => {
-    const query = `
+export const getWalletBalanceByUserId = (
+  userId: string
+): Promise<WalletBalance | null> => {
+  const query = `
         SELECT user_id, balance, created_at, updated_at
         FROM wallet_balances
         WHERE user_id = ?
     `;
 
-    return new Promise((resolve, reject) => {
-        db.query(query, [userId], (err, results: any[]) => {  
-            if (err) {
-                return reject(err);
-            }
-       
-            if (!results || results.length === 0) {
-                return resolve(null);
-            }
+  return new Promise((resolve, reject) => {
+    db.query(query, [userId], (err, results: any[]) => {
+      if (err) {
+        return reject(err);
+      }
 
-            const result = results[0];
-            const walletBalance: WalletBalance = {
-                user_id: result.user_id,
-                balance: parseFloat(result.balance),  
-                created_at: result.created_at,
-                updated_at: result.updated_at,
-            };
-            resolve(walletBalance);
-        });
+      if (!results || results.length === 0) {
+        return resolve(null);
+      }
+
+      const result = results[0];
+      const walletBalance: WalletBalance = {
+        user_id: result.user_id,
+        balance: parseFloat(result.balance),
+        created_at: result.created_at,
+        updated_at: result.updated_at,
+      };
+      resolve(walletBalance);
     });
+  });
 };
 
-
-
 export const getWalletBalanceByWithOutUserId = async (
-    page: number,
-    limit: number,
-    startDate?: string,
-    endDate?: string,
-    searchTerm?: string
-  ): Promise<{ walletBalances: WalletBalance[] | null; totalCount: number }> => {
-    const offset = (page - 1) * limit;
-  
-    let baseQuery = `
-      FROM 
-        wallet_balances wb
-      INNER JOIN 
-        users u ON wb.user_id = u.id
-      LEFT JOIN 
-        delivery_addresses da ON da.user_id = u.id
-      LEFT JOIN 
-        localities l ON da.locality_id = l.id
-      WHERE 1=1
-    `;
-  
-    const params: any[] = [];
-  
-    if (startDate) {
-      baseQuery += ` AND wb.created_at >= ?`;
-      params.push(startDate);
-    }
-    if (endDate) {
-      baseQuery += ` AND wb.created_at <= ?`;
-      params.push(endDate);
-    }
-  
-    if (searchTerm) {
-      baseQuery += ` AND (u.name LIKE ? OR u.email LIKE ? OR u.phone LIKE ?)`;
-      params.push(`%${searchTerm}%`, `%${searchTerm}%`, `%${searchTerm}%`);
-    }
-  
-    // Query for total count
-    const countQuery = `SELECT COUNT(*) as totalCount ${baseQuery}`;
-    
-    // Query for paginated data
-    const dataQuery = `
-      SELECT 
-        wb.*,
-        u.id AS user_id, u.name AS user_name, u.email, u.phone,
-        da.id AS delivery_address_id, da.description AS address_description, da.address, 
-        da.latitude AS address_latitude, da.longitude AS address_longitude, 
-        da.house_no, da.complete_address, da.is_default,
-        l.id AS locality_id, l.name AS locality_name, l.address AS locality_address, 
-        l.google_address, l.latitude AS locality_latitude, l.longitude AS locality_longitude, l.city
-      ${baseQuery}
-      LIMIT ? OFFSET ?
-    `;
-    params.push(limit, offset);
-  
-    try {
-      const [countResult]: [RowDataPacket[], any] = await db
-        .promise()
-        .query(countQuery, params.slice(0, -2)); // Exclude limit and offset for count query
-      const totalCount = countResult[0].totalCount;
-  
-      const [walletBalances]: [RowDataPacket[], any] = await db
-        .promise()
-        .query(dataQuery, params);
-  
-      return { walletBalances: walletBalances.length > 0 ? walletBalances as WalletBalance[] : null, totalCount };
-    } catch (error) {
-      console.error("Error fetching wallet balance:", error);
-      throw new Error("Failed to retrieve wallet balance");
-    }
-  };
-  
-  
-  export interface WalletLog {
-    id: number;
-    user_id: number;
-    order_id: number;
-    order_date: string;
-    order_item_id: number;
-    before_balance: number;
-    amount: number;
-    after_balance: number;
-    wallet_type: string;
-    description: string;
-    created_at: string;
-    updated_at: string;
-  }
-  
-  
+  page: number,
+  limit: number,
+  startDate?: string,
+  endDate?: string,
+  searchTerm?: string,
+  sortField?: string,
+  sortOrder?: string
+): Promise<{ walletBalances: WalletBalance[] | null; totalCount: number }> => {
+  const offset = (page - 1) * limit;
 
-  //wallet logs
-  export const getWalletLogsWithFoodDetails = async (userId: string, page: number, limit: number): Promise<any[] | null> => {
-   
-    try {
-      const query = `
+  let baseQuery = `
+    FROM 
+      wallet_balances wb
+    INNER JOIN 
+      users u ON wb.user_id = u.id
+    LEFT JOIN 
+      delivery_addresses da ON da.user_id = u.id
+    LEFT JOIN 
+      localities l ON da.locality_id = l.id
+    WHERE 1=1
+  `;
+
+  const params: any[] = [];
+
+  if (startDate) {
+    baseQuery += ` AND wb.created_at >= ?`;
+    params.push(startDate);
+  }
+  if (endDate) {
+    baseQuery += ` AND wb.created_at <= ?`;
+    params.push(endDate);
+  }
+
+  if (searchTerm) {
+    baseQuery += ` 
+      AND (u.name LIKE ? OR u.email LIKE ? OR u.phone LIKE ? 
+      OR l.name LIKE ? OR da.complete_address LIKE ? OR wb.balance LIKE ?)`;
+    params.push(
+      `%${searchTerm}%`,
+      `%${searchTerm}%`,
+      `%${searchTerm}%`,
+      `%${searchTerm}%`,
+      `%${searchTerm}%`,
+      `%${searchTerm}%`
+    );
+  }
+
+  // Handle sorting
+  const allowedSortFields: Record<string, string> = {
+    user_name: "u.name",
+    email: "u.email",
+    phone: "u.phone",
+    locality_name: "l.name",
+    complete_address: "da.complete_address",
+    balance: "wb.balance",
+  };
+
+  let orderByClause = "";
+  if (sortField && allowedSortFields[sortField]) {
+    const validSortOrder = sortOrder === "desc" ? "DESC" : "ASC";
+    orderByClause = ` ORDER BY ${allowedSortFields[sortField]} ${validSortOrder}`;
+  } else {
+    orderByClause = ` ORDER BY wb.created_at DESC`; // Default sorting
+  }
+
+  // Query for total count
+  const countQuery = `SELECT COUNT(*) as totalCount ${baseQuery}`;
+
+  // Query for paginated data
+  const dataQuery = `
+    SELECT 
+      wb.*,
+      u.id AS user_id, u.name AS user_name, u.email, u.phone,
+      da.id AS delivery_address_id, da.description AS address_description, da.address, 
+      da.latitude AS address_latitude, da.longitude AS address_longitude, 
+      da.house_no, da.complete_address, da.is_default,
+      l.id AS locality_id, l.name AS locality_name, l.address AS locality_address, 
+      l.google_address, l.latitude AS locality_latitude, l.longitude AS locality_longitude, l.city
+    ${baseQuery}
+    ${orderByClause}
+    LIMIT ? OFFSET ?
+  `;
+
+  params.push(limit, offset);
+
+  try {
+    // Execute count query
+    const [countResult]: [RowDataPacket[], any] = await db
+      .promise()
+      .query(countQuery, params.slice(0, -2)); // Exclude limit and offset for count query
+    const totalCount = countResult[0].totalCount;
+
+    // Execute data query
+    const [walletBalances]: [RowDataPacket[], any] = await db
+      .promise()
+      .query(dataQuery, params);
+
+    return {
+      walletBalances:
+        walletBalances.length > 0 ? (walletBalances as WalletBalance[]) : null,
+      totalCount,
+    };
+  } catch (error) {
+    console.error("Error fetching wallet balance:", error);
+    throw new Error("Failed to retrieve wallet balance");
+  }
+};
+
+export interface WalletLog {
+  id: number;
+  user_id: number;
+  order_id: number;
+  order_date: string;
+  order_item_id: number;
+  before_balance: number;
+  amount: number;
+  after_balance: number;
+  wallet_type: string;
+  description: string;
+  created_at: string;
+  updated_at: string;
+}
+
+//wallet logs
+export const getWalletLogsWithFoodDetails = async (
+  userId: string,
+  page: number,
+  limit: number
+): Promise<any[] | null> => {
+  try {
+    const query = `
         SELECT 
           wl.id AS wallet_log_id,
           wl.user_id,
@@ -209,94 +246,98 @@ export const getWalletBalanceByWithOutUserId = async (
         ORDER BY wl.order_date DESC
         LIMIT ? OFFSET ?;
       `;
-      
-      const [rows]: [RowDataPacket[], any] = await db.promise().query(query, [userId, limit, (page - 1) * limit]);
-  
-      if (rows.length === 0) {
-        return null;
-      }
-  
-      const walletLogsWithFoodDetails = rows.map((row) => {
-        const totalPrice = parseFloat(row.food_price) * row.quantity;
-  
-        return {
-          wallet_log_id: row.wallet_log_id,
-          user_id: row.user_id,
-          order_id: row.order_id,
-          order_date: row.order_date,
-          order_item_id: row.order_item_id,
-          before_balance: parseFloat(row.before_balance),
-          amount: parseFloat(row.amount),
-          after_balance: parseFloat(row.after_balance),
-          wallet_type: row.wallet_type,
-          description: row.description,
-          created_at: row.created_at,
-          updated_at: row.updated_at,
-  
-          food: {
-            food_order_id: row.food_order_id,
-            price: parseFloat(row.price),
-            quantity: row.quantity,
-            food_id: row.food_id,
-            food_order_created_at: row.food_order_created_at,
-            food_order_updated_at: row.food_order_updated_at,
-            total_price: totalPrice,
-          },
-  
-          media: {
-            media_id: row.media_id,
-            model_id: row.model_id,
-            file_name: row.file_name,
-            mime_type: row.mime_type,
-            disk: row.disk,
-            conversions_disk: row.conversions_disk,
-            size: row.size,
-            manipulations: row.manipulations,
-            custom_properties: row.custom_properties,
-            generated_conversions: row.generated_conversions,
-            responsive_images: row.responsive_images,
-            order_column: row.order_column,
-            original_url: row.original_url,
-          },
-  
-          food_details: {
-            food_name: row.food_name,
-            food_price: parseFloat(row.food_price),
-            food_discount_price: parseFloat(row.food_discount_price),
-            food_description: row.food_description,
-            food_perma_link: row.food_perma_link,
-            food_ingredients: row.food_ingredients,
-            food_package_items_count: parseFloat(row.food_package_items_count),
-            food_weight: parseFloat(row.food_weight),
-            food_unit: row.food_unit,
-            food_sku_code: row.food_sku_code,
-            food_barcode: row.food_barcode,
-            food_cgst: row.food_cgst,
-            food_sgst: row.food_sgst,
-            food_subscription_type: row.food_subscription_type,
-            food_track_inventory: row.food_track_inventory,
-            food_featured: row.food_featured,
-            food_deliverable: row.food_deliverable,
-            food_restaurant_id: row.food_restaurant_id,
-            food_category_id: row.food_category_id,
-            food_subcategory_id: row.food_subcategory_id,
-            food_product_type_id: row.food_product_type_id,
-            food_hub_id: row.food_hub_id,
-            food_locality_id: row.food_locality_id,
-            food_product_brand_id: row.food_product_brand_id,
-            food_weightage: row.food_weightage,
-            food_status: row.food_status,
-            food_created_at: row.food_created_at,
-            food_updated_at: row.food_updated_at,
-          },
-        };
-      });
-  
-      return walletLogsWithFoodDetails;
-    } catch (error) {
-      console.error("Error fetching wallet logs with food details:", error.message);
-      console.error("Stack Trace:", error.stack);
-      throw new Error("Failed to fetch wallet logs with food details");
+
+    const [rows]: [RowDataPacket[], any] = await db
+      .promise()
+      .query(query, [userId, limit, (page - 1) * limit]);
+
+    if (rows.length === 0) {
+      return null;
     }
-  };
-  
+
+    const walletLogsWithFoodDetails = rows.map((row) => {
+      const totalPrice = parseFloat(row.food_price) * row.quantity;
+
+      return {
+        wallet_log_id: row.wallet_log_id,
+        user_id: row.user_id,
+        order_id: row.order_id,
+        order_date: row.order_date,
+        order_item_id: row.order_item_id,
+        before_balance: parseFloat(row.before_balance),
+        amount: parseFloat(row.amount),
+        after_balance: parseFloat(row.after_balance),
+        wallet_type: row.wallet_type,
+        description: row.description,
+        created_at: row.created_at,
+        updated_at: row.updated_at,
+
+        food: {
+          food_order_id: row.food_order_id,
+          price: parseFloat(row.price),
+          quantity: row.quantity,
+          food_id: row.food_id,
+          food_order_created_at: row.food_order_created_at,
+          food_order_updated_at: row.food_order_updated_at,
+          total_price: totalPrice,
+        },
+
+        media: {
+          media_id: row.media_id,
+          model_id: row.model_id,
+          file_name: row.file_name,
+          mime_type: row.mime_type,
+          disk: row.disk,
+          conversions_disk: row.conversions_disk,
+          size: row.size,
+          manipulations: row.manipulations,
+          custom_properties: row.custom_properties,
+          generated_conversions: row.generated_conversions,
+          responsive_images: row.responsive_images,
+          order_column: row.order_column,
+          original_url: row.original_url,
+        },
+
+        food_details: {
+          food_name: row.food_name,
+          food_price: parseFloat(row.food_price),
+          food_discount_price: parseFloat(row.food_discount_price),
+          food_description: row.food_description,
+          food_perma_link: row.food_perma_link,
+          food_ingredients: row.food_ingredients,
+          food_package_items_count: parseFloat(row.food_package_items_count),
+          food_weight: parseFloat(row.food_weight),
+          food_unit: row.food_unit,
+          food_sku_code: row.food_sku_code,
+          food_barcode: row.food_barcode,
+          food_cgst: row.food_cgst,
+          food_sgst: row.food_sgst,
+          food_subscription_type: row.food_subscription_type,
+          food_track_inventory: row.food_track_inventory,
+          food_featured: row.food_featured,
+          food_deliverable: row.food_deliverable,
+          food_restaurant_id: row.food_restaurant_id,
+          food_category_id: row.food_category_id,
+          food_subcategory_id: row.food_subcategory_id,
+          food_product_type_id: row.food_product_type_id,
+          food_hub_id: row.food_hub_id,
+          food_locality_id: row.food_locality_id,
+          food_product_brand_id: row.food_product_brand_id,
+          food_weightage: row.food_weightage,
+          food_status: row.food_status,
+          food_created_at: row.food_created_at,
+          food_updated_at: row.food_updated_at,
+        },
+      };
+    });
+
+    return walletLogsWithFoodDetails;
+  } catch (error) {
+    console.error(
+      "Error fetching wallet logs with food details:",
+      error.message
+    );
+    console.error("Stack Trace:", error.stack);
+    throw new Error("Failed to fetch wallet logs with food details");
+  }
+};

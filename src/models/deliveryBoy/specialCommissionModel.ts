@@ -101,7 +101,7 @@ export const getAllDetailedSpecialCommissions = async (
       LEFT JOIN 
           delivery_boys db ON sc.delivery_boy_id = db.id
       WHERE 
-          (p.name LIKE ? OR c.name LIKE ?)${categoryFilter}${deliveryBoyFilter}
+          (p.name LIKE ? OR p.unit LIKE ? OR p.price LIKE ? OR scs.commission LIKE ? OR c.name LIKE ? OR sc.special_commission LIKE ?)${categoryFilter}${deliveryBoyFilter}
        ORDER BY CAST(${sortColumn} AS DECIMAL) ${validSortOrder}
       LIMIT ? OFFSET ?;
     `;
@@ -120,6 +120,10 @@ export const getAllDetailedSpecialCommissions = async (
   const params = [
     searchPattern,
     searchPattern,
+    searchPattern,
+    searchPattern,
+    searchPattern,
+    searchPattern,
     ...(categoryId && categoryId !== "All" ? [parseInt(categoryId)] : []),
     ...(deliveryBoyId && deliveryBoyId !== "All"
       ? [parseInt(deliveryBoyId)]
@@ -129,6 +133,10 @@ export const getAllDetailedSpecialCommissions = async (
   ];
 
   const countParams = [
+    searchPattern,
+    searchPattern,
+    searchPattern,
+    searchPattern,
     searchPattern,
     searchPattern,
     ...(categoryId && categoryId !== "All" ? [parseInt(categoryId)] : []),

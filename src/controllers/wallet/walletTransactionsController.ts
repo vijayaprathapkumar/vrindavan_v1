@@ -46,7 +46,9 @@ export const walletRecharges = async (req: Request, res: Response) => {
     });
 
     const balanceQuery = `SELECT balance FROM wallet_balances WHERE user_id = ?`;
-    const [balanceResult]: any = await db.promise().query(balanceQuery, [user_id]);
+    const [balanceResult]: any = await db
+      .promise()
+      .query(balanceQuery, [user_id]);
 
     if (balanceResult.length === 0) {
       throw new Error("Balance not found after update");
@@ -54,7 +56,9 @@ export const walletRecharges = async (req: Request, res: Response) => {
 
     const newBalance = Number(balanceResult[0].balance);
 
-    const logDescription = `₹${transaction_amount.toFixed(2)} Recharged for Wallet. Balance ₹${newBalance.toFixed(2)}`;
+    const logDescription = `₹${transaction_amount.toFixed(
+      2
+    )} Recharged for Wallet. Balance ₹${newBalance.toFixed(2)}`;
     await insertWalletLog({
       user_id,
       order_id: transaction_id,
@@ -112,7 +116,15 @@ export const getTransactionsByUserId = async (req: Request, res: Response) => {
 };
 
 export const getAllTransactions = async (req: Request, res: Response) => {
-  const { page = 1, limit = 10, startDate, endDate, searchTerm } = req.query;
+  const {
+    page = 1,
+    limit = 10,
+    startDate,
+    endDate,
+    searchTerm,
+    sortField,
+    sortOrder,
+  } = req.query;
 
   try {
     const { transactions, total }: TransactionsResponse =
@@ -121,14 +133,16 @@ export const getAllTransactions = async (req: Request, res: Response) => {
         Number(limit),
         startDate as string | undefined,
         endDate as string | undefined,
-        searchTerm as string | undefined
+        searchTerm as string | undefined,
+        sortField as string | undefined,
+        sortOrder as string | undefined
       );
     const totalPages = Math.ceil(total / Number(limit));
     return res.status(200).json(
       createResponse(200, "Transactions retrieved successfully", {
         transactions,
-        totalRecord: total,
-        currentPage: Number(page),
+        totalCount: total,
+        currentPage: page,
         limit: Number(limit),
         totalPages,
       })
@@ -142,14 +156,19 @@ export const getAllTransactions = async (req: Request, res: Response) => {
 };
 
 export const deductWalletBalance = async (req: Request, res: Response) => {
-  const { userId, deductionAmount, reason, walletType,order_date } = req.body;
+  const { userId, deductionAmount, reason, walletType, order_date } = req.body;
 
   try {
-    const currentBalanceQuery = 'SELECT balance FROM wallet_balances WHERE user_id = ?';
-    const [currentBalanceResult]: any = await db.promise().query(currentBalanceQuery, [userId]);
+    const currentBalanceQuery =
+      "SELECT balance FROM wallet_balances WHERE user_id = ?";
+    const [currentBalanceResult]: any = await db
+      .promise()
+      .query(currentBalanceQuery, [userId]);
 
     if (currentBalanceResult.length === 0) {
-      return res.status(404).json(createResponse(404, "User not found in wallet_balances"));
+      return res
+        .status(404)
+        .json(createResponse(404, "User not found in wallet_balances"));
     }
 
     const currentBalance = currentBalanceResult[0]?.balance || 0;
@@ -159,7 +178,7 @@ export const deductWalletBalance = async (req: Request, res: Response) => {
       return res.status(400).json(createResponse(400, "Insufficient balance"));
     }
 
-    await updateWalletBalanceDections(userId, -deductionAmount); 
+    await updateWalletBalanceDections(userId, -deductionAmount);
 
     await insertWalletLog({
       user_id: userId,
@@ -181,7 +200,11 @@ export const deductWalletBalance = async (req: Request, res: Response) => {
       })
     );
   } catch (error) {
-    console.error("Error deducting wallet balance:", error); 
-    return res.status(500).json(createResponse(500, "Error deducting wallet balance", error.message));
+    console.error("Error deducting wallet balance:", error);
+    return res
+      .status(500)
+      .json(
+        createResponse(500, "Error deducting wallet balance", error.message)
+      );
   }
 };

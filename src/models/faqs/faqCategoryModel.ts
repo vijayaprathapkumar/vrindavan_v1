@@ -24,14 +24,14 @@ export const getAllFaqCategories = async (
   const searchQuery = `
     SELECT id, name, weightage, created_at, updated_at 
     FROM faq_categories
-    WHERE name LIKE ?
+    WHERE name LIKE ? OR CAST(faq_categories.weightage AS UNSIGNED) LIKE ?
     ORDER BY ${sortColumn} ${validSortOrder}
     LIMIT ? OFFSET ?
   `;
 
   const [rows] = await db
     .promise()
-    .query<RowDataPacket[]>(searchQuery, [`%${searchTerm}%`, limit, offset]);
+    .query<RowDataPacket[]>(searchQuery, [`%${searchTerm}%`,`%${searchTerm}%`, limit, offset]);
 
   const totalQuery = `
     SELECT COUNT(*) AS total 
@@ -41,7 +41,7 @@ export const getAllFaqCategories = async (
 
   const [[{ total }]] = await db
     .promise()
-    .query<RowDataPacket[]>(totalQuery, [`%${searchTerm}%`]);
+    .query<RowDataPacket[]>(totalQuery, [`%${searchTerm}%`,`%${searchTerm}%`]);
 
   return { faqCategories: rows, total };
 };

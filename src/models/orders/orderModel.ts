@@ -118,7 +118,7 @@ export const getAllOrders = async (
           order_id,
           {
             ...rest,
-           
+
             food_orders: {
               order_id,
               food_order_id,
@@ -181,7 +181,9 @@ export const getAllOrdersWithOutUserId = async (
   approveStatus?: string,
   orderType?: string | number | null,
   deliveryBoyId?: string | number | null,
-  walletFilter?: string | null
+  walletFilter?: string | null,
+  sortField?: string,
+  sortOrder?: string
 ): Promise<{ total: number; placeOrders: any[] }> => {
   const offset = (page - 1) * limit;
 
@@ -189,9 +191,41 @@ export const getAllOrdersWithOutUserId = async (
   let conditions = "";
 
   if (searchTerm) {
-    conditions += ` AND f.name LIKE ?`;
-    const searchValue = `%${searchTerm}%`;
-    queryParams.push(searchValue);
+    conditions += ` AND (f.name LIKE ?
+     OR tr.name LIKE ?  
+     OR h.name LIKE ? 
+     OR f.unit LIKE ? 
+     OR fo.quantity LIKE ?
+     OR db.name LIKE ? 
+     OR fo.price LIKE ?
+     OR f.weightage LIKE ?
+     OR pt.weightage LIKE ?
+     OR u.name LIKE ?
+     OR u.phone LIKE ?
+     OR da.house_no LIKE ?
+     OR da.complete_address LIKE ?
+     OR p.price LIKE ?
+     OR l.name LIKE ?
+     OR o.id LIKE ?
+     )`;
+    queryParams.push(
+      `%${searchTerm}%`,
+      `%${searchTerm}%`,
+      `%${searchTerm}%`,
+      `%${searchTerm}%`,
+      `%${searchTerm}%`,
+      `%${searchTerm}%`,
+      `%${searchTerm}%`,
+      `%${searchTerm}%`,
+      `%${searchTerm}%`,
+      `%${searchTerm}%`,
+      `%${searchTerm}%`,
+      `%${searchTerm}%`,
+      `%${searchTerm}%`,
+      `%${searchTerm}%`,
+      `%${searchTerm}%`,
+      `%${searchTerm}%`
+    );
   }
 
   // Date range conditions
@@ -245,11 +279,34 @@ export const getAllOrdersWithOutUserId = async (
 
   if (walletFilter) {
     if (walletFilter === "1") {
-      conditions += " AND o.is_wallet_deduct = 0"; // Non-deducted orders
+      conditions += " AND o.is_wallet_deduct = 0";
     } else if (walletFilter === "2") {
-      conditions += " AND o.is_wallet_deduct = 1"; // Deducted orders
+      conditions += " AND o.is_wallet_deduct = 1";
     }
   }
+
+  const validSortFields = [
+    "truck_route_name",
+    "hub_name",
+    "f.name",
+    "fo.quantity",
+    "f.unit",
+    "db.name",
+    "fo.price",
+    "f.weightage",
+    "pt.weightage",
+    "u.name",
+    "u.phone",
+    "da.house_no",
+    "da.complete_address",
+    "p.price",
+    "l.name",
+  ];
+
+  const sortColumn = validSortFields.includes(sortField)
+    ? sortField
+    : "o.created_at";
+  const sortOrderClause = sortOrder === "asc" ? "asc" : "desc";
 
   const countQuery = `
     SELECT COUNT(DISTINCT o.id) AS total
@@ -259,6 +316,12 @@ export const getAllOrdersWithOutUserId = async (
     LEFT JOIN delivery_boys db ON ldb.delivery_boy_id = db.id
     LEFT JOIN food_orders fo ON o.id = fo.order_id
     LEFT JOIN foods f ON fo.food_id = f.id
+    LEFT JOIN truck_routes tr ON o.route_id = tr.id 
+    LEFT JOIN hubs h ON o.hub_id = h.id
+    LEFT JOIN product_types pt ON f.product_type_id = pt.id
+    LEFT JOIN users u ON o.user_id = u.id
+    LEFT JOIN payments p ON o.payment_id = p.id
+    LEFT JOIN localities l ON o.locality_id = l.id
     WHERE 1=1 ${conditions};
 
 `;
@@ -283,7 +346,7 @@ export const getAllOrdersWithOutUserId = async (
     o.hint, 
     o.active,
     o.delivery_address_id, 
-    o.payment_id, 
+    o.payment_id AS order_payment_id, 
     o.is_wallet_deduct, 
     o.delivery_status,
     o.created_at, 
@@ -381,7 +444,7 @@ export const getAllOrdersWithOutUserId = async (
     p.created_at AS payment_created_at,
     p.updated_at AS payment_updated_at,
 
-ldb.id AS locality_delivery_boy_id,
+    ldb.id AS locality_delivery_boy_id,
     ldb.locality_id AS locality_delivery_boy_locality_id,
     ldb.delivery_boy_id AS locality_delivery_boy_delivery_boy_id,
     ldb.created_at AS locality_delivery_boy_created_at,
@@ -443,8 +506,7 @@ ldb.id AS locality_delivery_boy_id,
   WHERE 
     1 = 1 
     ${conditions}
-  ORDER BY 
-    o.created_at DESC
+  ORDER BY ${sortColumn} ${sortOrderClause}
   LIMIT ?, ?;
   `;
   queryParams.push(offset, limit);
@@ -572,12 +634,14 @@ ldb.id AS locality_delivery_boy_id,
           order_status,
           order_status_created_at,
           order_status_updated_at,
+          order_payment_id,
           ...rest
         }) => [
           order_id,
           {
             ...rest,
             order_id,
+            order_payment_id,
             truck_routes: {
               truck_route_id,
               truck_route_name,
@@ -1564,9 +1628,6 @@ export const getUpcomingOrdersModel = (
       }
 
       const mappedResults = results.map((row) => {
-        const orderDate = new Date(row.order_date);
-        orderDate.setDate(orderDate.getDate() + 1); // Increment order_date by 1 day
-
         return {
           user_subscription_id: row.user_subscription_id,
           user_id: row.user_id,
@@ -1584,7 +1645,7 @@ export const getUpcomingOrdersModel = (
           sunday_qty: row.sunday_qty,
           cancel_subscription: row.cancel_subscription,
           order_type: row.order_type,
-          order_date: orderDate.toISOString(), // Convert the next day to ISO string format
+          order_date: row?.order_date, // Convert the next day to ISO string format
           is_pause_subscription: row.is_pause_subscription,
           pause_until_i_come_back: row.pause_until_i_come_back,
           pause_specific_period_startDate: row.pause_specific_period_startDate,

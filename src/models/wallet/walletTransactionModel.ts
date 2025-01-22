@@ -26,17 +26,17 @@ export const insertWalletTransaction = (
 ): Promise<void> => {
   const generateTransactionId = (): string => {
     const prefix = "TXN";
-    const userId =   transaction.user_id; 
+    const userId = transaction.user_id;
     return `${prefix}${userId}`;
   };
-  
+
   const query = `
         INSERT INTO wallet_transactions 
         (transaction_id, rp_payment_id, rp_order_id, user_id, plan_id, transaction_date, extra_percentage, plan_amount, extra_amount, transaction_amount, transaction_type, status, description, created_at, updated_at) 
         VALUES (?, ?, ?, ?, ?, NOW(), ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
     `;
 
-    const transactionId =  generateTransactionId();
+  const transactionId = generateTransactionId();
 
   return new Promise((resolve, reject) => {
     db.query(
@@ -123,121 +123,164 @@ export const getTransactionsByUserId = (
 };
 
 export const fetchAllTransactions = (
-    page: number,
-    limit: number,
-    startDate?: string,
-    endDate?: string,
-    searchTerm?: string
-  ): Promise<TransactionsResponse> => {
-    const offset = (page - 1) * limit;
-  
-    const whereClauses: string[] = [];
-    const queryParams: (string | number)[] = [];
-  
-    if (startDate) {
-      whereClauses.push("wt.updated_at >= ?");
-      queryParams.push(startDate);
+  page: number,
+  limit: number,
+  startDate?: string,
+  endDate?: string,
+  searchTerm?: string,
+  sortField?: string,
+  sortOrder?: string
+): Promise<TransactionsResponse> => {
+  const offset = (page - 1) * limit;
+
+  const whereClauses: string[] = [];
+  const queryParams: (string | number)[] = [];
+
+  if (startDate) {
+    whereClauses.push("wt.updated_at >= ?");
+    queryParams.push(startDate);
+  }
+
+  if (endDate) {
+    whereClauses.push("wt.updated_at <= ?");
+    queryParams.push(endDate);
+  }
+
+  console.log("searchTerm", searchTerm);
+
+  if (searchTerm) {
+    let formattedSearchTerm = `%${searchTerm}%`;
+
+    const dateRegex = /^\d{2}\/\d{2}\/\d{4}$/;
+    if (dateRegex.test(searchTerm)) {
+      const [day, month, year] = searchTerm.split("/");
+      const formattedDate = `${year}-${month}-${day}`;
+      formattedSearchTerm = `%${formattedDate}%`;
+      whereClauses.push(`DATE(wt.transaction_date) LIKE ?`);
+      queryParams.push(formattedSearchTerm);
+    } else {
+      whereClauses.push(`
+        (u.name LIKE ? OR u.email LIKE ? OR u.phone LIKE ? 
+        OR wt.transaction_id LIKE ? OR wt.transaction_amount LIKE ? OR wt.transaction_date LIKE ?)
+      `);
+      queryParams.push(
+        formattedSearchTerm,
+        formattedSearchTerm,
+        formattedSearchTerm,
+        formattedSearchTerm,
+        formattedSearchTerm,
+        formattedSearchTerm
+      );
     }
-  
-    if (endDate) {
-      whereClauses.push("wt.updated_at <= ?");
-      queryParams.push(endDate);
-    }
-  
-    if (searchTerm) {
-      whereClauses.push("(u.name LIKE ? OR u.email LIKE ? OR u.phone LIKE ?)");
-      const likeTerm = `%${searchTerm}%`;
-      queryParams.push(likeTerm, likeTerm, likeTerm);
-    }
-  
-    const whereClause =
-      whereClauses.length > 0 ? `WHERE ${whereClauses.join(" AND ")}` : "";
-  
-    const query = `
-        SELECT 
-          wt.*, 
-          u.id AS user_id, 
-          u.name AS user_name, 
-          u.email AS user_email, 
-          u.phone AS user_phone, 
-          u.credit_limit, 
-          u.status AS user_status
+  }
+
+  const whereClause =
+    whereClauses.length > 0 ? `WHERE ${whereClauses.join(" AND ")}` : "";
+
+  const allowedSortFields: Record<string, string> = {
+    user_name: "u.name",
+    user_email: "u.email",
+    user_phone: "u.phone",
+    transaction_id: "wt.transaction_id",
+    transaction_amount: "wt.transaction_amount",
+    transaction_date: "wt.transaction_date",
+  };
+
+  let orderByClause = "";
+  if (sortField && allowedSortFields[sortField]) {
+    const validSortOrder = sortOrder === "desc" ? "desc" : "asc";
+    orderByClause = ` ORDER BY ${allowedSortFields[sortField]} ${validSortOrder}`;
+  } else {
+    orderByClause = ` ORDER BY wt.updated_at DESC`;
+  }
+
+  const query = `
+      SELECT 
+        wt.*, 
+        u.id AS user_id, 
+        u.name AS user_name, 
+        u.email AS user_email, 
+        u.phone AS user_phone, 
+        u.credit_limit, 
+        u.status AS user_status
+      FROM wallet_transactions wt
+      LEFT JOIN users u ON wt.user_id = u.id
+      ${whereClause}
+      ${orderByClause}
+      LIMIT ? OFFSET ?
+    `;
+
+  queryParams.push(limit, offset);
+
+  return new Promise((resolve, reject) => {
+    db.query(query, queryParams, (err, results) => {
+      if (err) {
+        return reject(err);
+      }
+
+      const transactions: WalletTransaction[] = results as WalletTransaction[];
+
+      const countQuery = `
+        SELECT COUNT(*) AS total 
         FROM wallet_transactions wt
         LEFT JOIN users u ON wt.user_id = u.id
         ${whereClause}
-        ORDER BY wt.updated_at DESC
-        LIMIT ? OFFSET ?
       `;
-  
-    queryParams.push(limit, offset); // Add limit and offset at the end
-  
-    return new Promise((resolve, reject) => {
-      db.query(query, queryParams, (err, results) => {
+
+      db.query(countQuery, queryParams.slice(0, -2), (err, countResults) => {
         if (err) {
           return reject(err);
         }
-  
-        const transactions: WalletTransaction[] = results as WalletTransaction[];
-  
-        const countQuery = `
-          SELECT COUNT(*) AS total 
-          FROM wallet_transactions wt
-          LEFT JOIN users u ON wt.user_id = u.id
-          ${whereClause}
-        `;
-  
-        db.query(countQuery, queryParams.slice(0, -2), (err, countResults) => {
-          if (err) {
-            return reject(err);
-          }
-          const total = countResults[0]?.total || 0;
-          resolve({ transactions, total });
-        });
+        const total = countResults[0]?.total || 0;
+        resolve({ transactions, total });
       });
     });
-  };
+  });
+};
 
-
-  export const insertWalletLog = (log: any): Promise<void> => {
-    const query = `
+export const insertWalletLog = (log: any): Promise<void> => {
+  const query = `
       INSERT INTO wallet_logs
       (user_id, order_id, order_date, before_balance, amount, after_balance, wallet_type, description, created_at, updated_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
     `;
-  
-    return new Promise((resolve, reject) => {
-      db.query(
-        query,
-        [
-          log.user_id,
-          log.order_id,
-          log.order_date,
-          log.before_balance,
-          log.amount,
-          log.after_balance,
-          log.wallet_type,
-          log.description,
-        ],
-        (err) => {
-          if (err) {
-            return reject(err);
-          }
-          resolve();
+
+  return new Promise((resolve, reject) => {
+    db.query(
+      query,
+      [
+        log.user_id,
+        log.order_id,
+        log.order_date,
+        log.before_balance,
+        log.amount,
+        log.after_balance,
+        log.wallet_type,
+        log.description,
+      ],
+      (err) => {
+        if (err) {
+          return reject(err);
         }
-      );
-    });
-  };
- 
-  export const updateWalletBalanceDections = async (userId: string, amount: number): Promise<void> => {
-    const checkQuery = `SELECT * FROM wallet_balances WHERE user_id = ?`;
-  
-    const [results]: any = await db.promise().query(checkQuery, [userId]);
-  
-    if (results.length > 0) {
-      const updateQuery = `UPDATE wallet_balances SET balance = balance + ?, updated_at = NOW() WHERE user_id = ?`;
-      await db.promise().query(updateQuery, [amount, userId]);
-    } else {
-      const insertQuery = `INSERT INTO wallet_balances (user_id, balance, created_at, updated_at) VALUES (?, ?, NOW(), NOW())`;
-      await db.promise().query(insertQuery, [userId, amount]);
-    }
-  };
+        resolve();
+      }
+    );
+  });
+};
+
+export const updateWalletBalanceDections = async (
+  userId: string,
+  amount: number
+): Promise<void> => {
+  const checkQuery = `SELECT * FROM wallet_balances WHERE user_id = ?`;
+
+  const [results]: any = await db.promise().query(checkQuery, [userId]);
+
+  if (results.length > 0) {
+    const updateQuery = `UPDATE wallet_balances SET balance = balance + ?, updated_at = NOW() WHERE user_id = ?`;
+    await db.promise().query(updateQuery, [amount, userId]);
+  } else {
+    const insertQuery = `INSERT INTO wallet_balances (user_id, balance, created_at, updated_at) VALUES (?, ?, NOW(), NOW())`;
+    await db.promise().query(insertQuery, [userId, amount]);
+  }
+};
