@@ -27,7 +27,7 @@ app.get("/", (req, res) => {
 app.use("/api", routes);
 
 const hostname = '0.0.0.0'; // Listen on all IP addresses
-const port = 3002; 
+const port = 3000; 
 
 app.listen(port, hostname, () => {
   console.log(`Server is running on http://${hostname}:${port}`);
