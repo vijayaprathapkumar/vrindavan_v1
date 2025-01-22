@@ -1,6 +1,5 @@
 import { db } from "../../config/databaseConnection";
 import { RowDataPacket, OkPacket } from "mysql2";
-
 export const getAllDeliveryBoysWithLocalities = async (
   limit: number,
   offset: number,
@@ -37,14 +36,23 @@ export const getAllDeliveryBoysWithLocalities = async (
       locality_active: boolean;
       locality_created_at: string;
       locality_updated_at: string;
-    }>;
-  }>;
+    }>[]; 
+  }>[]; 
   totalCount: number;
 }> => {
-  const searchCondition = searchTerm
+  const activeFilter = searchTerm.toLowerCase() === "active" 
+    ? "AND db.active = 1"
+    : searchTerm.toLowerCase() === "inactive"
+    ? "AND db.active = 0"
+    : "";  
+  
+  const searchCondition = searchTerm && !["active", "inactive"].includes(searchTerm)
     ? `WHERE db.name LIKE ? OR db.mobile LIKE ?`
-    : "";
-  const searchParams = searchTerm ? [`%${searchTerm}%`, `%${searchTerm}%`] : [];
+    : `WHERE 1=1`; 
+
+  const searchParams = searchTerm && !["active", "inactive"].includes(searchTerm)
+    ? [`%${searchTerm}%`, `%${searchTerm}%`]
+    : [];
 
   const validSortFields: Record<string, string> = {
     delivery_boy_name: "db.name",
@@ -52,56 +60,53 @@ export const getAllDeliveryBoysWithLocalities = async (
     active: "db.active",
     cash_collection: "db.cash_collection",
   };
-  
+
   const sortColumn = validSortFields[sortField] || "db.created_at";
-const validSortOrder = sortOrder === "desc" ? "DESC" : "ASC"; // Ensure DESC and ASC are uppercase for SQL
+  const validSortOrder = sortOrder === "desc" ? "desc" : "asc";
 
-  
-
-  const [rows] = await db.promise().query<RowDataPacket[]>(
-    `SELECT 
-        db.id AS delivery_boy_id,
-        db.user_id,
-        db.name AS delivery_boy_name,
-        db.mobile,
-        db.active,
-        db.cash_collection,
-        db.delivery_fee,
-        db.total_orders,
-        db.earning,
-        db.available,
-        db.addressPickup,
-        db.latitudePickup,
-        db.longitudePickup,
-        db.created_at AS delivery_boy_created_at,
-        db.updated_at AS delivery_boy_updated_at,
-        ldb.id AS delivery_boy_locality_id,
-        ldb.locality_id,
-        l.id AS locality_id,
-        l.route_id,
-        l.hub_id,
-        l.name AS locality_name,
-        l.address AS locality_address,
-        l.google_address,
-        l.latitude AS locality_latitude,
-        l.longitude AS locality_longitude,
-        l.city AS locality_city,
-        l.active AS locality_active,
-        l.created_at AS locality_created_at,
-        l.updated_at AS locality_updated_at
-      FROM (
-        SELECT DISTINCT db.id, db.created_at
-        FROM delivery_boys db
-        ${searchCondition}
-        ORDER BY db.created_at DESC
-        LIMIT ? OFFSET ?
-      ) AS limited_db
-      LEFT JOIN delivery_boys db ON limited_db.id = db.id
-      LEFT JOIN locality_delivery_boys ldb ON db.id = ldb.delivery_boy_id
-      LEFT JOIN localities l ON ldb.locality_id = l.id
-         ORDER BY ${sortColumn}  ${validSortOrder}`,
-    [...searchParams, limit, offset]
-  );
+  const [rows] = await db.promise().query<RowDataPacket[]>(`
+    SELECT 
+      db.id AS delivery_boy_id,
+      db.user_id,
+      db.name AS delivery_boy_name,
+      db.mobile,
+      db.active,
+      db.cash_collection,
+      db.delivery_fee,
+      db.total_orders,
+      db.earning,
+      db.available,
+      db.addressPickup,
+      db.latitudePickup,
+      db.longitudePickup,
+      db.created_at AS delivery_boy_created_at,
+      db.updated_at AS delivery_boy_updated_at,
+      ldb.id AS delivery_boy_locality_id,
+      ldb.locality_id,
+      l.id AS locality_id,
+      l.route_id,
+      l.hub_id,
+      l.name AS locality_name,
+      l.address AS locality_address,
+      l.google_address,
+      l.latitude AS locality_latitude,
+      l.longitude AS locality_longitude,
+      l.city AS locality_city,
+      l.active AS locality_active,
+      l.created_at AS locality_created_at,
+      l.updated_at AS locality_updated_at
+    FROM (
+      SELECT DISTINCT db.id, db.created_at
+      FROM delivery_boys db
+      ${searchCondition} ${activeFilter}
+      ORDER BY db.created_at DESC
+      LIMIT ? OFFSET ?
+    ) AS limited_db
+    LEFT JOIN delivery_boys db ON limited_db.id = db.id
+    LEFT JOIN locality_delivery_boys ldb ON db.id = ldb.delivery_boy_id
+    LEFT JOIN localities l ON ldb.locality_id = l.id
+    ORDER BY ${sortColumn} ${validSortOrder}
+  `, [...searchParams, limit, offset]);
 
   const deliveryBoysMap = new Map();
 
@@ -151,17 +156,18 @@ const validSortOrder = sortOrder === "desc" ? "DESC" : "ASC"; // Ensure DESC and
   const deliveryBoys = Array.from(deliveryBoysMap.values());
 
   // Query to get the total count of distinct delivery_boy_id
-  const [[totalCountRow]] = await db.promise().query<RowDataPacket[]>(
-    `SELECT COUNT(DISTINCT db.id) as totalCount
-     FROM delivery_boys db
-     ${searchCondition}`,
-    searchParams
-  );
+  const [[totalCountRow]] = await db.promise().query<RowDataPacket[]>(`
+    SELECT COUNT(DISTINCT db.id) as totalCount
+    FROM delivery_boys db
+    ${searchCondition} ${activeFilter}
+  `, searchParams);
 
   const totalCount = totalCountRow.totalCount;
 
   return { deliveryBoys, totalCount };
 };
+
+
 
 export interface DeliveryBoyData {
   userId: number;
