@@ -48,10 +48,9 @@ export const handlePaymentsOrders = async (placeOrderData) => {
     const afterBalance = parseFloat(
       (beforeBalance - totalOrderValue).toFixed(2)
     );
-
-    const transactionDescription = `₹${totalOrderValue} deducted for ${food_name} ${unit} x ${quantity}. Balance ₹${afterBalance}`;
-
-    // Log wallet transaction
+  
+    const transactionDescription = `₹${totalOrderValue} deducted for ${food_name} ${unit} x ${quantity}. Balance ₹${totalOrderValue}`;
+   
     await logWalletTransaction(
       user_id,
       order_id,
@@ -131,7 +130,7 @@ export const deductFromWalletBalance = async (userId, amount) => {
   }
 };
 
-export const getAllPlaceOrdersUsers = async () => {
+export const getAllPlaceOrdersUsers = async (currentDate: string) => {
   const query = `
       SELECT 
         o.id AS order_id,
@@ -148,20 +147,19 @@ export const getAllPlaceOrdersUsers = async () => {
       LEFT JOIN 
         foods f ON f.id = fo.food_id
       WHERE 
-        DATE(o.order_date) = CURDATE();
+        DATE(o.order_date) = ?;
     `;
-
   const [placeOrderRows]: [RowDataPacket[], any] = await db
     .promise()
-    .query(query);
+    .query(query, [currentDate]);
+
   return placeOrderRows;
 };
 
-export const processTodayOrderPayments = async () => {
+export const processTodayOrderPayments = async (currentDate) => {
   try {
     console.time("paymentProcessing");
-    const orders = await getAllPlaceOrdersUsers();
-    console.log("orders", orders);
+    const orders = await getAllPlaceOrdersUsers(currentDate);
 
     if (orders.length === 0) {
       console.log("No orders to process for today.");
@@ -176,17 +174,18 @@ export const processTodayOrderPayments = async () => {
 };
 
 export const everyDayPaymentProcessJob = () => {
-  cron.schedule("17 16 * * *", async () => {
+  cron.schedule("00 15 * * *", async () => {
     console.log("Cron job running...");
     console.time("paymentProcessing");
 
-    const currentDate = new Date();
+    const currentDate = new Date().toISOString().split("T")[0];
+
     const jobStartTime = moment().format("YYYY-MM-DD HH:mm:ss");
     let jobEndTime = "";
     let jobDuration = "";
 
     try {
-      await processTodayOrderPayments();
+      await processTodayOrderPayments(currentDate);
 
       jobEndTime = moment().format("YYYY-MM-DD HH:mm:ss");
       jobDuration = moment(jobEndTime).diff(
@@ -204,7 +203,6 @@ export const everyDayPaymentProcessJob = () => {
         `Job Start: ${jobStartTime}, Job End: ${jobEndTime}, Duration: ${jobDuration}s, Message: ${logMessage}`,
       ];
 
-      // Insert cron log into the database
       await db.promise().query(sqlQuery, values);
 
       console.timeEnd("paymentProcessing");

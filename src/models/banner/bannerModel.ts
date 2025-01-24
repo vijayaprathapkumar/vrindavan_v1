@@ -71,6 +71,8 @@ export const getAllBanners = async (
     LEFT JOIN media m ON b.id = m.model_id AND m.model_type = 'App\\\\Models\\\\Banner'
     WHERE
       b.id IS NOT NULL
+       b.id IS NOT NULL
+    AND (b.date_to IS NULL OR b.date_to >= CURDATE())
   `;
 
   const params: any[] = [];
@@ -252,7 +254,7 @@ export const createBanner = async (bannerData: {
   banner_location: number;
   banner_link?: string;
   banner_content?: string;
-  food_id?: string;
+  food_id?: string[]; // Change to an array of strings
   banner_weightage?: number;
   date_from?: string;
   date_to?: string;
@@ -271,6 +273,11 @@ export const createBanner = async (bannerData: {
     status,
   } = bannerData;
 
+  console.log('bannerData', bannerData);
+
+  // Convert food_id array to comma-separated string, or null if empty
+  const foodIdString = food_id && food_id.length > 0 ? food_id.join(',') : null;
+
   const sql = `
     INSERT INTO banners 
     (banner_name, banner_type, banner_location, banner_link, banner_content, food_id, banner_weightage, date_from, date_to, status, created_at, updated_at) 
@@ -282,8 +289,8 @@ export const createBanner = async (bannerData: {
     banner_type,
     banner_location,
     banner_link,
-    banner_content,
-    food_id,
+    banner_content ?? null,
+    foodIdString, // Insert the comma-separated food_id string
     banner_weightage,
     date_from,
     date_to,
@@ -292,12 +299,15 @@ export const createBanner = async (bannerData: {
 
   try {
     const [result]: [OkPacket, any] = await db.promise().query(sql, values);
+    console.log('result', result);
+    
     return result.insertId;
   } catch (error) {
     console.error("Error creating banner:", error);
     throw error;
   }
 };
+
 
 // Fetch banner by ID
 export const getBannerById = async (
@@ -438,12 +448,15 @@ export const updateBanner = async (
   banner_location?: number,
   banner_link?: string,
   banner_content?: string,
-  food_id?: string,
+  food_id?: string[], // Change to an array of strings
   banner_weightage?: number,
   date_from?: string,
   date_to?: string,
   status?: number
 ): Promise<{ affectedRows: number }> => {
+  // Convert food_id array to a comma-separated string if it's provided
+  const foodIdString = food_id && food_id.length > 0 ? food_id.join(',') : undefined;
+
   const updateBannerQuery = `
     UPDATE banners 
     SET 
@@ -468,7 +481,7 @@ export const updateBanner = async (
     banner_location,
     banner_link,
     banner_content,
-    food_id,
+    foodIdString, // Use the converted comma-separated food_id string
     banner_weightage,
     date_from,
     date_to,
@@ -479,6 +492,7 @@ export const updateBanner = async (
   const [result]: [OkPacket, any] = await db
     .promise()
     .query(updateBannerQuery, values);
+
   return { affectedRows: result.affectedRows };
 };
 

@@ -146,8 +146,6 @@ export const fetchAllTransactions = (
     queryParams.push(endDate);
   }
 
-  console.log("searchTerm", searchTerm);
-
   if (searchTerm) {
     let formattedSearchTerm = `%${searchTerm}%`;
 
@@ -246,17 +244,25 @@ export const insertWalletLog = (log: any): Promise<void> => {
     `;
 
   return new Promise((resolve, reject) => {
+    const formattedOrderDate = log.order_date ? log.order_date : new Date();
+    const descriptionCondition =
+      log.wallet_type === "recharge"
+        ? `${log.description} | Wallet balance: ₹${log.after_balance}`
+        : log.wallet_type === "deductions from client"
+        ? `Deducted ₹${log.amount} for ${log.description} | Wallet balance: ₹${log.after_balance}`
+        : "";
+
     db.query(
       query,
       [
         log.user_id,
-        log.order_id,
-        log.order_date,
+        log.order_id ?? null,
+        formattedOrderDate,
         log.before_balance,
         log.amount,
         log.after_balance,
         log.wallet_type,
-        log.description,
+        descriptionCondition,
       ],
       (err) => {
         if (err) {
