@@ -243,7 +243,7 @@ export const getWalletLogsWithFoodDetails = async (
         LEFT JOIN foods f ON fo.food_id = f.id
         LEFT JOIN media m ON f.id = m.model_id AND m.model_type = 'App\\\\Models\\\\Food'
         WHERE wl.user_id = ?
-        ORDER BY wl.order_date DESC
+        ORDER BY wl.updated_at DESC
         LIMIT ? OFFSET ?;
       `;
 
