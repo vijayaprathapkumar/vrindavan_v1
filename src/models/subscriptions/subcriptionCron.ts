@@ -17,9 +17,10 @@ async function fetchSubscriptions(lastId = 0, batchSize) {
   return subscriptions;
 }
 
-export async function handleNextDayOrders() {
-  const tomorrow = moment().add(1, "days");
-  const dayOfWeek = tomorrow.format("dddd").toLowerCase();
+export async function handleNextDayOrders(currentDate) {
+  const tomorrow = moment(currentDate).add(1, "days");
+  const customizeDate = moment(currentDate).add(0, "days");
+  const dayOfWeek = customizeDate.format("dddd").toLowerCase();
   let lastId = 0;
   const batchSize = 100;
 
@@ -57,14 +58,17 @@ export async function handleNextDayOrders() {
                 }
                 break;
               case "customize":
-                quantityToOrder = sub[`${dayOfWeek}Qty`];
+                quantityToOrder = sub[`${dayOfWeek}_qty`];
                 break;
               default:
                 return;
             }
-
             if (quantityToOrder > 0) {
-              const orderResult = await createOrder(sub, quantityToOrder);
+              const orderResult = await createOrder(
+                sub,
+                quantityToOrder,
+                currentDate
+              );
               if (!orderResult.success) {
                 if (orderResult.reason === "missing_product") {
                   console.warn(
@@ -86,7 +90,7 @@ export async function handleNextDayOrders() {
       lastId = subscriptions[subscriptions.length - 1].id;
     } catch (error) {
       console.error("Error fetching or processing subscriptions:", error);
-      break; // Break the loop if fetching subscriptions fails consistently.
+      break;
     }
   }
 }
@@ -98,7 +102,7 @@ const withTimeout = (promise, ms) => {
   return Promise.race([promise, timeout]);
 };
 
-export const createOrder = async (orderItem, quantityToOrder) => {
+export const createOrder = async (orderItem, quantityToOrder, currentDate) => {
   const { product_id, user_id } = orderItem || {};
 
   try {
@@ -115,7 +119,10 @@ export const createOrder = async (orderItem, quantityToOrder) => {
     const productAmount = discount_price || price;
 
     if (productAmount > 0) {
-      const orderData = await withTimeout(addOrdersEntry(user_id), 5000);
+      const orderData = await withTimeout(
+        addOrdersEntry(user_id, currentDate),
+        5000
+      );
       if (orderData?.orderId) {
         await withTimeout(
           addFoodOrderEntry(
@@ -157,7 +164,7 @@ const getProductById = async (product_id) => {
   }
 };
 
-const addOrdersEntry = async (userId) => {
+const addOrdersEntry = async (userId, currentDate) => {
   const addressSql = `
       SELECT da.id AS delivery_address_id, da.*, l.route_id, l.hub_id
       FROM delivery_addresses da
@@ -184,13 +191,14 @@ const addOrdersEntry = async (userId) => {
           order_status_id, tax, delivery_fee, delivery_address_id, is_wallet_deduct, 
           created_at, updated_at
         ) 
-        VALUES (?, 2, DATE_ADD(NOW(), INTERVAL 1 DAY), ?, ?, ?, 1, 0.0, 0.0, ?, 1, NOW(), NOW());
+        VALUES (?, 2, ?, ?, ?, ?, 1, 0.0, 0.0, ?, 1, NOW(), NOW());
       `;
 
     const [orderResult]: any = await db
       .promise()
       .query(orderSql, [
         userId,
+        currentDate,
         route_id,
         hub_id,
         locality_id,
@@ -236,12 +244,12 @@ const addFoodOrderEntry = async (
 };
 
 export const subcribtionsJob = () => {
-  cron.schedule("38 16 * * *", async () => {
+  cron.schedule("30 21 * * *", async () => {
     console.log("Cron job running...");
     console.time("subProcessing");
 
     const currentDate = new Date();
-    const nextDate = new Date();
+    const nextDate = new Date(currentDate);
     nextDate.setDate(currentDate.getDate() + 1);
 
     const jobStartTime = moment().format("YYYY-MM-DD HH:mm:ss");
@@ -249,7 +257,7 @@ export const subcribtionsJob = () => {
     let jobDuration = "";
 
     try {
-      await handleNextDayOrders();
+      await handleNextDayOrders(currentDate);
 
       jobEndTime = moment().format("YYYY-MM-DD HH:mm:ss");
       jobDuration = moment(jobEndTime).diff(
@@ -270,7 +278,6 @@ export const subcribtionsJob = () => {
         `Job Start: ${jobStartTime}, Job End: ${jobEndTime}, Duration: ${jobDuration}s, Message: ${logMessage}`,
       ];
 
-      // Insert cron log into the database
       await db.promise().query(sqlQuery, values);
 
       console.timeEnd("subProcessing");

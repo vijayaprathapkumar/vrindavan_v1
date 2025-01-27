@@ -58,7 +58,7 @@ export const walletRecharges = async (req: Request, res: Response) => {
 
     const logDescription = `₹${transaction_amount.toFixed(
       2
-    )} Recharged for Wallet. Balance ₹${newBalance.toFixed(2)}`;
+    )} Recharged for Wallet.`;
     await insertWalletLog({
       user_id,
       order_id: transaction_id,
