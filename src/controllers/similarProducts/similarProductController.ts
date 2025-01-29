@@ -5,7 +5,10 @@ import {
   getSubcategoryId,
 } from "../../models/similarProducts/similarProductModel";
 
-export const fetchSimilarProducts = async (req: Request, res: Response): Promise<Response> => {
+export const fetchSimilarProducts = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
   const foodId = parseInt(req.params.foodId);
   const page = parseInt(req.query.page as string) || 1;
   const limit = parseInt(req.query.limit as string) || 10;
@@ -18,10 +21,17 @@ export const fetchSimilarProducts = async (req: Request, res: Response): Promise
   try {
     const subcategoryId = await getSubcategoryId(foodId);
     if (!subcategoryId) {
-      return res.status(404).json(createResponse(404, "Subcategory not found for this food ID."));
+      return res
+        .status(404)
+        .json(createResponse(404, "Subcategory not found for this food ID."));
     }
 
-    const { products, totalProducts } = await getSimilarProductsWithCount(subcategoryId, limit, offset);
+    const { products, totalProducts } = await getSimilarProductsWithCount(
+      subcategoryId,
+      foodId,
+      limit,
+      offset
+    );
 
     return res.status(200).json(
       createResponse(200, "Similar products fetched successfully.", {
@@ -33,8 +43,12 @@ export const fetchSimilarProducts = async (req: Request, res: Response): Promise
       })
     );
   } catch (error) {
-    console.error(`Error fetching similar products for food ID ${foodId}:`, error);
-    return res.status(500).json(createResponse(500, "Failed to fetch similar products."));
+    console.error(
+      `Error fetching similar products for food ID ${foodId}:`,
+      error
+    );
+    return res
+      .status(500)
+      .json(createResponse(500, "Failed to fetch similar products."));
   }
 };
-  

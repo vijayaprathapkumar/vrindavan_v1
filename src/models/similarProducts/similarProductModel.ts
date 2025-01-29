@@ -1,7 +1,7 @@
 import { RowDataPacket } from "mysql2";
 import { db } from "../../config/databaseConnection";
 
-
+// Fetch the subcategory ID of a given food item
 export const getSubcategoryId = async (
   foodId: number
 ): Promise<number | null> => {
@@ -12,13 +12,15 @@ export const getSubcategoryId = async (
   return rows.length ? rows[0].subcategory_id : null;
 };
 
-
+// Fetch similar products within the same subcategory
 export const getSimilarProductsWithCount = async (
   subcategoryId: number,
+  foodId: number,
   limit: number,
   offset: number
 ) => {
-  const countQuery = `SELECT COUNT(*) AS totalProducts FROM foods WHERE subcategory_id = ?`;
+  const countQuery = `SELECT COUNT(*) AS totalProducts FROM foods WHERE subcategory_id = ? AND id != ?`;
+
   const productsQuery = `
     SELECT 
       f.*, 
@@ -32,16 +34,17 @@ export const getSimilarProductsWithCount = async (
     LEFT JOIN 
       media m ON f.id = m.model_id AND m.model_type = 'App\\\\Models\\\\Food'
     WHERE 
-      f.subcategory_id = ?
+      f.subcategory_id = ? AND f.id != ?
     ORDER BY f.name ASC
-    LIMIT ? OFFSET ?;`;
+    LIMIT ? OFFSET ?;
+  `;
 
   const [countRows]: [RowDataPacket[], any] = await db
     .promise()
-    .query(countQuery, [subcategoryId]);
+    .query(countQuery, [subcategoryId, foodId]);
   const [productRows]: [RowDataPacket[], any] = await db
     .promise()
-    .query(productsQuery, [subcategoryId, limit, offset]);
+    .query(productsQuery, [subcategoryId, foodId, limit, offset]);
 
   return {
     products: productRows.map((row) => ({
