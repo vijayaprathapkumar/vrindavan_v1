@@ -311,7 +311,7 @@ export const getAllOrdersWithOutUserId = async (
   const countQuery = `
     SELECT COUNT(DISTINCT o.id) AS total
     FROM orders o
-    JOIN delivery_addresses da ON o.delivery_address_id = da.id
+    LEFT JOIN delivery_addresses da ON o.delivery_address_id = da.id
     LEFT JOIN locality_delivery_boys ldb ON o.locality_id = ldb.locality_id
     LEFT JOIN delivery_boys db ON ldb.delivery_boy_id = db.id
     LEFT JOIN food_orders fo ON o.id = fo.order_id
@@ -1421,6 +1421,12 @@ export const cancelOrder = async (
     const startDate = userRow[0].start_date;
     const endDate = userRow[0].end_date;
 
+    await db.promise().query(
+      `DELETE FROM subscription_quantity_changes 
+       WHERE user_subscription_id = ? AND order_date = ?`,
+      [subscriptionId, formattedCancelOrderDate]
+    );
+
     const [rows]: any[] = await db.promise().query(
       `SELECT id FROM subscription_quantity_changes 
        WHERE user_subscription_id = ? AND cancel_order_date = ?`,
@@ -1627,87 +1633,90 @@ export const getUpcomingOrdersModel = (
         return reject(error);
       }
 
-      const mappedResults = results.map((row) => {
-        return {
-          user_subscription_id: row.user_subscription_id,
-          user_id: row.user_id,
-          product_id: row.product_id,
-          subscription_type: row.subscription_type,
-          start_date: row.start_date,
-          end_date: row.end_date,
-          quantity: row.quantity,
-          monday_qty: row.monday_qty,
-          tuesday_qty: row.tuesday_qty,
-          wednesday_qty: row.wednesday_qty,
-          thursday_qty: row.thursday_qty,
-          friday_qty: row.friday_qty,
-          saturday_qty: row.saturday_qty,
-          sunday_qty: row.sunday_qty,
-          cancel_subscription: row.cancel_subscription,
-          order_type: row.order_type,
-          order_date: row?.order_date, // Convert the next day to ISO string format
-          is_pause_subscription: row.is_pause_subscription,
-          pause_until_i_come_back: row.pause_until_i_come_back,
-          pause_specific_period_startDate: row.pause_specific_period_startDate,
-          pause_specific_period_endDate: row.pause_specific_period_endDate,
-          day_specific_quantity: row.day_specific_quantity,
-          active: row.active,
-          cancel_status: row.cancel_status,
-          pause_status: row.pause_status,
-          product: {
-            name: row.product_name,
-            price: row.product_price,
-            discount_price: row.product_discount_price,
-            description: row.product_description,
-            permalink: row.product_permalink,
-            ingredients: row.product_ingredients,
-            package_items_count: row.product_package_items_count,
-            weight: row.product_weight,
-            unit: row.product_unit,
-            sku_code: row.product_sku_code,
-            barcode: row.product_barcode,
-            cgst: row.product_cgst,
-            sgst: row.product_sgst,
-            subscription_type: row.product_subscription_type,
-            track_inventory: row.product_track_inventory,
-            featured: row.product_featured,
-            deliverable: row.product_deliverable,
-            restaurant_id: row.product_restaurant_id,
-            category_id: row.product_category_id,
-            subcategory_id: row.product_subcategory_id,
-            product_type_id: row.product_product_type_id,
-            hub_id: row.product_hub_id,
-            locality_id: row.product_locality_id,
-            brand_id: row.product_brand_id,
-            weightage: row.product_weightage,
-            status: row.product_status,
-            created_at: row.product_created_at,
-            updated_at: row.product_updated_at,
-            food_locality: row.product_food_locality,
-          },
-          media: {
-            id: row.media_id,
-            model_type: row.model_type,
-            model_id: row.model_id,
-            uuid: row.uuid,
-            collection_name: row.collection_name,
-            name: row.media_name,
-            file_name: row.media_file_name,
-            mime_type: row.media_mime_type,
-            disk: row.disk,
-            conversions_disk: row.conversions_disk,
-            size: row.size,
-            manipulations: row.manipulations,
-            custom_properties: row.custom_properties,
-            generated_conversions: row.generated_conversions,
-            responsive_images: row.responsive_images,
-            order_column: row.order_column,
-            created_at: row.media_created_at,
-            updated_at: row.media_updated_at,
-            original_url: row.original_url,
-          },
-        };
-      });
+      const mappedResults = results
+        .filter((row) => row.cancel_status !== 1) // Exclude rows with cancel_status = 1
+        .map((row) => {
+          return {
+            user_subscription_id: row.user_subscription_id,
+            user_id: row.user_id,
+            product_id: row.product_id,
+            subscription_type: row.subscription_type,
+            start_date: row.start_date,
+            end_date: row.end_date,
+            quantity: row.quantity,
+            monday_qty: row.monday_qty,
+            tuesday_qty: row.tuesday_qty,
+            wednesday_qty: row.wednesday_qty,
+            thursday_qty: row.thursday_qty,
+            friday_qty: row.friday_qty,
+            saturday_qty: row.saturday_qty,
+            sunday_qty: row.sunday_qty,
+            cancel_subscription: row.cancel_subscription,
+            order_type: row.order_type,
+            order_date: row?.order_date,
+            is_pause_subscription: row.is_pause_subscription,
+            pause_until_i_come_back: row.pause_until_i_come_back,
+            pause_specific_period_startDate:
+              row.pause_specific_period_startDate,
+            pause_specific_period_endDate: row.pause_specific_period_endDate,
+            day_specific_quantity: row.day_specific_quantity,
+            active: row.active,
+            cancel_status: row.cancel_status,
+            pause_status: row.pause_status,
+            product: {
+              name: row.product_name,
+              price: row.product_price,
+              discount_price: row.product_discount_price,
+              description: row.product_description,
+              permalink: row.product_permalink,
+              ingredients: row.product_ingredients,
+              package_items_count: row.product_package_items_count,
+              weight: row.product_weight,
+              unit: row.product_unit,
+              sku_code: row.product_sku_code,
+              barcode: row.product_barcode,
+              cgst: row.product_cgst,
+              sgst: row.product_sgst,
+              subscription_type: row.product_subscription_type,
+              track_inventory: row.product_track_inventory,
+              featured: row.product_featured,
+              deliverable: row.product_deliverable,
+              restaurant_id: row.product_restaurant_id,
+              category_id: row.product_category_id,
+              subcategory_id: row.product_subcategory_id,
+              product_type_id: row.product_product_type_id,
+              hub_id: row.product_hub_id,
+              locality_id: row.product_locality_id,
+              brand_id: row.product_brand_id,
+              weightage: row.product_weightage,
+              status: row.product_status,
+              created_at: row.product_created_at,
+              updated_at: row.product_updated_at,
+              food_locality: row.product_food_locality,
+            },
+            media: {
+              id: row.media_id,
+              model_type: row.model_type,
+              model_id: row.model_id,
+              uuid: row.uuid,
+              collection_name: row.collection_name,
+              name: row.media_name,
+              file_name: row.media_file_name,
+              mime_type: row.media_mime_type,
+              disk: row.disk,
+              conversions_disk: row.conversions_disk,
+              size: row.size,
+              manipulations: row.manipulations,
+              custom_properties: row.custom_properties,
+              generated_conversions: row.generated_conversions,
+              responsive_images: row.responsive_images,
+              order_column: row.order_column,
+              created_at: row.media_created_at,
+              updated_at: row.media_updated_at,
+              original_url: row.original_url,
+            },
+          };
+        });
 
       resolve(mappedResults);
     });
@@ -1753,7 +1762,7 @@ export const getCalendarWiseOrdersModel = (
   const formattedEndDate = endDate.toISOString().split("T")[0];
 
   const query = `
- WITH RECURSIVE calendar AS (
+WITH RECURSIVE calendar AS (
     SELECT DATE(?) AS calendar_date
     UNION ALL
     SELECT DATE_ADD(calendar_date, INTERVAL 1 DAY)
@@ -1872,15 +1881,20 @@ LEFT JOIN subscription_quantity_changes sqc
     AND (
         sqc.cancel_order_date = c.calendar_date 
         AND sqc.cancel_order = 1
-       
         OR (sqc.order_date = c.calendar_date AND sqc.cancel_order_date IS NULL)
     )
 LEFT JOIN foods f
     ON us.product_id = f.id
 LEFT JOIN media m
     ON f.id = m.model_id AND m.model_type = 'App\\\\Models\\\\Food'
+WHERE (
+    us.subscription_type = 'everyday'
+    OR (us.subscription_type = 'alternative_day' AND MOD(DATEDIFF(c.calendar_date, us.start_date), 2) = 0)
+    OR (us.subscription_type = 'every_3_day' AND MOD(DATEDIFF(c.calendar_date, us.start_date), 3) = 0)
+    OR (us.subscription_type = 'every_7_day' AND MOD(DATEDIFF(c.calendar_date, us.start_date), 7) = 0)
+    OR (us.subscription_type = 'customize')
+)
 ORDER BY c.calendar_date ASC;
-
   `;
 
   return new Promise((resolve, reject) => {
