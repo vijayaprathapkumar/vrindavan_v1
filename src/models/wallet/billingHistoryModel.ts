@@ -374,7 +374,7 @@ export const getOrdersBillingForMobile = async (
     // Group wallet logs and food details
     const groupedLogs = walletLogsRows.reduce((acc, log) => {
       let existingLog = acc.find((item) => item.orderId === log.order_id);
-
+    
       if (!existingLog) {
         existingLog = {
           logId: log.log_id,
@@ -392,26 +392,37 @@ export const getOrdersBillingForMobile = async (
         };
         acc.push(existingLog);
       }
-
+    
       const foodPrice = log.discount_price !== null ? log.discount_price : log.food_price;
-
+    
       if (log.food_id) {
-        existingLog.foods.push({
-          foodId: log.food_id,
-          foodName: log.food_name,
-          foodPrice: log.food_price,
-          discountPrice: log.discount_price,
-          foodQuantity: log.food_quantity,
-          foodOriginalPrice: foodPrice * log.food_quantity,
-          orderId: log.order_id, 
-        });
-
+        let existingFood = existingLog.foods.find((food) => food.foodId === log.food_id);
+    
+        if (existingFood) {
+          // Update existing food entry by adding quantity and recalculating price
+          existingFood.foodQuantity += log.food_quantity;
+          existingFood.foodOriginalPrice += foodPrice * log.food_quantity;
+        } else {
+          // Add new food entry if not already present
+          existingLog.foods.push({
+            foodId: log.food_id,
+            foodName: log.food_name,
+            foodPrice: log.food_price,
+            discountPrice: log.discount_price,
+            foodQuantity: log.food_quantity,
+            foodOriginalPrice: foodPrice * log.food_quantity,
+            orderId: log.order_id,
+          });
+        }
+    
+        // Update total quantity and total price for the order log
         existingLog.totalQuantity += log.food_quantity;
         existingLog.totalPrice += foodPrice * log.food_quantity;
       }
-
+    
       return acc;
     }, []);
+    
 
     const billingInfo = {
       currentBalance,
