@@ -71,7 +71,6 @@ export const getAllBanners = async (
     LEFT JOIN media m ON b.id = m.model_id AND m.model_type = 'App\\\\Models\\\\Banner'
     WHERE
       b.id IS NOT NULL
-       b.id IS NOT NULL
     AND (b.date_to IS NULL OR b.date_to >= CURDATE())
   `;
 
