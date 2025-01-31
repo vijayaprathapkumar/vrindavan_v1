@@ -29,6 +29,7 @@ export const addSubscriptionModel = (
 ): Promise<OkPacket> => {
   const newSubscription = {
     ...subscription,
+    end_date: "2050-12-31",
     created_at: new Date(),
     updated_at: new Date(),
   };
