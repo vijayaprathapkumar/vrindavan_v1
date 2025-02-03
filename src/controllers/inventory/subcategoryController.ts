@@ -200,7 +200,7 @@ export const updateSubcategory = async (
       weightage,
       active
     );
-    if (media) {
+    if (media && media.media_id)  {
       const { media_id, file_name, mime_type, size } = media;
       await updateMediaRecord(media_id, file_name, mime_type, size);
     }
@@ -218,6 +218,7 @@ export const updateSubcategory = async (
       .json(createResponse(500, "Error updating subcategory", error.message));
   }
 };
+
 
 // Delete subcategory by ID (DELETE)
 export const deleteSubcategory = async (

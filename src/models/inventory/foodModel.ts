@@ -404,24 +404,33 @@ export const deleteFood = async (id: number): Promise<boolean> => {
 export const updateStock = async (
   foodId: number,
   amountChange: number,
+  stockableType: string,
   description?: string
 ): Promise<void> => {
-  const query = `
-    UPDATE stock_mutations
-    SET amount = amount + ?,
-    stockable_id=?, 
-        description = ?, 
-        updated_at = NOW()
-    WHERE id = ?
-  `;
-
-  const values = [amountChange, foodId, description ?? null, foodId];
-
   try {
-    const [result] = await db.promise().execute<ResultSetHeader>(query, values);
+    const [existing] = await db
+      .promise()
+      .execute("SELECT id FROM stock_mutations WHERE stockable_id = ?", [foodId]);
 
-    if (result.affectedRows === 0) {
-      throw new Error("No record found with the specified ID");
+    if ((existing as any[]).length === 0) {
+      const insertQuery = `
+        INSERT INTO stock_mutations (stockable_id, stockable_type, amount, description, created_at, updated_at)
+        VALUES (?, ?, ?, ?, NOW(), NOW())
+      `;
+      await db.promise().execute(insertQuery, [foodId, stockableType, amountChange, description ?? null]);
+    } else {
+      const updateQuery = `
+        UPDATE stock_mutations
+        SET amount = amount + ?, 
+            description = ?, 
+            updated_at = NOW()
+        WHERE stockable_id = ?
+      `;
+      const [result] = await db.promise().execute<ResultSetHeader>(updateQuery, [amountChange, description ?? null, foodId]);
+
+      if (result.affectedRows === 0) {
+        throw new Error("No record found with the specified stockable_id");
+      }
     }
   } catch (error) {
     console.error("Error updating stock:", error);
