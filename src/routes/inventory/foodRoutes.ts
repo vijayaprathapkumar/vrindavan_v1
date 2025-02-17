@@ -12,4 +12,5 @@ router.put("/:id", verifyDeviceToken,  foodController.modifyFood);
 router.delete("/:id", verifyDeviceToken, foodController.removeFood);
 router.post("/stocks", verifyDeviceToken, foodController.modifyStock);
 
+
 export default router;

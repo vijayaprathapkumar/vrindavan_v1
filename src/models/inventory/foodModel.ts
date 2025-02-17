@@ -110,7 +110,9 @@ export const getAllFoods = async (
     .execute<RowDataPacket[]>(countQuery, values);
   const totalCount = countResult[0].count;
 
-  query += ` LIMIT ${limit} OFFSET ${offset}`;
+  if (limit && limit > 0) {
+    query += ` LIMIT ${limit} OFFSET ${offset}`;
+  }
 
   const [rows] = await db.promise().execute<RowDataPacket[]>(query, values);
 

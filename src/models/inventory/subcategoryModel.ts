@@ -71,10 +71,10 @@ export const getAllSubCategoriesWithCategory = async (
   }
 
 
-  query += `
-    LIMIT ? 
-    OFFSET ?;
-  `;
+  if (limit && limit > 0) {
+    query += ` LIMIT ${limit} OFFSET ${offset}`;
+  }
+
 
   const [rows] = await db.promise().query<RowDataPacket[]>(query, params);
   return rows;
