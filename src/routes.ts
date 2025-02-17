@@ -34,6 +34,7 @@ import imageUploadRoutes from "./routes/imageUpload/imageUploadRoutes";
 import commissionPayoutRoutes from "./routes/deliveryBoy/commissionPayoutRoutes";
 import cronLogsRoutes from "./routes/cronLogsRoutes/cronLogsRoutes";
 import discontinuedCustomersRoutes from "./routes/discontinuedCustomersRoutes/discontinuedCustomersRoutes";
+import stockCountRoutes from "./routes/inventory/stockCountRoutes";
 
 const router = express.Router();
 
@@ -46,7 +47,7 @@ router.use("/subcategories", subcategoryRoutes);
 router.use("/foods", foodRoutes);
 router.use("/product_brands", productBrandRoutes);
 router.use("/product_types", productTypeRoutes);
-
+router.use("/stock_count", stockCountRoutes);
 // Customers
 router.use("/customers", customerRoutes);
 router.use("/deliveryAddresses", deliveryAddressesRoutes);
