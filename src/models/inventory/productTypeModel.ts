@@ -55,8 +55,8 @@ export const getAllProductTypes = async (
       `%${searchTerm}%`,
       `${searchTerm}`,
       activeValue,
-      limit,
-      offset,
+      Number(limit), 
+      Number(offset),
     ]);
 
   return { total, rows };
