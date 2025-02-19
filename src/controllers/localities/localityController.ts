@@ -138,8 +138,8 @@ export const updateLocality = async (
 ): Promise<void> => {
   const { id } = req.params;
   const {
-    route_id,
-    hub_id,
+    routeId,
+    hubId,
     name,
     address,
     google_address,
@@ -152,8 +152,8 @@ export const updateLocality = async (
   try {
     await updateLocalityById(
       parseInt(id),
-      route_id,
-      hub_id,
+      routeId,
+      hubId,
       name,
       address,
       google_address,
