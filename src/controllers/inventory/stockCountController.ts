@@ -8,11 +8,13 @@ export const getStockSummary = async (req: Request, res: Response) => {
 
     return res.status(200).json(
       createResponse(200, "Stock summary fetched successfully", {
-        stock: {
-          lowStockCount: stock.lowStockCount,
-          inStockCount: stock.inStockCount,
-          outOfStockCount: stock.outOfStockCount,
-        },
+        stock: [
+          {
+            lowStockCount: stock.lowStockCount || 0,
+            inStockCount: stock.inStockCount || 0,
+            outOfStockCount: stock.outOfStockCount || 0,
+          },
+        ],
       })
     );
   } catch (error) {
