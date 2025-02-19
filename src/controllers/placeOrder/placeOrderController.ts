@@ -6,6 +6,7 @@ import {
   getCartItemsByUserId,
 } from "../../models/placeOrder/placeOrderModels";
 import { createResponse } from "../../utils/responseHandler";
+import { getDealByFoodId, updateDealQuantity } from "../../models/dealOfTheDay/dealOfTheDayModel";
 
 
 // Add a place order and clear the cart
@@ -23,7 +24,7 @@ export const placeOneTimeOrder = async (
 
     const orderPromises = cartItems.map(async (item) => {
       if (item.quantity > 0) {
-        await plcaeOrder(item, userId, orderDate); 
+        await placeOrder(item, userId, orderDate); 
       } else {
         console.log("Failed to add place order.");
       }
@@ -49,25 +50,39 @@ export const placeOneTimeOrder = async (
   }
 };
 
-const plcaeOrder = async (productData, user_id, orderDate) => {
-  const { discount_price, price, food_id, quantity } = productData;
-  const productAmount = discount_price ? discount_price : price;
+const placeOrder = async (productData, user_id, orderDate) => {
+  const { price, food_id, quantity } = productData;
+
+  const deal = await getDealByFoodId(food_id);
+
+  let productAmount;
+  if (deal && deal.quantity > 0) {
+    productAmount = deal.offer_price; 
+  } else {
+    productAmount = price; 
+  }
 
   if (productAmount > 0) {
-    const orderData: any = await addOrdersEntry(user_id, orderDate);
+    const orderData = await addOrdersEntry(user_id, orderDate);
+
     if (orderData?.orderId) {
-      await addFoodOrderEntry(
-        productAmount,
-        quantity,
-        food_id,
-        orderData.orderId
-      );
+      await addFoodOrderEntry(productAmount, quantity, food_id, orderData.orderId);
+
+      if (deal && deal.quantity > 0) {
+        const updatedDeal = await updateDealQuantity(food_id, quantity);
+        if (updatedDeal?.status === 0) { 
+          console.log(`Deal for food ID ${food_id} is now inactive.`);
+        }
+      }
       return;
     }
   }
+
   console.log("Failed to place order for item: " + food_id);
   return null;
 };
+
+
 
 //admin panel One time order
 

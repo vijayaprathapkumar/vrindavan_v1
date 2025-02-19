@@ -409,3 +409,48 @@ export const deleteDealById = async (id: number): Promise<ResultSetHeader> => {
   const [result] = await db.promise().query<ResultSetHeader>(sql, [id]);
   return result;
 };
+
+export const getDealByFoodId = async (foodId: number): Promise<RowDataPacket | null> => {
+  const sql = `
+    SELECT * FROM deal_of_the_days WHERE food_id = ? AND status = 1;
+  `;
+  const [rows] = await db.promise().query<RowDataPacket[]>(sql, [foodId]);
+  return rows.length ? rows[0] : null;
+};
+
+
+export const updateDealQuantity = async (foodId: number, quantityOrdered: number) => {
+  const dealSql = `SELECT quantity, status FROM deal_of_the_days WHERE food_id = ?`;
+
+  try {
+    const [dealRows]: any = await db.promise().query(dealSql, [foodId]);
+
+    if (dealRows.length === 0) {
+      console.error(`No deal found for food_id: ${foodId}`);
+      return { status: null };
+    }
+
+    const deal = dealRows[0];
+    let newQuantity = deal.quantity - quantityOrdered;
+    let newStatus = deal.status;
+
+    if (newQuantity <= 0) {
+      newQuantity = 0; 
+      newStatus = 0;
+      await db.promise().query(
+        `UPDATE deal_of_the_days SET quantity = ?, status = 0 WHERE food_id = ?`,
+        [newQuantity, foodId]
+      );
+    } else {
+      await db.promise().query(
+        `UPDATE deal_of_the_days SET quantity = ? WHERE food_id = ?`,
+        [newQuantity, foodId]
+      );
+    }
+
+    return { status: newStatus };
+  } catch (error) {
+    console.error("Error updating deal quantity:", error);
+    throw new Error("Error updating deal quantity.");
+  }
+};
