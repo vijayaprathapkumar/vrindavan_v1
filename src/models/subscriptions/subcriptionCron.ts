@@ -166,11 +166,11 @@ const getProductById = async (product_id) => {
 
 const addOrdersEntry = async (userId, currentDate) => {
   const addressSql = `
-      SELECT da.id AS delivery_address_id, da.*, l.route_id, l.hub_id
-      FROM delivery_addresses da
-      LEFT JOIN localities l ON da.locality_id = l.id
-      WHERE da.user_id = ?;
-    `;
+  SELECT da.id AS delivery_address_id, da.*, l.route_id, l.hub_id
+  FROM delivery_addresses da
+  LEFT JOIN localities l ON da.locality_id = l.id
+  WHERE da.user_id = ?;
+`;
 
   try {
     const [addressRows] = await db.promise().query(addressSql, [userId]);
