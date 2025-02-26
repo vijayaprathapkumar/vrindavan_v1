@@ -340,7 +340,7 @@ export const updateDeals = async (
     foodId?: string;
     unit?: string;
     price?: number;
-    offerPrice?: number;
+    offer_price?: number;
     quantity?: number;
     description?: string;
     status?: number;
@@ -351,7 +351,7 @@ export const updateDeals = async (
     foodId,
     unit,
     price,
-    offerPrice,
+    offer_price,
     quantity,
     description,
     status,
@@ -374,9 +374,9 @@ export const updateDeals = async (
     updates.push("price = COALESCE(?, price)");
     params.push(price);
   }
-  if (offerPrice !== undefined) {
+  if (offer_price !== undefined) {
     updates.push("offer_price = COALESCE(?, offer_price)");
-    params.push(offerPrice);
+    params.push(offer_price);
   }
   if (quantity !== undefined) {
     updates.push("quantity = COALESCE(?, quantity)");
