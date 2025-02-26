@@ -37,7 +37,7 @@ export const adminVerifyController = async (req: Request, res: Response) => {
       return res.status(401).json(createResponse(401, "Invalid credentials"));
     }
 
-    let apiToken = userRecord.api_token;
+    let apiToken = userRecord.device_token;
 
     if (!apiToken) {
       apiToken = generateApiToken(userRecord.id, userRecord.email);
