@@ -7,7 +7,8 @@ export const getAllSubCategoriesWithCategory = async (
   searchTerm: string,
   categoryId: number | null,
   sortField: string,
-  sortOrder: string
+  sortOrder: string,
+  active: number | null
 ): Promise<RowDataPacket[]> => {
   let query = `
     SELECT 
@@ -50,12 +51,23 @@ export const getAllSubCategoriesWithCategory = async (
       sub_categories.weightage LIKE ?)
   `;
 
-  const params: (string | number)[] = [`%${searchTerm}%`, `%${searchTerm}%`, `%${searchTerm}%`, limit, offset];
+  const params: (string | number)[] = [`%${searchTerm}%`, `%${searchTerm}%`, `%${searchTerm}%`];
 
   if (categoryId) {
     query += " AND sub_categories.category_id = ?";
-    params.splice(params.length - 2, 0, categoryId);
+    params.push(categoryId);
   }
+
+  if (active !== null) {
+    if (active === 0) {
+      query += " AND (sub_categories.active = ? OR sub_categories.active IS NULL)";
+      params.push(active);
+    } else {
+      query += " AND sub_categories.active = ?";
+      params.push(active);
+    }
+  }
+  
 
   const validSortFields: Record<string, string> = {
     categoryName: "categories.name",
@@ -70,11 +82,10 @@ export const getAllSubCategoriesWithCategory = async (
     query += " ORDER BY CAST(sub_categories.weightage AS UNSIGNED) ASC";
   }
 
-
   if (limit && limit > 0) {
-    query += ` LIMIT ${limit} OFFSET ${offset}`;
+    query += ` LIMIT ? OFFSET ?`;
+    params.push(limit, offset);
   }
-
 
   const [rows] = await db.promise().query<RowDataPacket[]>(query, params);
   return rows;
@@ -82,7 +93,8 @@ export const getAllSubCategoriesWithCategory = async (
 
 export const getSubcategoriesCount = async (
   searchTerm: string,
-  categoryId: number | null
+  categoryId: number | null,
+  active: number | null
 ): Promise<number> => {
   let query = `
     SELECT COUNT(*) AS count 
@@ -100,9 +112,15 @@ export const getSubcategoriesCount = async (
     params.push(categoryId);
   }
 
+  if (active !== null) {
+    query += " AND sub_categories.active = ?";
+    params.push(active);
+  }
+
   const [rows] = await db.promise().query<RowDataPacket[]>(query, params);
   return rows[0].count;
 };
+
 // Create a new subcategory
 export const createSubCategory = async (
   category_id: number,

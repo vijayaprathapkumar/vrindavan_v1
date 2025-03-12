@@ -5,6 +5,7 @@ import { getStockCounts } from "../../models/inventory/StockModels";
 export const getStockSummary = async (req: Request, res: Response) => {
   try {
     const stock = await getStockCounts();
+console.log('stock',stock);
 
     return res.status(200).json(
       createResponse(200, "Stock summary fetched successfully", {

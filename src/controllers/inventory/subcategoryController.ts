@@ -21,60 +21,63 @@ export const getSubcategories = async (
   const limit = parseInt(req.query.limit as string);
   const page = parseInt(req.query.page as string) || 1;
   const searchTerm = (req.query.searchTerm as string) || "";
-  const categoryId = req.query.categoryId
-    ? parseInt(req.query.categoryId as string)
-    : null;
+  const categoryId = req.query.categoryId ? parseInt(req.query.categoryId as string) : null;
   const sortField = (req.query.sortField as string) || "";
   const sortOrder = (req.query.sortOrder as string) || "ASC";
+
+  // Handle active filter: "All" (null) = show all, "0" = inactive, "1" = active
+  const active =
+  req.query.active === "1" ? 1 : req.query.active === "All" ? null : 0;
+
+
+
   const offset = (page - 1) * limit;
 
   try {
-    const totalCount = await getSubcategoriesCount(searchTerm, categoryId);
+    const totalCount = await getSubcategoriesCount(searchTerm, categoryId, active);
     const subcategories = await getAllSubCategoriesWithCategory(
       limit,
       offset,
       searchTerm,
       categoryId,
       sortField,
-      sortOrder
+      sortOrder,
+      active
     );
     const totalPages = Math.ceil(totalCount / limit);
 
-    const subcategoriesWithMedia = subcategories.map((subcategory) => {
-      const subcategoryResponse = {
-        id: subcategory.id,
-        category_id: subcategory.category_id,
-        categoryName: subcategory.category_name,
-        subcategory_name: subcategory.name,
-        description: subcategory.description,
-        weightage: subcategory.weightage,
-        subcategory_created_at: subcategory.created_at,
-        subcategory_updated_at: subcategory.updated_at,
-        media: [],
-      };
-
-      if (subcategory.media_id) {
-        subcategoryResponse.media.push({
-          media_id: subcategory.media_id,
-          file_name: subcategory.file_name,
-          mime_type: subcategory.mime_type,
-          model_id: subcategory.model_id,
-          disk: subcategory.disk,
-          conversions_disk: subcategory.conversions_disk,
-          size: subcategory.size,
-          manipulations: subcategory.manipulations,
-          custom_properties: subcategory.custom_properties,
-          generated_conversions: subcategory.generated_conversions,
-          responsive_images: subcategory.responsive_images,
-          order_column: subcategory.order_column,
-          created_at: subcategory.media_created_at,
-          updated_at: subcategory.media_updated_at,
-          original_url: subcategory.original_url,
-        });
-      }
-
-      return subcategoryResponse;
-    });
+    const subcategoriesWithMedia = subcategories.map((subcategory) => ({
+      id: subcategory.id,
+      category_id: subcategory.category_id,
+      categoryName: subcategory.category_name,
+      subcategory_name: subcategory.name,
+      description: subcategory.description,
+      weightage: subcategory.weightage,
+      active: subcategory.active,
+      subcategory_created_at: subcategory.created_at,
+      subcategory_updated_at: subcategory.updated_at,
+      media: subcategory.media_id
+        ? [
+            {
+              media_id: subcategory.media_id,
+              file_name: subcategory.file_name,
+              mime_type: subcategory.mime_type,
+              model_id: subcategory.model_id,
+              disk: subcategory.disk,
+              conversions_disk: subcategory.conversions_disk,
+              size: subcategory.size,
+              manipulations: subcategory.manipulations,
+              custom_properties: subcategory.custom_properties,
+              generated_conversions: subcategory.generated_conversions,
+              responsive_images: subcategory.responsive_images,
+              order_column: subcategory.order_column,
+              created_at: subcategory.media_created_at,
+              updated_at: subcategory.media_updated_at,
+              original_url: subcategory.original_url,
+            },
+          ]
+        : [],
+    }));
 
     res.status(200).json({
       statusCode: 200,
@@ -93,6 +96,7 @@ export const getSubcategories = async (
       .json(createResponse(500, "Error fetching subcategories", error.message));
   }
 };
+
 
 // Add a new subcategory (POST)
 export const addSubcategory = async (
