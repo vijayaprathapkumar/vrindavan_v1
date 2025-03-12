@@ -15,8 +15,12 @@ const router = express.Router();
 router.get("/", verifyDeviceToken, getDeliveryBoysWithLocalities);
 router.post("/", verifyDeviceToken, addDeliveryBoy);
 router.get("/:id", verifyDeviceToken, getDeliveryBoy);
-router.put("/:id", updateDeliveryBoy, verifyDeviceToken);
+router.put("/:id", verifyDeviceToken, updateDeliveryBoy);
 router.delete("/:id", verifyDeviceToken, deleteDeliveryBoy);
-router.delete("/localities/:id", verifyDeviceToken, deleteLocalitiesForDeliveryBoy);
+router.delete(
+  "/localities/:id",
+  verifyDeviceToken,
+  deleteLocalitiesForDeliveryBoy
+);
 
 export default router;

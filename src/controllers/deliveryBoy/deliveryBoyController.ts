@@ -109,10 +109,8 @@ export const getDeliveryBoy = async (
 };
 
 // Update delivery boy by ID
-export const updateDeliveryBoy = async (
-  req: Request,
-  res: Response
-): Promise<void> => {
+// Update delivery boy by ID
+export const updateDeliveryBoy = async (req: Request, res: Response): Promise<void> => {
   const { id } = req.params;
   const {
     userId,
@@ -152,13 +150,20 @@ export const updateDeliveryBoy = async (
       longitudePickup
     );
 
-    // Remove existing locality assignments
-    await connection.query(
-      `DELETE FROM locality_delivery_boys WHERE delivery_boy_id = ?`,
-      [id]
-    );
-
     if (localityIds && localityIds.length > 0) {
+      // **Step 1: Remove locality assignments of this delivery boy**
+      await connection.query(
+        `DELETE FROM locality_delivery_boys WHERE delivery_boy_id = ?`,
+        [id]
+      );
+
+      // **Step 2: Ensure that localityIds are not assigned to another delivery boy**
+      await connection.query(
+        `DELETE FROM locality_delivery_boys WHERE locality_id IN (?)`,
+        [localityIds]
+      );
+
+      // **Step 3: Insert new assignments**
       const values = localityIds.map((localityId) => [
         id,
         localityId,
@@ -166,24 +171,24 @@ export const updateDeliveryBoy = async (
         new Date(),
       ]);
       await connection.query(
-        `INSERT INTO locality_delivery_boys (delivery_boy_id, locality_id, created_at, updated_at) VALUES ?`,
+        `INSERT INTO locality_delivery_boys (delivery_boy_id, locality_id, created_at, updated_at) 
+         VALUES ?`,
         [values]
       );
     }
 
     await connection.commit();
-    res
-      .status(200)
-      .json(createResponse(200, "Delivery boy updated successfully"));
+    res.status(200).json(createResponse(200, "Delivery boy updated successfully"));
   } catch (error) {
     await connection.rollback();
     res
       .status(500)
-      .json(createResponse(500, "Error updating delivery boy", error));
+      .json(createResponse(500, "Error updating delivery boy", error.message || error));
   } finally {
     connection.release();
   }
 };
+
 
 // Delete delivery boy by ID
 export const deleteDeliveryBoy = async (
