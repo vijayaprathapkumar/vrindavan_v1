@@ -12,11 +12,12 @@ export const getAllDetailedSpecialCommissions = async (
 ): Promise<{ data: any[]; totalCount: number }> => {
   const searchPattern = `%${searchTerm}%`;
   const categoryFilter =
-    categoryId && categoryId !== "All" ? " AND sc.category_id = ?" : "";
+    categoryId && categoryId !== "All" ? " AND c.id = ?" : "";
   const deliveryBoyFilter =
     deliveryBoyId && deliveryBoyId !== "All"
       ? " AND sc.delivery_boy_id = ?"
       : "";
+
   const validSortFields: Record<string, string> = {
     food_name: "p.name",
     unit: "p.unit",
@@ -30,19 +31,6 @@ export const getAllDetailedSpecialCommissions = async (
 
   const queryData = `
       SELECT 
-          sc.id AS commission_id,
-          sc.category_id AS commission_category_id,
-          sc.product_id AS commission_product_id,
-          sc.special_commission AS commission_value,
-          sc.delivery_boy_id AS Commission_delivery_boy_id,
-          sc.created_at AS commission_created_at,
-          sc.updated_at AS commission_updated_at,
-          c.id AS category_id,
-          c.name AS category_name,
-          c.description AS category_description,
-          c.weightage AS category_weightage,
-          c.created_at AS category_created_at,
-          c.updated_at AS category_updated_at,
           p.id AS food_id,
           p.name AS food_name,
           p.price AS food_price,
@@ -73,9 +61,16 @@ export const getAllDetailedSpecialCommissions = async (
           p.created_at AS food_created_at,
           p.updated_at AS food_updated_at,
           p.food_locality AS food_food_locality,
+          c.id AS category_id,
+          c.name AS category_name,
+          c.description AS category_description,
+          c.weightage AS category_weightage,
+          c.created_at AS category_created_at,
+          c.updated_at AS category_updated_at,
           scs.commission AS standard_commission,
           scs.created_at AS standard_commission_created_at,
           scs.updated_at AS standard_commission_updated_at,
+          COALESCE(sc.special_commission, 0) AS commission_value, -- Use COALESCE to handle null values
           db.id AS delivery_boy_id,
           db.name AS delivery_boy_name,
           db.mobile AS delivery_boy_mobile,
@@ -91,58 +86,45 @@ export const getAllDetailedSpecialCommissions = async (
           db.created_at AS delivery_boy_created_at,
           db.updated_at AS delivery_boy_updated_at
       FROM 
-          special_commissions sc
+          foods p
       LEFT JOIN 
-          categories c ON sc.category_id = c.id
+          categories c ON p.category_id = c.id
       LEFT JOIN 
-          foods p ON sc.product_id = p.id
+          standard_commissions scs ON p.id = scs.product_id
       LEFT JOIN 
-          standard_commissions scs ON sc.product_id = scs.product_id
+          special_commissions sc ON p.id = sc.product_id AND sc.delivery_boy_id = ? -- Filter commissions for the selected delivery boy
       LEFT JOIN 
           delivery_boys db ON sc.delivery_boy_id = db.id
       WHERE 
-          (p.name LIKE ? OR p.unit LIKE ? OR p.price LIKE ? OR scs.commission LIKE ? OR c.name LIKE ? OR sc.special_commission LIKE ?)${categoryFilter}${deliveryBoyFilter}
-       ORDER BY CAST(${sortColumn} AS DECIMAL) ${validSortOrder}
+          (p.name LIKE ? OR c.name LIKE ?)${categoryFilter}${deliveryBoyFilter}
+      ORDER BY CAST(${sortColumn} AS DECIMAL) ${validSortOrder}
       LIMIT ? OFFSET ?;
     `;
 
   const queryCount = `
       SELECT COUNT(*) AS total_count
-      FROM special_commissions sc
-      LEFT JOIN categories c ON sc.category_id = c.id
-      LEFT JOIN foods p ON sc.product_id = p.id
-      LEFT JOIN standard_commissions scs ON sc.product_id = scs.product_id
-      LEFT JOIN delivery_boys db ON sc.delivery_boy_id = db.id
+      FROM foods p
+      LEFT JOIN categories c ON p.category_id = c.id
+      LEFT JOIN standard_commissions scs ON p.id = scs.product_id
+      LEFT JOIN special_commissions sc ON p.id = sc.product_id AND sc.delivery_boy_id = ? -- Filter commissions for the selected delivery boy
       WHERE 
-          (p.name LIKE ? OR c.name LIKE ?)${categoryFilter}${deliveryBoyFilter};
+          (p.name LIKE ? OR c.name LIKE ?)${categoryFilter};
     `;
 
   const params = [
-    searchPattern,
-    searchPattern,
-    searchPattern,
-    searchPattern,
+    deliveryBoyId, // Add deliveryBoyId as the first parameter for the conditional join
     searchPattern,
     searchPattern,
     ...(categoryId && categoryId !== "All" ? [parseInt(categoryId)] : []),
-    ...(deliveryBoyId && deliveryBoyId !== "All"
-      ? [parseInt(deliveryBoyId)]
-      : []),
     limit,
     offset,
   ];
 
   const countParams = [
-    searchPattern,
-    searchPattern,
-    searchPattern,
-    searchPattern,
+    deliveryBoyId, // Add deliveryBoyId as the first parameter for the conditional join
     searchPattern,
     searchPattern,
     ...(categoryId && categoryId !== "All" ? [parseInt(categoryId)] : []),
-    ...(deliveryBoyId && deliveryBoyId !== "All"
-      ? [parseInt(deliveryBoyId)]
-      : []),
   ];
 
   try {
@@ -152,13 +134,13 @@ export const getAllDetailedSpecialCommissions = async (
       .query<RowDataPacket[]>(queryCount, countParams);
 
     const data = rows.map((row) => ({
-      id: row.commission_id,
+      id: row.food_id,
       categoryId: row.category_id,
-      productId: row.commission_product_id,
+      productId: row.food_id,
       value: row.commission_value,
-      deliveryBoyId: row.Commission_delivery_boy_id,
-      createdAt: row.commission_created_at,
-      updatedAt: row.commission_updated_at,
+      deliveryBoyId: row.delivery_boy_id,
+      createdAt: row.food_created_at,
+      updatedAt: row.food_updated_at,
       category: {
         id: row.category_id,
         name: row.category_name,
@@ -231,7 +213,6 @@ export const getAllDetailedSpecialCommissions = async (
     throw error;
   }
 };
-
 export const getDetailedSpecialCommissionById = async (
   id: number
 ): Promise<any> => {
@@ -349,23 +330,63 @@ export const getDetailedSpecialCommissionById = async (
     },
   };
 };
-
 export const updateSpecialCommission = async (
-  commissionId: string,
-  specialCommissionValue: string
+  categoryId: number,
+  productId: number,
+  standardCommission: string,
+  specialCommission: string,
+  deliveryBoyId: number | null
 ): Promise<any> => {
-  const query = `
-    UPDATE special_commissions
-    SET special_commission = ?
-    WHERE id = ?;
+  const connection = db.promise();
+
+  // Attempt to update the existing special commission
+  const queryUpdate = `
+    UPDATE special_commissions 
+    SET special_commission = ?, standard_commission = ?, delivery_boy_id = ?, updated_at = NOW() 
+    WHERE category_id = ? AND product_id = ?;
   `;
 
-  const [result] = await db
-    .promise()
-    .query<ResultSetHeader>(query, [specialCommissionValue, commissionId]);
+  const [result] = await connection.query<ResultSetHeader>(queryUpdate, [
+    specialCommission,
+    standardCommission,
+    deliveryBoyId,
+    categoryId,
+    productId,
+  ]);
 
   if (result.affectedRows > 0) {
-    return { id: commissionId, specialCommission: specialCommissionValue };
+    return {
+      categoryId,
+      productId,
+      standardCommission,
+      specialCommission,
+      deliveryBoyId,
+    };
+  }
+
+  // If no rows were updated, insert a new special commission record
+  const queryInsert = `
+    INSERT INTO special_commissions 
+    (category_id, product_id, standard_commission, special_commission, delivery_boy_id, created_at, updated_at) 
+    VALUES (?, ?, ?, ?, ?, NOW(), NOW());
+  `;
+
+  const [insertResult] = await connection.query<ResultSetHeader>(queryInsert, [
+    categoryId,
+    productId,
+    standardCommission,
+    specialCommission,
+    deliveryBoyId,
+  ]);
+
+  if (insertResult.affectedRows > 0) {
+    return {
+      categoryId,
+      productId,
+      standardCommission,
+      specialCommission,
+      deliveryBoyId,
+    };
   }
 
   return null;

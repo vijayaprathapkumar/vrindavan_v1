@@ -92,31 +92,43 @@ export const updateSpecialCommissionController = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-  const { commissionId } = req.params;
-  const { specialCommissionValue } = req.body;
+  const { categoryId, productId } = req.params; // Ensure these are passed as route params
+  const { standardCommission, specialCommission, deliveryBoyId } = req.body;
 
   try {
+    if (!categoryId || !productId || !specialCommission || !standardCommission) {
+      res.status(400).json({
+        status: 400,
+        message: "Missing required parameters",
+      });
+      return;
+    }
+
     const updatedCommission = await updateSpecialCommission(
-      commissionId,
-      specialCommissionValue
+      Number(categoryId),
+      Number(productId),
+      standardCommission,
+      specialCommission,
+      deliveryBoyId ? Number(deliveryBoyId) : null
     );
 
     if (updatedCommission) {
-      res
-        .status(200)
-        .json(
-          createResponse(
-            200,
-            "Special commission updated successfully",
-            updatedCommission
-          )
-        );
+      res.status(200).json({
+        status: 200,
+        message: "Special commission updated successfully",
+        data: updatedCommission,
+      });
     } else {
-      res.status(404).json(createResponse(404, "Special commission not found"));
+      res.status(404).json({
+        status: 404,
+        message: "Failed to update special commission",
+      });
     }
   } catch (error) {
-    res
-      .status(500)
-      .json(createResponse(500, "Error updating special commission", error));
+    res.status(500).json({
+      status: 500,
+      message: "Error updating special commission",
+      error: (error as Error).message,
+    });
   }
 };

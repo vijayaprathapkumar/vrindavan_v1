@@ -7,25 +7,24 @@ export const getAllDetailedCommissions = async (
   limit: number = 10,
   offset: number = 0,
   categoryId: string = "",
-  sortField:string,
-  sortOrder:string
+  sortField: string = "food_name", // Default sorting field
+  sortOrder: string = "asc" // Default sorting order
 ): Promise<{ data: any[]; totalCount: number }> => {
   const searchPattern = `%${searchTerm}%`;
 
   const categoryFilter =
-    categoryId && categoryId !== "All" ? " AND c.id = ?" : "";
+    categoryId && categoryId !== "All" ? " AND p.category_id = ?" : "";
 
-    const validSortFields: Record<string, string> = {
-      food_name: "p.name",
-      unit: "p.unit",
-      mrp: "p.price",
-      value: "sc.commission",
-    };
+  const validSortFields: Record<string, string> = {
+    food_name: "p.name",
+    unit: "p.unit",
+    mrp: "p.price",
+    value: "sc.commission",
+  };
 
-    const sortColumn = validSortFields[sortField] ;
-  const validSortOrder = sortOrder === "desc" ? "desc" : "asc"; 
+  const sortColumn = validSortFields[sortField] || "p.name"; // Ensure a valid sort column
+  const validSortOrder = sortOrder === "desc" ? "DESC" : "ASC";
 
-    
   const queryData = `
     SELECT 
         sc.id AS commission_id,
@@ -71,26 +70,27 @@ export const getAllDetailedCommissions = async (
         p.updated_at AS food_updated_at,
         p.food_locality AS food_food_locality
     FROM 
-        standard_commissions sc
+        foods p
     LEFT JOIN 
-        categories c ON sc.category_id = c.id
+        standard_commissions sc ON p.id = sc.product_id
     LEFT JOIN 
-        foods p ON sc.product_id = p.id
+        categories c ON   p.category_id  = c.id
    WHERE 
        (p.name LIKE ? OR p.unit LIKE ? OR p.price LIKE ? OR sc.commission LIKE ?)${categoryFilter}
   ORDER BY ${sortColumn} ${validSortOrder}  
     LIMIT ? OFFSET ?;
+`;
 
-  `;
 
   const queryCount = `
-  SELECT COUNT(*) AS total_count
-  FROM standard_commissions sc
-  LEFT JOIN categories c ON sc.category_id = c.id
-  LEFT JOIN foods p ON sc.product_id = p.id
-  WHERE 
-    (p.name LIKE ? OR p.unit LIKE ? OR p.price LIKE ?)${categoryFilter};
-`;
+    SELECT COUNT(*) AS total_count
+    FROM standard_commissions sc
+    LEFT JOIN categories c ON sc.category_id = c.id
+    LEFT JOIN foods p ON sc.product_id = p.id
+    WHERE 
+      (p.name LIKE ? OR p.unit LIKE ? OR p.price LIKE ?)${categoryFilter};
+  `;
+
   const params = [
     searchPattern,
     searchPattern,
@@ -290,17 +290,31 @@ export const updateCommission = async (
   commissionId: string,
   commissionValue: string
 ): Promise<any> => {
-  const query = `
+  const queryUpdate = `
     UPDATE standard_commissions 
     SET commission = ?
-    WHERE id = ?;
+    WHERE product_id = ?;
   `;
 
   const [result] = await db
     .promise()
-    .query<ResultSetHeader>(query, [commissionValue, commissionId]);
+    .query<ResultSetHeader>(queryUpdate, [commissionValue, commissionId]);
 
   if (result.affectedRows > 0) {
+    return { id: commissionId, commission: commissionValue };
+  }
+
+  // If no rows were updated, insert the new commission record
+  const queryInsert = `
+    INSERT INTO standard_commissions (product_id, commission) 
+    VALUES (?, ?);
+  `;
+
+  const [insertResult] = await db
+    .promise()
+    .query<ResultSetHeader>(queryInsert, [commissionId, commissionValue]);
+
+  if (insertResult.affectedRows > 0) {
     return { id: commissionId, commission: commissionValue };
   }
 
