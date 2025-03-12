@@ -10,7 +10,9 @@ export const getFeaturedCategories = async (
         SELECT COUNT(*) AS totalItems
         FROM featured_categories AS fc
         JOIN categories AS c ON fc.category_id = c.id
-        JOIN foods AS f ON fc.category_id = f.category_id
+        JOIN foods AS f 
+          ON fc.category_id = f.category_id 
+          AND (fc.sub_category_id = 11 OR fc.sub_category_id IS NULL OR fc.sub_category_id = f.subcategory_id)
         LEFT JOIN media AS m ON f.id = m.model_id AND m.model_type = 'App\\\\Models\\\\Food'
     `;
 
@@ -30,7 +32,9 @@ export const getFeaturedCategories = async (
               END AS original_url
         FROM featured_categories AS fc
         JOIN categories AS c ON fc.category_id = c.id
-        JOIN foods AS f ON fc.category_id = f.category_id
+        JOIN foods AS f 
+          ON fc.category_id = f.category_id 
+          AND (fc.sub_category_id = 11 OR fc.sub_category_id IS NULL OR fc.sub_category_id = f.subcategory_id)
         LEFT JOIN media AS m ON f.id = m.model_id AND m.model_type = 'App\\\\Models\\\\Food'
     `;
 
@@ -74,22 +78,38 @@ interface FeaturedCategoryInput {
   category_type?: number;
 }
 
-export const createFeaturedCategory = async (data: FeaturedCategoryInput): Promise<any> => {
+export const createFeaturedCategory = async (
+  data: FeaturedCategoryInput
+): Promise<any> => {
   const { category_id, sub_category_id, status, category_type } = data;
 
-  const query = `
+  // Insert the new featured category
+  const insertQuery = `
       INSERT INTO featured_categories (category_id, sub_category_id, status, category_type, created_at, updated_at)
       VALUES (?, ?, ?, ?, NOW(), NOW());
   `;
 
-  const params = [category_id, sub_category_id || null, status, category_type || null];
+  const insertParams = [
+    category_id,
+    sub_category_id || null,
+    status,
+    category_type || null,
+  ];
 
-  const [result]: any = await db.promise().query(query, params);
+  const [insertResult]: any = await db
+    .promise()
+    .query(insertQuery, insertParams);
+
+  // Delete all data from the featured_categories table
+  const deleteQuery = `DELETE FROM featured_categories WHERE id != ?`;
+  const deleteParams = [insertResult.insertId];
+
+  await db.promise().query(deleteQuery, deleteParams);
 
   return {
-      id: result.insertId,
-      ...data,
-      created_at: new Date(),
-      updated_at: new Date(),
+    id: insertResult.insertId,
+    ...data,
+    created_at: new Date(),
+    updated_at: new Date(),
   };
 };

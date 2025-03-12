@@ -83,17 +83,16 @@ export const getAllCustomers = async (
   if (searchTerm) {
     const searchValue = `%${searchTerm}%`;
     query += ` AND (user_name LIKE ? OR email LIKE ? OR phone LIKE ? OR user_id LIKE ? `;
-  
+
     if (searchTerm.toLowerCase() === "active") {
       query += ` OR status = 1 `;
     } else if (searchTerm.toLowerCase() === "inactive") {
       query += ` OR status = 0 `;
     }
-  
+
     query += `) `;
     params.push(searchValue, searchValue, searchValue, searchValue);
   }
-  
 
   if (locality && locality !== "All") {
     query += ` AND locality_id = ? `;
@@ -113,7 +112,7 @@ export const getAllCustomers = async (
     phone: "phone",
     created_at: "created_at",
   };
-  
+
   if (sortField && validSortFields[sortField]) {
     const order = sortOrder === "desc" ? "desc" : "asc";
     if (sortField === "status") {
@@ -124,7 +123,7 @@ export const getAllCustomers = async (
   } else {
     query += " ORDER BY user_id desc";
   }
-  
+
   query += ` LIMIT ? OFFSET ?;`;
 
   params.push(limit, offset);
@@ -230,34 +229,36 @@ export const createCustomer = async (
     throw new Error("Invalid email format.");
   }
 
+  // Remove +91 from mobile number if it exists
+  const cleanedMobile = mobile.replace(/^\+91/, "").trim();
+
   try {
     // Check for existing user
-    const existingUserQuery = `SELECT email, phone FROM users WHERE email = ? OR phone = ?`;
+    const existingUserQuery =
+      "SELECT email, phone FROM users WHERE email = ? OR phone = ?";
     const [existingUsers] = await db
       .promise()
-      .query<RowDataPacket[]>(existingUserQuery, [email, mobile]);
+      .query<RowDataPacket[]>(existingUserQuery, [email, cleanedMobile]);
 
     if (existingUsers.length > 0) {
       if (existingUsers.some((user) => user.email === email)) {
         return null; // Email already registered
       }
 
-      if (existingUsers.some((user) => user.phone === mobile)) {
+      if (existingUsers.some((user) => user.phone === cleanedMobile)) {
         return 0; // Mobile already registered
       }
     }
 
     // Insert new user
-    const insertUserQuery = `
-      INSERT INTO users (name, email, phone, status, password, created_at, updated_at) 
-      VALUES (?, ?, ?, ?, ?, NOW(), NOW());
-    `;
+    const insertUserQuery =
+      "INSERT INTO users (name, email, phone, status, password, created_at, updated_at) VALUES (?, ?, ?, ?, ?, NOW(), NOW())";
     const [userResult] = await db
       .promise()
       .query<ResultSetHeader>(insertUserQuery, [
         name,
         email,
-        mobile,
+        cleanedMobile,
         status || "active",
         password || "",
       ]);
@@ -265,10 +266,8 @@ export const createCustomer = async (
     const userId = userResult.insertId;
 
     // Insert user address
-    const insertAddressQuery = `
-      INSERT INTO delivery_addresses (user_id, locality_id, house_no, complete_address, created_at, updated_at) 
-      VALUES (?, ?, ?, ?, NOW(), NOW());
-    `;
+    const insertAddressQuery =
+      "INSERT INTO delivery_addresses (user_id, locality_id, house_no, complete_address, created_at, updated_at) VALUES (?, ?, ?, ?, NOW(), NOW())";
     await db
       .promise()
       .query<ResultSetHeader>(insertAddressQuery, [
@@ -279,10 +278,8 @@ export const createCustomer = async (
       ]);
 
     // Insert wallet balance
-    const insertWalletQuery = `
-      INSERT INTO wallet_balances (user_id, balance, created_at, updated_at) 
-      VALUES (?, 0, NOW(), NOW());
-    `;
+    const insertWalletQuery =
+      "INSERT INTO wallet_balances (user_id, balance, created_at, updated_at) VALUES (?, 0, NOW(), NOW())";
     await db.promise().query(insertWalletQuery, [userId]);
 
     return userId;

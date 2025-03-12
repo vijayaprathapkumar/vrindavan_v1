@@ -36,23 +36,26 @@ export const getAllDeliveryBoysWithLocalities = async (
       locality_active: boolean;
       locality_created_at: string;
       locality_updated_at: string;
-    }>[]; 
-  }>[]; 
+    }>[];
+  }>[];
   totalCount: number;
 }> => {
-  const activeFilter = searchTerm.toLowerCase() === "active" 
-    ? "AND db.active = 1"
-    : searchTerm.toLowerCase() === "inactive"
-    ? "AND db.active = 0"
-    : "";  
-  
-  const searchCondition = searchTerm && !["active", "inactive"].includes(searchTerm)
-    ? `WHERE db.name LIKE ? OR db.mobile LIKE ?`
-    : `WHERE 1=1`; 
+  const activeFilter =
+    searchTerm.toLowerCase() === "active"
+      ? "AND db.active = 1"
+      : searchTerm.toLowerCase() === "inactive"
+      ? "AND db.active = 0"
+      : "";
 
-  const searchParams = searchTerm && !["active", "inactive"].includes(searchTerm)
-    ? [`%${searchTerm}%`, `%${searchTerm}%`]
-    : [];
+  const searchCondition =
+    searchTerm && !["active", "inactive"].includes(searchTerm)
+      ? `WHERE db.name LIKE ? OR db.mobile LIKE ?`
+      : `WHERE 1=1`;
+
+  const searchParams =
+    searchTerm && !["active", "inactive"].includes(searchTerm)
+      ? [`%${searchTerm}%`, `%${searchTerm}%`]
+      : [];
 
   const validSortFields: Record<string, string> = {
     delivery_boy_name: "db.name",
@@ -64,7 +67,8 @@ export const getAllDeliveryBoysWithLocalities = async (
   const sortColumn = validSortFields[sortField] || "db.created_at";
   const validSortOrder = sortOrder === "desc" ? "desc" : "asc";
 
-  const [rows] = await db.promise().query<RowDataPacket[]>(`
+  const [rows] = await db.promise().query<RowDataPacket[]>(
+    `
     SELECT 
       db.id AS delivery_boy_id,
       db.user_id,
@@ -106,7 +110,9 @@ export const getAllDeliveryBoysWithLocalities = async (
     LEFT JOIN locality_delivery_boys ldb ON db.id = ldb.delivery_boy_id
     LEFT JOIN localities l ON ldb.locality_id = l.id
     ORDER BY ${sortColumn} ${validSortOrder}
-  `, [...searchParams, limit, offset]);
+  `,
+    [...searchParams, limit, offset]
+  );
 
   const deliveryBoysMap = new Map();
 
@@ -156,18 +162,19 @@ export const getAllDeliveryBoysWithLocalities = async (
   const deliveryBoys = Array.from(deliveryBoysMap.values());
 
   // Query to get the total count of distinct delivery_boy_id
-  const [[totalCountRow]] = await db.promise().query<RowDataPacket[]>(`
+  const [[totalCountRow]] = await db.promise().query<RowDataPacket[]>(
+    `
     SELECT COUNT(DISTINCT db.id) as totalCount
     FROM delivery_boys db
     ${searchCondition} ${activeFilter}
-  `, searchParams);
+  `,
+    searchParams
+  );
 
   const totalCount = totalCountRow.totalCount;
 
   return { deliveryBoys, totalCount };
 };
-
-
 
 export interface DeliveryBoyData {
   userId: number;
@@ -210,7 +217,7 @@ export const createDeliveryBoy = async (
   try {
     await connection.beginTransaction();
 
-    // Corrected INSERT statement to match the table structure
+    // Insert into delivery_boys table
     const [insertResult] = await connection.query<OkPacket>(
       `INSERT INTO delivery_boys 
       (user_id, name, mobile, active, cash_collection, delivery_fee, total_orders, earning, available, 
@@ -234,8 +241,14 @@ export const createDeliveryBoy = async (
 
     const deliveryBoyId = insertResult.insertId;
 
-    // Insert into locality_delivery_boys table if localityIds exist
+    // Remove existing assignments for the given localityIds
     if (localityIds && localityIds.length > 0) {
+      await connection.query(
+        `DELETE FROM locality_delivery_boys WHERE locality_id IN (?)`,
+        [localityIds]
+      );
+
+      // Insert new assignments
       const values = localityIds.map((localityId) => [
         deliveryBoyId,
         localityId,
@@ -283,26 +296,28 @@ export const updateDeliveryBoyById = async (
   latitudePickup: string | null,
   longitudePickup: string | null
 ): Promise<void> => {
-  await db
-    .promise()
-    .query<OkPacket>(
-      "UPDATE delivery_boys SET user_id = ?, name = ?, mobile = ?, active = ?, cash_collection = ?, delivery_fee = ?, total_orders = ?, earning = ?, available = ?, addressPickup = ?, latitudePickup = ?, longitudePickup = ? WHERE id = ?",
-      [
-        userId,
-        name,
-        mobile,
-        active ? 1 : 0,
-        cashCollection ? 1 : 0,
-        deliveryFee,
-        totalOrders,
-        earning,
-        available ? 1 : 0,
-        addressPickup,
-        latitudePickup,
-        longitudePickup,
-        id,
-      ]
-    );
+  await db.promise().query<OkPacket>(
+    `UPDATE delivery_boys 
+       SET user_id = ?, name = ?, mobile = ?, active = ?, cash_collection = ?, 
+           delivery_fee = ?, total_orders = ?, earning = ?, available = ?, 
+           addressPickup = ?, latitudePickup = ?, longitudePickup = ? 
+       WHERE id = ?`,
+    [
+      userId,
+      name,
+      mobile,
+      active ? 1 : 0,
+      cashCollection ? 1 : 0,
+      deliveryFee,
+      totalOrders,
+      earning,
+      available ? 1 : 0,
+      addressPickup,
+      latitudePickup,
+      longitudePickup,
+      id,
+    ]
+  );
 };
 
 // Delete delivery boy by ID
