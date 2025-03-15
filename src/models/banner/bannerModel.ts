@@ -139,9 +139,14 @@ export const getAllBanners = async (
 
   const banners = await Promise.all(
     rows.map(async (row) => {
-      const foodIds = row.food_id
-        ? row.food_id.split(",").map((id: string) => parseInt(id.trim()))
-        : [];
+      // Validate and parse food_id
+      let foodIds: number[] = [];
+      if (row.food_id) {
+        foodIds = row.food_id
+          .split(",")
+          .map((id: string) => parseInt(id.trim()))
+          .filter((id: number) => !isNaN(id)); // Filter out NaN values
+      }
 
       let foodItems = [];
       if (foodIds.length > 0) {
@@ -216,7 +221,6 @@ export const getAllBanners = async (
     total: totalCount,
   };
 };
-
 const mapBannerType = (searchTerm: string): number => {
   const bannerTypeMap: Record<string, number> = {
     "Non Clickable": 1,
@@ -253,7 +257,7 @@ export const createBanner = async (bannerData: {
   banner_location: number;
   banner_link?: string;
   banner_content?: string;
-  food_id?: string[]; // Change to an array of strings
+  food_id?: string[]; 
   banner_weightage?: number;
   date_from?: string;
   date_to?: string;
@@ -289,7 +293,7 @@ export const createBanner = async (bannerData: {
     banner_location,
     banner_link,
     banner_content ?? null,
-    foodIdString, // Insert the comma-separated food_id string
+    foodIdString,
     banner_weightage,
     date_from,
     date_to,
