@@ -66,11 +66,11 @@ export const getWalletBalanceByWithOutUserId = async (
 
   if (startDate) {
     baseQuery += ` AND wb.created_at >= ?`;
-    params.push(startDate);
+    params.push(`${startDate} 00:00:00`);
   }
   if (endDate) {
     baseQuery += ` AND wb.created_at <= ?`;
-    params.push(endDate);
+    params.push(`${endDate} 23:59:59`);
   }
 
   if (searchTerm) {

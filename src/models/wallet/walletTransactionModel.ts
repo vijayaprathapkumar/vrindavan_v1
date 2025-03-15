@@ -138,13 +138,14 @@ export const fetchAllTransactions = (
 
   if (startDate) {
     whereClauses.push("wt.updated_at >= ?");
-    queryParams.push(startDate);
+    queryParams.push(`${startDate} 00:00:00`);
   }
-
+  
   if (endDate) {
     whereClauses.push("wt.updated_at <= ?");
-    queryParams.push(endDate);
+    queryParams.push(`${endDate} 23:59:59`);
   }
+  
 
   if (searchTerm) {
     let formattedSearchTerm = `%${searchTerm}%`;
