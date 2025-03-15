@@ -33,6 +33,17 @@ export const handlePaymentsOrders = async (placeOrderData) => {
       throw new Error("Payment insertion failed.");
     }
 
+    const paymentId = paymentResult.insertId;
+
+    const updateOrderSql = `
+    UPDATE orders 
+    SET payment_id = ? ,
+    order_status_id = 2
+    WHERE id = ?;
+  `;
+  await db.promise().query(updateOrderSql, [paymentId, order_id]);
+
+  
     const [walletRows]: [RowDataPacket[], any] = await db
       .promise()
       .query(`SELECT balance FROM wallet_balances WHERE user_id = ?`, [
@@ -174,7 +185,7 @@ export const processTodayOrderPayments = async (currentDate) => {
 };
 
 export const everyDayPaymentProcessJob = () => {
-  cron.schedule("00 15 * * *", async () => {
+  cron.schedule("35 16 * * *", async () => {
     console.log("Cron job running...");
     console.time("paymentProcessing");
 

@@ -89,6 +89,8 @@ const placeOrder = async (productData, user_id, orderDate) => {
 export const oneTimeOrdersInCustomer = async (req: any, res: any) => {
   try {
     const { user_id, orderDate, productData } = req.body; 
+    console.log('body date',orderDate);
+    
     if (!user_id || !orderDate || !productData) {
       return res.status(400).json({ message: "Missing required fields" });
     }
