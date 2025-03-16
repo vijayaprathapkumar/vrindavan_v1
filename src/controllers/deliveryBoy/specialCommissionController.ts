@@ -2,10 +2,41 @@ import { Request, Response } from "express";
 
 import { createResponse } from "../../utils/responseHandler";
 import {
+  addSpecialCommission,
   getAllDetailedSpecialCommissions,
   getDetailedSpecialCommissionById,
   updateSpecialCommission,
 } from "../../models/deliveryBoy/specialCommissionModel";
+
+export const addSpecialCommissionController = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  const { categoryId, productId, standardCommission, specialCommission, deliveryBoyId } = req.body;
+
+  if (!categoryId || !productId || !standardCommission || !specialCommission || !deliveryBoyId) {
+    res.status(400).json({ message: "All fields are required" });
+    return;
+  }
+
+  try {
+    const commissionId = await addSpecialCommission(
+      categoryId,
+      productId,
+      standardCommission,
+      specialCommission,
+      deliveryBoyId
+    );
+
+    res.status(201).json({
+      message: "Special commission created successfully",
+      commissionId,
+    });
+  } catch (error) {
+    console.error("Error creating special commission:", error);
+    res.status(500).json({ message: "Error creating special commission" });
+  }
+};
 
 export const getDetailedSpecialCommissions = async (
   req: Request,
@@ -88,47 +119,34 @@ export const getDetailedSpecialCommission = async (
   }
 };
 
+
 export const updateSpecialCommissionController = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-  const { categoryId, productId } = req.params; // Ensure these are passed as route params
-  const { standardCommission, specialCommission, deliveryBoyId } = req.body;
+  const { id } = req.params;
+  const { categoryId, productId, standardCommission, specialCommission, deliveryBoyId } = req.body;
 
   try {
-    if (!categoryId || !productId || !specialCommission || !standardCommission) {
-      res.status(400).json({
-        status: 400,
-        message: "Missing required parameters",
-      });
-      return;
-    }
-
     const updatedCommission = await updateSpecialCommission(
-      Number(categoryId),
-      Number(productId),
+      id,
+      categoryId,
+      productId,
       standardCommission,
       specialCommission,
-      deliveryBoyId ? Number(deliveryBoyId) : null
+      deliveryBoyId
     );
 
-    if (updatedCommission) {
-      res.status(200).json({
-        status: 200,
-        message: "Special commission updated successfully",
-        data: updatedCommission,
-      });
-    } else {
-      res.status(404).json({
-        status: 404,
-        message: "Failed to update special commission",
-      });
-    }
+    res.status(200).json({
+      message: "Special commission updated successfully",
+      data: updatedCommission,
+    });
   } catch (error) {
+    console.error('Error updating special commission:', error);
+
     res.status(500).json({
-      status: 500,
       message: "Error updating special commission",
-      error: (error as Error).message,
+      error: error instanceof Error ? error.message : 'An unknown error occurred',
     });
   }
 };
