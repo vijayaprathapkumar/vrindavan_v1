@@ -1,21 +1,45 @@
 import { db } from "../../config/databaseConnection";
 import { ResultSetHeader, RowDataPacket } from "mysql2";
 
+export const addSpecialCommission = async (
+  categoryId: number,
+  productId: number,
+  standardCommission: string,
+  specialCommission: string,
+  deliveryBoyId: number
+): Promise<number> => {
+  const query = `
+    INSERT INTO special_commissions 
+    (category_id, product_id, standard_commission, special_commission, delivery_boy_id, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, NOW(), NOW());
+  `;
+
+  const [result] = await db
+    .promise()
+    .query(query, [
+      categoryId,
+      productId,
+      standardCommission,
+      specialCommission,
+      deliveryBoyId,
+    ]);
+
+  return (result as any).insertId;
+};
+
 export const getAllDetailedSpecialCommissions = async (
   searchTerm: string = "",
   limit: number = 10,
   offset: number = 0,
   categoryId: string = "",
   deliveryBoyId: string = "",
-  sortField: string,
-  sortOrder: string
+  sortField: string = "",
+  sortOrder: string = "asc"
 ): Promise<{ data: any[]; totalCount: number }> => {
   const searchPattern = `%${searchTerm}%`;
   const categoryFilter =
-    categoryId && categoryId !== "All" ? " AND c.id = ?" : "";
-  const deliveryBoyFilter =
-    deliveryBoyId && deliveryBoyId !== "All"
-      ? " AND sc.delivery_boy_id = ?"
+    categoryId && categoryId !== "All" && !isNaN(parseInt(categoryId))
+      ? " AND c.id = ?"
       : "";
 
   const validSortFields: Record<string, string> = {
@@ -70,7 +94,13 @@ export const getAllDetailedSpecialCommissions = async (
           scs.commission AS standard_commission,
           scs.created_at AS standard_commission_created_at,
           scs.updated_at AS standard_commission_updated_at,
-          COALESCE(sc.special_commission, 0) AS commission_value, -- Use COALESCE to handle null values
+          sc.id AS special_commission_id,
+          sc.category_id AS special_commission_category_id,
+          sc.product_id AS special_commission_product_id,
+          sc.standard_commission AS special_commission_standard_commission,
+          COALESCE(sc.special_commission, 0) AS special_commission_value,
+          sc.delivery_boy_id AS special_commission_delivery_boy_id,
+          COALESCE(sc.special_commission, 0) AS commission_value,
           db.id AS delivery_boy_id,
           db.name AS delivery_boy_name,
           db.mobile AS delivery_boy_mobile,
@@ -92,12 +122,12 @@ export const getAllDetailedSpecialCommissions = async (
       LEFT JOIN 
           standard_commissions scs ON p.id = scs.product_id
       LEFT JOIN 
-          special_commissions sc ON p.id = sc.product_id AND sc.delivery_boy_id = ? -- Filter commissions for the selected delivery boy
+          special_commissions sc ON p.id = sc.product_id AND sc.delivery_boy_id = ?
       LEFT JOIN 
           delivery_boys db ON sc.delivery_boy_id = db.id
       WHERE 
-          (p.name LIKE ? OR c.name LIKE ?)${categoryFilter}${deliveryBoyFilter}
-      ORDER BY CAST(${sortColumn} AS DECIMAL) ${validSortOrder}
+          (p.name LIKE ? OR c.name LIKE ?)${categoryFilter}
+      ORDER BY ${sortColumn} ${validSortOrder}
       LIMIT ? OFFSET ?;
     `;
 
@@ -106,25 +136,33 @@ export const getAllDetailedSpecialCommissions = async (
       FROM foods p
       LEFT JOIN categories c ON p.category_id = c.id
       LEFT JOIN standard_commissions scs ON p.id = scs.product_id
-      LEFT JOIN special_commissions sc ON p.id = sc.product_id AND sc.delivery_boy_id = ? -- Filter commissions for the selected delivery boy
+      LEFT JOIN special_commissions sc ON p.id = sc.product_id AND sc.delivery_boy_id = ?
       WHERE 
           (p.name LIKE ? OR c.name LIKE ?)${categoryFilter};
     `;
 
   const params = [
-    deliveryBoyId, // Add deliveryBoyId as the first parameter for the conditional join
+    deliveryBoyId && !isNaN(parseInt(deliveryBoyId))
+      ? parseInt(deliveryBoyId)
+      : null,
     searchPattern,
     searchPattern,
-    ...(categoryId && categoryId !== "All" ? [parseInt(categoryId)] : []),
+    ...(categoryId && categoryId !== "All" && !isNaN(parseInt(categoryId))
+      ? [parseInt(categoryId)]
+      : []),
     limit,
     offset,
   ];
 
   const countParams = [
-    deliveryBoyId, // Add deliveryBoyId as the first parameter for the conditional join
+    deliveryBoyId && !isNaN(parseInt(deliveryBoyId))
+      ? parseInt(deliveryBoyId)
+      : null,
     searchPattern,
     searchPattern,
-    ...(categoryId && categoryId !== "All" ? [parseInt(categoryId)] : []),
+    ...(categoryId && categoryId !== "All" && !isNaN(parseInt(categoryId))
+      ? [parseInt(categoryId)]
+      : []),
   ];
 
   try {
@@ -134,13 +172,14 @@ export const getAllDetailedSpecialCommissions = async (
       .query<RowDataPacket[]>(queryCount, countParams);
 
     const data = rows.map((row) => ({
-      id: row.food_id,
-      categoryId: row.category_id,
-      productId: row.food_id,
-      value: row.commission_value,
-      deliveryBoyId: row.delivery_boy_id,
+      id: row.special_commission_id,
+      categoryId: row.special_commission_category_id,
+      productId: row.special_commission_product_id,
+      value: row.special_commission_value,
+      deliveryBoyId: row.special_commission_delivery_boy_id,
       createdAt: row.food_created_at,
       updatedAt: row.food_updated_at,
+
       category: {
         id: row.category_id,
         name: row.category_name,
@@ -213,6 +252,7 @@ export const getAllDetailedSpecialCommissions = async (
     throw error;
   }
 };
+
 export const getDetailedSpecialCommissionById = async (
   id: number
 ): Promise<any> => {
@@ -330,64 +370,40 @@ export const getDetailedSpecialCommissionById = async (
     },
   };
 };
+
 export const updateSpecialCommission = async (
+  id: number | string,
   categoryId: number,
   productId: number,
   standardCommission: string,
   specialCommission: string,
-  deliveryBoyId: number | null
+  deliveryBoyId: number
 ): Promise<any> => {
-  const connection = db.promise();
-
-  // Attempt to update the existing special commission
-  const queryUpdate = `
-    UPDATE special_commissions 
-    SET special_commission = ?, standard_commission = ?, delivery_boy_id = ?, updated_at = NOW() 
-    WHERE category_id = ? AND product_id = ?;
+  const query = `
+    UPDATE special_commissions
+    SET 
+      category_id = ?,
+      product_id = ?,
+      standard_commission = ?,
+      special_commission = ?,
+      delivery_boy_id = ?,
+      updated_at = NOW()
+    WHERE id = ?;
   `;
-
-  const [result] = await connection.query<ResultSetHeader>(queryUpdate, [
-    specialCommission,
-    standardCommission,
-    deliveryBoyId,
-    categoryId,
-    productId,
-  ]);
-
-  if (result.affectedRows > 0) {
-    return {
-      categoryId,
-      productId,
-      standardCommission,
-      specialCommission,
-      deliveryBoyId,
-    };
+  try {
+    const [result] = await db
+      .promise()
+      .query(query, [
+        categoryId,
+        productId,
+        standardCommission,
+        specialCommission,
+        deliveryBoyId,
+        id,
+      ]);
+    return result;
+  } catch (error) {
+    console.error("Error executing query:", error);
+    throw error;
   }
-
-  // If no rows were updated, insert a new special commission record
-  const queryInsert = `
-    INSERT INTO special_commissions 
-    (category_id, product_id, standard_commission, special_commission, delivery_boy_id, created_at, updated_at) 
-    VALUES (?, ?, ?, ?, ?, NOW(), NOW());
-  `;
-
-  const [insertResult] = await connection.query<ResultSetHeader>(queryInsert, [
-    categoryId,
-    productId,
-    standardCommission,
-    specialCommission,
-    deliveryBoyId,
-  ]);
-
-  if (insertResult.affectedRows > 0) {
-    return {
-      categoryId,
-      productId,
-      standardCommission,
-      specialCommission,
-      deliveryBoyId,
-    };
-  }
-
-  return null;
 };
