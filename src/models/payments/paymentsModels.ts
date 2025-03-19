@@ -60,7 +60,7 @@ export const handlePaymentsOrders = async (placeOrderData) => {
       (beforeBalance - totalOrderValue).toFixed(2)
     );
   
-    const transactionDescription = `₹${totalOrderValue} deducted for ${food_name} ${unit} x ${quantity}. Balance ₹${totalOrderValue}`;
+    const transactionDescription = `₹${totalOrderValue} deducted for ${food_name} ${unit} x ${quantity}. Balance ₹${beforeBalance}`;
    
     await logWalletTransaction(
       user_id,
@@ -185,7 +185,7 @@ export const processTodayOrderPayments = async (currentDate) => {
 };
 
 export const everyDayPaymentProcessJob = () => {
-  cron.schedule("35 16 * * *", async () => {
+  cron.schedule("30 15 * * *", async () => {
     console.log("Cron job running...");
     console.time("paymentProcessing");
 
