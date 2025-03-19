@@ -7,8 +7,8 @@ export const getAllDetailedCommissions = async (
   limit: number = 10,
   offset: number = 0,
   categoryId: string = "",
-  sortField: string = "food_name", // Default sorting field
-  sortOrder: string = "asc" // Default sorting order
+  sortField: string = "food_name", 
+  sortOrder: string = "asc"
 ): Promise<{ data: any[]; totalCount: number }> => {
   const searchPattern = `%${searchTerm}%`;
 
