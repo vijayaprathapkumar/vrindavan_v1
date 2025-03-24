@@ -6,6 +6,7 @@ import {
   deletePlaceOrderById,
   getAllOrders,
   getAllOrdersWithOutUserId,
+  getCalendarOneTimeOrdersModel,
   getCalendarWiseOrdersModel,
   getPlaceOrderById,
   getUpcomingOrdersModel,
@@ -387,6 +388,55 @@ export const getCalendarWiseOrders = async (req: Request, res: Response) => {
     res.status(200).json(
       createResponse(200, "Calendar-wise orders fetched successfully.", {
         calendarData,
+      })
+    );
+  } catch (error) {
+    console.error("Error fetching calendar-wise orders:", error);
+    res
+      .status(500)
+      .json(
+        createResponse(
+          500,
+          "Failed to fetch calendar-wise orders.",
+          error.message
+        )
+      );
+  }
+};
+
+
+export const getCalendarWiseOneTimeOrders = async (req: Request, res: Response) => {
+  const userId = parseInt(req.params.userId, 10);
+  const { startDate, endDate } = req.query;
+
+  // Validate userId and date parameters
+  if (isNaN(userId)) {
+    return res.status(400).json(createResponse(400, "Invalid user ID."));
+  }
+
+  if (!startDate || !endDate) {
+    return res
+      .status(400)
+      .json(createResponse(400, "startDate and endDate are required."));
+  }
+
+  const parsedStartDate = new Date(startDate as string);
+  const parsedEndDate = new Date(endDate as string);
+
+  if (isNaN(parsedStartDate.getTime()) || isNaN(parsedEndDate.getTime())) {
+    return res.status(400).json(createResponse(400, "Invalid date format."));
+  }
+
+  try {
+    const calendarData = await getCalendarOneTimeOrdersModel(
+      userId,
+      parsedStartDate,
+      parsedEndDate
+    );
+    const filteredResults = calendarData.filter(result => result.order_id !== null);
+    res.status(200).json(
+      createResponse(200, "Calendar-wise One time orders fetched successfully.", {
+        calendarOneTimeData: filteredResults.length > 0 ? filteredResults : []
       })
     );
   } catch (error) {
