@@ -60,6 +60,7 @@ export const getWalletBalanceByWithOutUserId = async (
     LEFT JOIN 
       localities l ON da.locality_id = l.id
     WHERE 1=1
+    AND wb.balance < 200  -- Added condition to filter balances below 200
   `;
 
   const params: any[] = [];
