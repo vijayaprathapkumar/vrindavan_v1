@@ -1911,3 +1911,76 @@ ORDER BY c.calendar_date ASC;
     );
   });
 };
+
+export const getCalendarOneTimeOrdersModel = (
+  userId: number,
+  startDate: Date,
+  endDate: Date
+): Promise<any[]> => {
+  const formattedStartDate = startDate.toISOString().split("T")[0];
+  const formattedEndDate = endDate.toISOString().split("T")[0];
+
+  const query = `
+    WITH RECURSIVE calendar AS (
+        SELECT DATE(?) AS calendar_date
+        UNION ALL
+        SELECT DATE_ADD(calendar_date, INTERVAL 1 DAY)
+        FROM calendar
+        WHERE calendar_date < DATE(?)
+    )
+    SELECT 
+        c.calendar_date,
+        o.id AS order_id,
+        o.order_date,
+        o.order_type,
+        o.order_status_id,
+        o.tax,
+        o.delivery_fee,
+        fo.price AS item_price,
+        fo.quantity,
+        f.name AS food_name,
+        f.price AS food_price,
+        f.discount_price,
+        f.description,
+        f.sku_code,
+        f.barcode,
+       f.unit AS unit,
+        f.status AS food_status,
+        f.created_at AS food_created_at,
+        m.id AS media_id,
+        m.file_name AS media_file_name,
+        m.mime_type AS media_mime_type,
+        CASE 
+            WHEN m.conversions_disk = 'public1' 
+            THEN CONCAT('https://media-image-upload.s3.ap-south-1.amazonaws.com/foods/', m.file_name)
+            ELSE CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name)
+        END AS original_url
+    FROM calendar c
+    LEFT JOIN orders o
+        ON DATE(o.order_date) = c.calendar_date
+        AND o.order_type = '1'
+        AND o.user_id = ?
+    LEFT JOIN food_orders fo
+        ON fo.order_id = o.id
+    LEFT JOIN foods f
+        ON f.id = fo.food_id
+    LEFT JOIN media m
+        ON f.id = m.model_id 
+        AND m.model_type = 'App\\\\Models\\\\Food'
+    ORDER BY c.calendar_date ASC, o.id ASC;
+  `;
+
+  return new Promise((resolve, reject) => {
+    db.query<RowDataPacket[]>(
+      query,
+      [formattedStartDate, formattedEndDate, userId],
+      (error, results) => {
+        if (error) {
+          console.error("SQL Error:", error);
+          return reject(error);
+        }
+        resolve(results);
+      }
+    );
+  });
+};
