@@ -39,8 +39,7 @@ export const saveOTPDetails = async (
   otp: string
 ): Promise<void> => {
     // Remove country code (assuming it's always '+91')
-    const cleanedMobileNumber = mobile_number.replace(/^\+91/, "").trim();
-
+   
   const checkSql = `
     SELECT * FROM user_one_time_passwords 
     WHERE mobile = ?;
@@ -55,14 +54,14 @@ export const saveOTPDetails = async (
       SET otp = ?, is_verified = 0, updated_at = NOW() 
       WHERE mobile = ?;
     `;
-    const values = [otp, cleanedMobileNumber];
+    const values = [otp, mobile_number];
     await db.promise().query(sql, values);
   } else {
     const sql = `
       INSERT INTO user_one_time_passwords (mobile, otp, created_at, updated_at) 
       VALUES (?, ?, NOW(), NOW());
     `;
-    const values = [cleanedMobileNumber, otp];
+    const values = [mobile_number, otp];
     await db.promise().query(sql, values);
   }
 };
