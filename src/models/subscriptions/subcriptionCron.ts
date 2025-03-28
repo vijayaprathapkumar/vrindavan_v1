@@ -250,15 +250,14 @@ export const subcribtionsJob = () => {
 
     const currentDate = new Date();
     const nextDate = new Date(currentDate);
-    
-    nextDate.setDate(currentDate.getDate());
+    nextDate.setDate(currentDate.getDate() + 1);
 
     const jobStartTime = moment().format("YYYY-MM-DD HH:mm:ss");
     let jobEndTime = "";
     let jobDuration = "";
 
     try {
-      await handleNextDayOrders(currentDate);
+      await handleNextDayOrders(nextDate);
 
       jobEndTime = moment().format("YYYY-MM-DD HH:mm:ss");
       jobDuration = moment(jobEndTime).diff(
