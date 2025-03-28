@@ -3,21 +3,45 @@ import { db } from "../../config/databaseConnection";
 import { FieldPacket, OkPacket, RowDataPacket } from "mysql2";
 import cron from "node-cron";
 
-async function fetchSubscriptions(lastId = 0, batchSize) {
+async function fetchSubscriptions(lastId = 0, batchSize: number) {
   const [subscriptions]: [RowDataPacket[], FieldPacket[]] = await db
     .promise()
     .query(
       `SELECT * FROM user_subscriptions 
-         WHERE active = 1 
-         AND is_pause_subscription = 0 
-         AND id > ? 
-         LIMIT ?`,
+       WHERE active = 1 
+       AND is_pause_subscription = 0 
+       AND id > ? 
+       LIMIT ?`,
       [lastId, batchSize]
     );
   return subscriptions;
 }
 
-export async function handleNextDayOrders(currentDate) {
+const checkWalletBalance = async (userId: number, amount: number): Promise<boolean> => {
+  const query = `
+    SELECT balance 
+    FROM wallet_balances 
+    WHERE user_id = ?;
+  `;
+
+  try {
+    const [walletRows]: [RowDataPacket[], FieldPacket[]] = await db
+      .promise()
+      .query(query, [userId]);
+    
+    if (walletRows.length === 0) {
+      return false; // No wallet found
+    }
+    
+    const walletBalance = parseFloat(walletRows[0].balance);
+    return walletBalance >= amount;
+  } catch (error) {
+    console.error(`Error checking wallet balance for user ${userId}:`, error);
+    return false;
+  }
+};
+
+export async function handleNextDayOrders(currentDate: Date) {
   const tomorrow = moment(currentDate).add(1, "days");
   const customizeDate = moment(currentDate).add(0, "days");
   const dayOfWeek = customizeDate.format("dddd").toLowerCase();
@@ -74,6 +98,10 @@ export async function handleNextDayOrders(currentDate) {
                   console.warn(
                     `Subscription ID ${sub.id}: Missing product. Skipping.`
                   );
+                } else if (orderResult.reason === "insufficient_balance") {
+                  console.warn(
+                    `Subscription ID ${sub.id}: Insufficient wallet balance. Skipping.`
+                  );
                 } else {
                   console.error(
                     `Subscription ID ${sub.id}: Failed to create order.`
@@ -95,14 +123,14 @@ export async function handleNextDayOrders(currentDate) {
   }
 }
 
-const withTimeout = (promise, ms) => {
+const withTimeout = (promise: Promise<any>, ms: number) => {
   const timeout = new Promise((_, reject) =>
     setTimeout(() => reject(new Error("Operation timed out")), ms)
   );
   return Promise.race([promise, timeout]);
 };
 
-export const createOrder = async (orderItem, quantityToOrder, currentDate) => {
+export const createOrder = async (orderItem: any, quantityToOrder: number, currentDate: Date) => {
   const { product_id, user_id } = orderItem || {};
 
   try {
@@ -117,6 +145,20 @@ export const createOrder = async (orderItem, quantityToOrder, currentDate) => {
 
     const { discount_price, price } = productData[0];
     const productAmount = discount_price || price;
+    const totalAmount = productAmount * quantityToOrder;
+
+    // Check wallet balance
+    const hasSufficientBalance = await withTimeout(
+      checkWalletBalance(user_id, totalAmount),
+      5000
+    );
+
+    if (!hasSufficientBalance) {
+      console.warn(
+        `User ${user_id} has insufficient wallet balance for product ${product_id}. Required: ${totalAmount}`
+      );
+      return { success: false, reason: "insufficient_balance" };
+    }
 
     if (productAmount > 0) {
       const orderData = await withTimeout(
@@ -146,7 +188,7 @@ export const createOrder = async (orderItem, quantityToOrder, currentDate) => {
   }
 };
 
-const getProductById = async (product_id) => {
+const getProductById = async (product_id: number) => {
   const query = `
       SELECT f.price, f.discount_price
       FROM foods f
@@ -154,7 +196,7 @@ const getProductById = async (product_id) => {
     `;
 
   try {
-    const [productRows]: [any[], any] = await db
+    const [productRows]: [RowDataPacket[], FieldPacket[]] = await db
       .promise()
       .query(query, [product_id]);
     return productRows;
@@ -164,16 +206,16 @@ const getProductById = async (product_id) => {
   }
 };
 
-const addOrdersEntry = async (userId, currentDate) => {
+const addOrdersEntry = async (userId: number, currentDate: Date) => {
   const addressSql = `
-  SELECT da.id AS delivery_address_id, da.*, l.route_id, l.hub_id
-  FROM delivery_addresses da
-  LEFT JOIN localities l ON da.locality_id = l.id
-  WHERE da.user_id = ?;
-`;
+    SELECT da.id AS delivery_address_id, da.*, l.route_id, l.hub_id
+    FROM delivery_addresses da
+    LEFT JOIN localities l ON da.locality_id = l.id
+    WHERE da.user_id = ?;
+  `;
 
   try {
-    const [addressRows] = await db.promise().query(addressSql, [userId]);
+    const [addressRows]: [RowDataPacket[], FieldPacket[]] = await db.promise().query(addressSql, [userId]);
     const addressData = addressRows[0];
 
     if (!addressData || !addressData.locality_id || !addressData.hub_id) {
@@ -194,7 +236,7 @@ const addOrdersEntry = async (userId, currentDate) => {
         VALUES (?, 2, ?, ?, ?, ?, 3, 0.0, 0.0, ?, 1, NOW(), NOW());
       `;
 
-    const [orderResult]: any = await db
+    const [orderResult]: [OkPacket, FieldPacket[]] = await db
       .promise()
       .query(orderSql, [
         userId,
@@ -222,10 +264,10 @@ const addOrdersEntry = async (userId, currentDate) => {
 };
 
 const addFoodOrderEntry = async (
-  productAmount,
-  quantity,
-  productId,
-  orderId
+  productAmount: number,
+  quantity: number,
+  productId: number,
+  orderId: number
 ) => {
   const foodOrderSql = `
       INSERT INTO food_orders (
@@ -308,7 +350,7 @@ export const pauseSubscriptionsJobs = async () => {
     `;
 
     try {
-      const [result]: [OkPacket, any] = await db
+      const [result]: [OkPacket, FieldPacket[]] = await db
         .promise()
         .query(sql, [currentDate]);
       console.log(
