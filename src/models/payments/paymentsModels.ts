@@ -3,88 +3,101 @@ import { db } from "../../config/databaseConnection";
 import cron from "node-cron";
 import moment from "moment";
 
-export const handlePaymentsOrders = async (placeOrderData) => {
-  const { user_id, food_price, quantity, order_id, status, food_name, unit } =
-    placeOrderData;
 
-  const totalOrderValue =
-    parseFloat(food_price || "0") * parseInt(quantity || "0");
+export const handlePaymentsOrders = async (placeOrderData: any) => {
+  console.log('placeOrderData',placeOrderData);
+  
+  const { user_id, food_price, quantity, order_id, status, food_name, unit } = placeOrderData;
+  const totalOrderValue = parseFloat(food_price || "0") * parseInt(quantity || "0");
 
-  const deductionSuccess = await deductFromWalletBalance(
-    user_id,
-    totalOrderValue
-  );
-  if (!deductionSuccess) {
-    throw new Error("Failed to deduct from wallet balance.");
-  }
+  // Start transaction
+  await db.promise().query("START TRANSACTION");
 
-  const paymentSql = `
+  try {
+    // 1. Verify wallet balance first
+    const [walletRows]: [RowDataPacket[], any] = await db
+      .promise()
+      .query(`SELECT balance FROM wallet_balances WHERE user_id = ? FOR UPDATE`, [user_id]);
+
+    const currentBalance = parseFloat(walletRows[0]?.balance || "0");
+    
+    if (currentBalance < totalOrderValue) {
+      await db.promise().query("ROLLBACK");
+      throw new Error(`Insufficient wallet balance. Current: ${currentBalance}, Required: ${totalOrderValue}`);
+    }
+
+    // 2. Create payment record
+    const paymentSql = `
       INSERT INTO payments (price, user_id, status, method, created_at, updated_at) 
       VALUES (?, ?, ?, ?, NOW(), NOW());
     `;
-  const paymentValues = [totalOrderValue, user_id, status, "wallet"];
-
-  try {
     const [paymentResult]: [OkPacket, any] = await db
       .promise()
-      .query(paymentSql, paymentValues);
+      .query(paymentSql, [totalOrderValue, user_id, status, "wallet"]);
 
     if (paymentResult.affectedRows === 0) {
+      await db.promise().query("ROLLBACK");
       throw new Error("Payment insertion failed.");
     }
 
     const paymentId = paymentResult.insertId;
 
+    // 3. Update order with payment ID and status
     const updateOrderSql = `
-    UPDATE orders 
-    SET payment_id = ? ,
-    order_status_id = 2
-    WHERE id = ?;
-  `;
-  await db.promise().query(updateOrderSql, [paymentId, order_id]);
+      UPDATE orders 
+      SET payment_id = ?,
+          order_status_id = 2,
+          updated_at = NOW()
+      WHERE id = ?;
+    `;
+    await db.promise().query(updateOrderSql, [paymentId, order_id]);
 
-  
-    const [walletRows]: [RowDataPacket[], any] = await db
+    // 4. Deduct from wallet
+    const deductionSql = `
+      UPDATE wallet_balances 
+      SET balance = balance - ?,
+          updated_at = NOW()
+      WHERE user_id = ?;
+    `;
+    const [deductionResult]: [OkPacket, any] = await db
       .promise()
-      .query(`SELECT balance FROM wallet_balances WHERE user_id = ?`, [
-        user_id,
-      ]);
+      .query(deductionSql, [totalOrderValue, user_id]);
 
-    const beforeBalance = parseFloat(walletRows[0]?.balance || "0");
-
-    if (isNaN(beforeBalance) || beforeBalance === 0) {
-      console.log("Wallet balance not found or is 0. Skipping deduction.");
+    if (deductionResult.affectedRows === 0) {
+      await db.promise().query("ROLLBACK");
+      throw new Error("Wallet deduction failed.");
     }
 
-    const afterBalance = parseFloat(
-      (beforeBalance - totalOrderValue).toFixed(2)
-    );
-  
-    const transactionDescription = `₹${totalOrderValue} deducted for ${food_name} ${unit} x ${quantity}. Balance ₹${beforeBalance}`;
-   
+    // 5. Log wallet transaction
+    const afterBalance = parseFloat((currentBalance - totalOrderValue).toFixed(2));
+    const transactionDescription = `₹${totalOrderValue} deducted for ${food_name} ${unit} x ${quantity}. Balance ₹${currentBalance} → ₹${afterBalance}`;
+    
     await logWalletTransaction(
       user_id,
       order_id,
-      beforeBalance,
+      currentBalance,
       totalOrderValue,
       afterBalance,
       transactionDescription
     );
 
+    // Commit transaction if all steps succeeded
+    await db.promise().query("COMMIT");
     return true;
   } catch (error) {
-    console.error("Error creating order:", error);
-    throw new Error("Failed to create order.");
+    await db.promise().query("ROLLBACK");
+    console.error("Error processing payment:", error);
+    throw error;
   }
 };
 
 const logWalletTransaction = async (
-  userId,
-  orderId,
-  beforeBalance,
-  amount,
-  afterBalance,
-  description
+  userId: number,
+  orderId: number,
+  beforeBalance: number,
+  amount: number,
+  afterBalance: number,
+  description: string
 ) => {
   const walletLogSql = `
     INSERT INTO wallet_logs (
@@ -100,126 +113,125 @@ const logWalletTransaction = async (
       updated_at
     ) 
     VALUES (?, ?, NOW(), ?, ?, ?, ?, ?, NOW(), NOW());
-    `;
-
-  const walletLogValues = [
-    userId,
-    orderId,
-    beforeBalance,
-    amount,
-    afterBalance,
-    "deduction",
-    description,
-  ];
+  `;
 
   try {
-    await db.promise().query(walletLogSql, walletLogValues);
+    await db.promise().query(walletLogSql, [
+      userId,
+      orderId,
+      beforeBalance,
+      amount,
+      afterBalance,
+      "deduction",
+      description,
+    ]);
   } catch (error) {
     console.error("Error logging wallet transaction:", error);
-  }
-};
-
-export const deductFromWalletBalance = async (userId, amount) => {
-  const sql = `
-        UPDATE wallet_balances 
-        SET balance = balance - ? 
-        WHERE user_id = ?;
-    `;
-
-  try {
-    const [result]: [OkPacket, any] = await db
-      .promise()
-      .query(sql, [amount, userId]);
-
-    if (result.affectedRows === 0) {
-      throw new Error("Wallet balance not found for the user.");
-    }
-    return true;
-  } catch (error) {
-    console.error("Error updating wallet balance:", error);
-    return false;
+    throw error;
   }
 };
 
 export const getAllPlaceOrdersUsers = async (currentDate: string) => {
   const query = `
-      SELECT 
-        o.id AS order_id,
-        o.user_id,
-        o.order_date,
-        fo.price AS food_price,
-        fo.quantity,
-        f.name AS food_name,
-        f.unit
-      FROM 
-        orders o
-      LEFT JOIN 
-        food_orders fo ON o.id = fo.order_id
-      LEFT JOIN 
-        foods f ON f.id = fo.food_id
-      WHERE 
-        DATE(o.order_date) = ?;
-    `;
-  const [placeOrderRows]: [RowDataPacket[], any] = await db
-    .promise()
-    .query(query, [currentDate]);
-
-  return placeOrderRows;
+    SELECT 
+      o.id AS order_id,
+      o.user_id,
+      o.order_date,
+      fo.price AS food_price,
+      fo.quantity,
+      f.name AS food_name,
+      f.unit,
+      o.payment_id
+    FROM 
+      orders o
+    LEFT JOIN 
+      food_orders fo ON o.id = fo.order_id
+    LEFT JOIN 
+      foods f ON f.id = fo.food_id
+    WHERE 
+      DATE(o.order_date) = ?
+      AND o.payment_id IS NULL
+  `;
+  
+  try {
+    const [placeOrderRows]: [RowDataPacket[], any] = await db
+      .promise()
+      .query(query, [currentDate]);
+    return placeOrderRows;
+  } catch (error) {
+    console.error("Error fetching orders:", error);
+    throw error;
+  }
 };
 
-export const processTodayOrderPayments = async (currentDate) => {
+export const processTodayOrderPayments = async (currentDate: string) => {
   try {
     console.time("paymentProcessing");
     const orders = await getAllPlaceOrdersUsers(currentDate);
 
     if (orders.length === 0) {
-      console.log("No orders to process for today.");
-      return;
+      console.log("No unpaid orders to process for today.");
+      return { processed: 0, skipped: 0 };
     }
-    await Promise.all(orders.map((order) => handlePaymentsOrders(order)));
+
+    let processedCount = 0;
+    let skippedCount = 0;
+
+    // Process orders sequentially to avoid overloading the database
+    for (const order of orders) {
+      try {
+        await handlePaymentsOrders(order);
+        processedCount++;
+      } catch (error) {
+        console.error(`Failed to process order ${order.order_id}:`, error);
+        skippedCount++;
+      }
+    }
+
     console.timeEnd("paymentProcessing");
-    console.log("Today's payment processed successfully.");
+    console.log(`Payments processed: ${processedCount}, Skipped: ${skippedCount}`);
+    return { processed: processedCount, skipped: skippedCount };
   } catch (error) {
     console.error("Error processing today's orders:", error);
+    throw error;
   }
 };
 
 export const everyDayPaymentProcessJob = () => {
   cron.schedule("30 15 * * *", async () => {
-    console.log("Cron job running...");
-    console.time("paymentProcessing");
-
-    const currentDate = new Date().toISOString().split("T")[0];
-
     const jobStartTime = moment().format("YYYY-MM-DD HH:mm:ss");
-    let jobEndTime = "";
-    let jobDuration = "";
+    console.log(`Payment processing cron job started at ${jobStartTime}...`);
 
     try {
-      await processTodayOrderPayments(currentDate);
+      const currentDate = new Date();
+      const formattedDate = currentDate.toISOString().split("T")[0];
+      
+      await processTodayOrderPayments(formattedDate);
 
-      jobEndTime = moment().format("YYYY-MM-DD HH:mm:ss");
-      jobDuration = moment(jobEndTime).diff(
-        moment(jobStartTime),
-        "seconds"
-      ) as any;
+      const jobEndTime = moment().format("YYYY-MM-DD HH:mm:ss");
+      const jobDuration = moment(jobEndTime).diff(moment(jobStartTime), "seconds");
 
-      const logMessage = `Subscription orders bill placed on ${currentDate.toLocaleString()}`;
+      const logMessage = `Subscription orders bill placed on ${formattedDate}`;
+      const cronLogEntry = `Job Start: ${jobStartTime}, Job End: ${jobEndTime}, Duration: ${jobDuration}s, Message: ${logMessage}`;
 
-      const sqlQuery = `
-        INSERT INTO cron_logs (log_date, cron_logs, created_at, updated_at)
-        VALUES (NOW(), ?, NOW(), NOW())
-      `;
-      const values = [
-        `Job Start: ${jobStartTime}, Job End: ${jobEndTime}, Duration: ${jobDuration}s, Message: ${logMessage}`,
-      ];
+      await db.promise().query(
+        `INSERT INTO cron_logs (log_date, cron_logs, created_at, updated_at)
+         VALUES (?, ?, NOW(), NOW())`,
+        [formattedDate, cronLogEntry]
+      );
 
-      await db.promise().query(sqlQuery, values);
-
-      console.timeEnd("paymentProcessing");
-      console.log("Today's payment processed successfully.");
+      console.log(`Payment processing job completed at ${jobEndTime}. Duration: ${jobDuration}s`);
     } catch (error) {
-      console.error("Error running processTodayOrderPayments:", error);
+      console.error("Payment processing job failed:", error);
+      
+      // Log failure with the same format
+      const errorLogEntry = `Job Start: ${jobStartTime}, Job End: ${moment().format("YYYY-MM-DD HH:mm:ss")}, Duration: ${moment().diff(moment(jobStartTime), "seconds")}s, Message: Payment processing failed. Error: ${error.message}`;
+      
+      await db.promise().query(
+        `INSERT INTO cron_logs (log_date, cron_logs, created_at, updated_at)
+         VALUES (NOW(), ?, NOW(), NOW())`,
+        [errorLogEntry]
+      );
     }
   });
 };
