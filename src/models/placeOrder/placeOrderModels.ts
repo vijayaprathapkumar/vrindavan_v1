@@ -89,26 +89,52 @@ export const addOrdersEntry = async (userId, orderDate) => {
 };
 
 export const addFoodOrderEntry = async (
-  productAmount,
-  quantity,
-  productId,
-  orderId
+  productAmount: number,
+  quantity: number,
+  productId: number,
+  orderId: number
 ) => {
-  const foodOrderSql = `
+  const connection = await db.promise().getConnection();
+  try {
+    await connection.beginTransaction();
+
+    // Fetch current stock for the food item
+    const stockSql = `SELECT amount FROM stock_mutations WHERE stockable_id = ? ORDER BY created_at DESC LIMIT 1`;
+    const [stockRows]: any = await connection.query(stockSql, [productId]);
+
+    if (stockRows.length === 0 || stockRows[0].amount < quantity) {
+      throw new Error("Insufficient stock for this food item.");
+    }
+
+    const newStockAmount = stockRows[0].amount - quantity;
+
+    // Insert food order
+    const foodOrderSql = `
       INSERT INTO food_orders (
         price, quantity, food_id, order_id, created_at, updated_at
       ) VALUES (?, ?, ?, ?, NOW(), NOW());
     `;
+    await connection.query(foodOrderSql, [productAmount, quantity, productId, orderId]);
 
-  try {
-    await db
-      .promise()
-      .query(foodOrderSql, [productAmount, quantity, productId, orderId]);
+    // Update stock in stock_mutations
+    const updateStockSql = `
+      INSERT INTO stock_mutations (
+        stockable_type, stockable_id, reference_type, reference_id, 
+        amount, description, created_at, updated_at
+      ) VALUES ('food', ?, 'order', ?, ?, 'Stock reduced due to order', NOW(), NOW());
+    `;
+    await connection.query(updateStockSql, [productId, orderId, -quantity]);
+
+    await connection.commit();
   } catch (error) {
-    console.error(`Error creating food order for order ${orderId}:`, error);
-    throw new Error("Error creating food order.");
+    await connection.rollback();
+    console.error(`Error processing food order for order ${orderId}:`, error);
+    throw new Error("Error processing food order.");
+  } finally {
+    connection.release();
   }
 };
+
 
 export const deleteAllCartItemsByUserId = async (userId: number) => {
   const sql = `
