@@ -1260,29 +1260,42 @@ export const updateOneTimeOrders = async (
   orderId: number,
   quantity?: number
 ): Promise<void> => {
+  const connection = await db.promise().getConnection();
   try {
-    const updates: string[] = [];
-    const params: (number | string)[] = [];
+    await connection.beginTransaction();
 
-    // Prepare updates based on provided values
-    if (quantity !== undefined) {
-      updates.push("quantity = ?");
-      params.push(quantity);
+    const currentOrderSql = `SELECT quantity, food_id FROM food_orders WHERE order_id = ?`;
+    const [orderRows]: any = await connection.query(currentOrderSql, [orderId]);
+
+    if (orderRows.length === 0) {
+      throw new Error(`Order ID ${orderId} not found.`);
     }
 
-    if (updates.length > 0) {
-      const sql = `UPDATE food_orders SET ${updates.join(
-        ", "
-      )} WHERE order_id = ?`;
-      params.push(orderId);
+    const { quantity: currentQuantity, food_id } = orderRows[0];
 
-      await db.promise().query(sql, params);
-    } else {
-      console.log("No updates provided.");
+    if (quantity !== undefined && quantity !== currentQuantity) {
+
+      const quantityDifference = quantity - currentQuantity;
+
+      const updateOrderSql = `UPDATE food_orders SET quantity = ? WHERE order_id = ?`;
+      await connection.query(updateOrderSql, [quantity, orderId]);
+
+      const updateStockSql = `
+        INSERT INTO stock_mutations (
+          stockable_type, stockable_id, reference_type, reference_id, 
+          amount, description, created_at, updated_at
+        ) VALUES ('food', ?, 'order_update', ?, ?, 'Stock adjusted due to order update', NOW(), NOW());
+      `;
+      await connection.query(updateStockSql, [food_id, orderId, -quantityDifference]);
     }
+
+    await connection.commit();
   } catch (error) {
+    await connection.rollback();
     console.error("Error updating order:", error);
     throw error;
+  } finally {
+    connection.release();
   }
 };
 
