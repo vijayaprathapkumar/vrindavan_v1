@@ -59,14 +59,10 @@ export const getAllSubCategoriesWithCategory = async (
   }
 
   if (active !== null) {
-    if (active === 0) {
-      query += " AND (sub_categories.active = ? OR sub_categories.active IS NULL)";
-      params.push(active);
-    } else {
-      query += " AND sub_categories.active = ?";
-      params.push(active);
-    }
+    query += " AND sub_categories.active = ?";
+    params.push(active);
   }
+  
   
 
   const validSortFields: Record<string, string> = {

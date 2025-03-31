@@ -26,8 +26,9 @@ export const getSubcategories = async (
   const sortOrder = (req.query.sortOrder as string) || "ASC";
 
   // Handle active filter: "All" (null) = show all, "0" = inactive, "1" = active
-  const active =
-  req.query.active === "1" ? 1 : req.query.active === "All" ? null : 0;
+  const active = req.query.active !== undefined && req.query.active !== "" && !isNaN(parseInt(req.query.active as string))
+  ? parseInt(req.query.active as string)
+  : null;
 
 
 
