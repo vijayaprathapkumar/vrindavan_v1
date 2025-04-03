@@ -34,12 +34,12 @@ export const getAllFoods = async (
            m.order_column,
            m.created_at AS media_created_at,
            m.updated_at AS media_updated_at,
-         CASE 
-        WHEN m.conversions_disk = 'public1' 
-        THEN CONCAT('https://media-image-upload.s3.ap-south-1.amazonaws.com/foods/', m.file_name)
-        ELSE CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name)
-      END AS original_url,
-           (SELECT SUM(amount) FROM stock_mutations  WHERE  stockable_id = f.id) AS outOfStock
+           CASE 
+              WHEN m.conversions_disk = 'public1' 
+              THEN CONCAT('https://media-image-upload.s3.ap-south-1.amazonaws.com/foods/', m.file_name)
+              ELSE CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name)
+           END AS original_url,
+           (SELECT SUM(amount) FROM stock_mutations WHERE stockable_id = f.id) AS outOfStock
     FROM foods f
     LEFT JOIN media m ON f.id = m.model_id AND (m.model_type = 'App\\\\Models\\\\Food')
   `;
@@ -91,13 +91,17 @@ export const getAllFoods = async (
     weightage: "CAST(f.weightage AS UNSIGNED)",
   };
 
-  if (sortField && validSortFields[sortField]) {
-    query += ` ORDER BY ${validSortFields[sortField]} ${
-      sortOrder === "desc" ? "desc" : "asc"
-    }`;
-  } else {
-    query += " ORDER BY CAST(f.weightage AS UNSIGNED) ASC";
-  }
+  query += ` ORDER BY 
+    CASE 
+      WHEN (SELECT SUM(amount) FROM stock_mutations WHERE stockable_id = f.id) <= 0 THEN 1 
+      ELSE 0 
+    END,
+    ${
+      sortField && validSortFields[sortField]
+        ? validSortFields[sortField]
+        : "CAST(f.weightage AS UNSIGNED)"
+    } ${sortOrder === "desc" ? "DESC" : "ASC"}
+  `;
 
   const countQuery = `
     SELECT COUNT(*) as count 
@@ -412,14 +416,23 @@ export const updateStock = async (
   try {
     const [existing] = await db
       .promise()
-      .execute("SELECT id FROM stock_mutations WHERE stockable_id = ?", [foodId]);
+      .execute("SELECT id FROM stock_mutations WHERE stockable_id = ?", [
+        foodId,
+      ]);
 
     if ((existing as any[]).length === 0) {
       const insertQuery = `
         INSERT INTO stock_mutations (stockable_id, stockable_type, amount, description, created_at, updated_at)
         VALUES (?, ?, ?, ?, NOW(), NOW())
       `;
-      await db.promise().execute(insertQuery, [foodId, stockableType, amountChange, description ?? null]);
+      await db
+        .promise()
+        .execute(insertQuery, [
+          foodId,
+          stockableType,
+          amountChange,
+          description ?? null,
+        ]);
     } else {
       const updateQuery = `
         UPDATE stock_mutations
@@ -428,7 +441,13 @@ export const updateStock = async (
             updated_at = NOW()
         WHERE stockable_id = ?
       `;
-      const [result] = await db.promise().execute<ResultSetHeader>(updateQuery, [amountChange, description ?? null, foodId]);
+      const [result] = await db
+        .promise()
+        .execute<ResultSetHeader>(updateQuery, [
+          amountChange,
+          description ?? null,
+          foodId,
+        ]);
 
       if (result.affectedRows === 0) {
         throw new Error("No record found with the specified stockable_id");
