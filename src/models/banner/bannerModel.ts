@@ -163,7 +163,7 @@ export const getAllBanners = async (
             m.mime_type AS media_mime_type,
             CASE 
               WHEN m.conversions_disk = 'public1' 
-              THEN CONCAT('https://media-image-upload.s3.ap-south-1.amazonaws.com/banners/', m.file_name)
+              THEN CONCAT('https://media-image-upload.s3.ap-south-1.amazonaws.com/foods/', m.file_name)
               ELSE CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name)
             END AS original_url
           FROM foods f
