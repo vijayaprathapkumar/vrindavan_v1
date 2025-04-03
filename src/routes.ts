@@ -35,6 +35,7 @@ import commissionPayoutRoutes from "./routes/deliveryBoy/commissionPayoutRoutes"
 import cronLogsRoutes from "./routes/cronLogsRoutes/cronLogsRoutes";
 import discontinuedCustomersRoutes from "./routes/discontinuedCustomersRoutes/discontinuedCustomersRoutes";
 import stockCountRoutes from "./routes/inventory/stockCountRoutes";
+import orderStatusRoutes from "./routes/orderStatus/orderStatusRoutes";
 
 const router = express.Router();
 
@@ -115,6 +116,9 @@ router.use("/cron-logs", cronLogsRoutes);
 
 //discontinued Customers Routes
 router.use("/discontinued", discontinuedCustomersRoutes);
+
+//order-service-status
+router.use("/order-service-status", orderStatusRoutes);
 
 
 export default router;

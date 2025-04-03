@@ -1274,7 +1274,6 @@ export const updateOneTimeOrders = async (
     const { quantity: currentQuantity, food_id } = orderRows[0];
 
     if (quantity !== undefined && quantity !== currentQuantity) {
-
       const quantityDifference = quantity - currentQuantity;
 
       const updateOrderSql = `UPDATE food_orders SET quantity = ? WHERE order_id = ?`;
@@ -1286,7 +1285,11 @@ export const updateOneTimeOrders = async (
           amount, description, created_at, updated_at
         ) VALUES ('food', ?, 'order_update', ?, ?, 'Stock adjusted due to order update', NOW(), NOW());
       `;
-      await connection.query(updateStockSql, [food_id, orderId, -quantityDifference]);
+      await connection.query(updateStockSql, [
+        food_id,
+        orderId,
+        -quantityDifference,
+      ]);
     }
 
     await connection.commit();
@@ -1479,106 +1482,106 @@ export const getUpcomingOrdersModel = (
   userId: number,
   currentDate: Date
 ): Promise<any[]> => {
-  const formattedDate = currentDate.toISOString().split("T")[0]; // Format to YYYY-MM-DD
+  const formattedDate = currentDate.toISOString().split("T")[0]; 
 
   const query = `
   SELECT 
-  us.id AS user_subscription_id,
-  us.user_id,
-  us.product_id,
-  us.subscription_type,
-  us.start_date,
-  us.end_date,
-  us.quantity,
-  us.monday_qty,
-  us.tuesday_qty,
-  us.wednesday_qty,
-  us.thursday_qty,
-  us.friday_qty,
-  us.saturday_qty,
-  us.sunday_qty,
-  us.cancel_subscription,
-  us.is_pause_subscription,
-  us.pause_until_i_come_back,
-  us.pause_specific_period_startDate,
-  us.pause_specific_period_endDate,
-  sqc.order_type,
-  sqc.order_date,
-  COALESCE(
-    sqc.quantity, 
+    us.id AS user_subscription_id,
+    us.user_id,
+    us.product_id,
+    us.subscription_type,
+    us.start_date,
+    us.end_date,
+    us.quantity,
+    us.monday_qty,
+    us.tuesday_qty,
+    us.wednesday_qty,
+    us.thursday_qty,
+    us.friday_qty,
+    us.saturday_qty,
+    us.sunday_qty,
+    us.cancel_subscription,
+    us.is_pause_subscription,
+    us.pause_until_i_come_back,
+    us.pause_specific_period_startDate,
+    us.pause_specific_period_endDate,
+    sqc.order_type,
+    sqc.order_date,
+    COALESCE(
+      sqc.quantity, 
+      CASE 
+        WHEN us.subscription_type = 'customize' THEN
+          CASE 
+            WHEN DAYNAME(?) = 'Monday' THEN us.monday_qty
+            WHEN DAYNAME(?) = 'Tuesday' THEN us.tuesday_qty
+            WHEN DAYNAME(?) = 'Wednesday' THEN us.wednesday_qty
+            WHEN DAYNAME(?) = 'Thursday' THEN us.thursday_qty
+            WHEN DAYNAME(?) = 'Friday' THEN us.friday_qty
+            WHEN DAYNAME(?) = 'Saturday' THEN us.saturday_qty
+            WHEN DAYNAME(?) = 'Sunday' THEN us.sunday_qty
+            ELSE NULL  
+          END
+        ELSE us.quantity
+      END
+    ) AS day_specific_quantity,
+    us.active,
     CASE 
-      WHEN us.subscription_type = 'customize' THEN
-        CASE 
-          WHEN DAYNAME(?) = 'Monday' THEN us.monday_qty
-          WHEN DAYNAME(?) = 'Tuesday' THEN us.tuesday_qty
-          WHEN DAYNAME(?) = 'Wednesday' THEN us.wednesday_qty
-          WHEN DAYNAME(?) = 'Thursday' THEN us.thursday_qty
-          WHEN DAYNAME(?) = 'Friday' THEN us.friday_qty
-          WHEN DAYNAME(?) = 'Saturday' THEN us.saturday_qty
-          WHEN DAYNAME(?) = 'Sunday' THEN us.sunday_qty
-          ELSE NULL  -- Return null if no quantity is set for that day
-        END
-      ELSE us.quantity
-    END
-  ) AS day_specific_quantity,
-  us.active,
-  CASE 
-    WHEN sqc.cancel_order_date = DATE(?) AND sqc.cancel_order = 1 THEN 1  
-    ELSE NULL 
-  END AS cancel_status,
-  COALESCE(sqc.pause_subscription, us.is_pause_subscription) AS pause_status,
-  f.name AS product_name,
-  f.price AS product_price,
-  f.discount_price AS product_discount_price,
-  f.description AS product_description,
-  f.perma_link AS product_permalink,
-  f.ingredients AS product_ingredients,
-  f.package_items_count AS product_package_items_count,
-  f.weight AS product_weight,
-  f.unit AS product_unit,
-  f.sku_code AS product_sku_code,
-  f.barcode AS product_barcode,
-  f.cgst AS product_cgst,
-  f.sgst AS product_sgst,
-  f.subscription_type AS product_subscription_type,
-  f.track_inventory AS product_track_inventory,
-  f.featured AS product_featured,
-  f.deliverable AS product_deliverable,
-  f.restaurant_id AS product_restaurant_id,
-  f.category_id AS product_category_id,
-  f.subcategory_id AS product_subcategory_id,
-  f.product_type_id AS product_product_type_id,
-  f.hub_id AS product_hub_id,
-  f.locality_id AS product_locality_id,
-  f.product_brand_id AS product_brand_id,
-  f.weightage AS product_weightage,
-  f.status AS product_status,
-  f.created_at AS product_created_at,
-  f.updated_at AS product_updated_at,
-  f.food_locality AS product_food_locality,
-  m.id AS media_id,
-  m.model_type,
-  m.model_id,
-  m.uuid,
-  m.collection_name,
-  m.name AS media_name,
-  m.file_name AS media_file_name,
-  m.mime_type AS media_mime_type,
-  m.disk,
-  m.conversions_disk,
-  m.size,
-  m.manipulations,
-  m.custom_properties,
-  m.generated_conversions,
-  m.responsive_images,
-  m.order_column,
-  m.created_at AS media_created_at,
-  m.updated_at AS media_updated_at,
+      WHEN sqc.cancel_order_date = DATE(?) AND sqc.cancel_order = 1 THEN 1  
+      ELSE NULL 
+    END AS cancel_status,
+    COALESCE(sqc.pause_subscription, us.is_pause_subscription) AS pause_status,
+    f.name AS product_name,
+    f.price AS product_price,
+    f.discount_price AS product_discount_price,
+    f.description AS product_description,
+    f.perma_link AS product_permalink,
+    f.ingredients AS product_ingredients,
+    f.package_items_count AS product_package_items_count,
+    f.weight AS product_weight,
+    f.unit AS product_unit,
+    f.sku_code AS product_sku_code,
+    f.barcode AS product_barcode,
+    f.cgst AS product_cgst,
+    f.sgst AS product_sgst,
+    f.subscription_type AS product_subscription_type,
+    f.track_inventory AS product_track_inventory,
+    f.featured AS product_featured,
+    f.deliverable AS product_deliverable,
+    f.restaurant_id AS product_restaurant_id,
+    f.category_id AS product_category_id,
+    f.subcategory_id AS product_subcategory_id,
+    f.product_type_id AS product_product_type_id,
+    f.hub_id AS product_hub_id,
+    f.locality_id AS product_locality_id,
+    f.product_brand_id AS product_brand_id,
+    f.weightage AS product_weightage,
+    f.status AS product_status,
+    f.created_at AS product_created_at,
+    f.updated_at AS product_updated_at,
+    f.food_locality AS product_food_locality,
+    m.id AS media_id,
+    m.model_type,
+    m.model_id,
+    m.uuid,
+    m.collection_name,
+    m.name AS media_name,
+    m.file_name AS media_file_name,
+    m.mime_type AS media_mime_type,
+    m.disk,
+    m.conversions_disk,
+    m.size,
+    m.manipulations,
+    m.custom_properties,
+    m.generated_conversions,
+    m.responsive_images,
+    m.order_column,
+    m.created_at AS media_created_at,
+    m.updated_at AS media_updated_at,
     CASE 
-        WHEN m.conversions_disk = 'public1' 
-        THEN CONCAT('https://media-image-upload.s3.ap-south-1.amazonaws.com/foods/', m.file_name)
-        ELSE CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name)
-      END AS original_url
+      WHEN m.conversions_disk = 'public1' 
+      THEN CONCAT('https://media-image-upload.s3.ap-south-1.amazonaws.com/foods/', m.file_name)
+      ELSE CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name)
+    END AS original_url
   FROM user_subscriptions us
   LEFT JOIN subscription_quantity_changes sqc
     ON us.id = sqc.user_subscription_id
@@ -1587,60 +1590,60 @@ export const getUpcomingOrdersModel = (
     ON us.product_id = f.id
   LEFT JOIN media m ON f.id = m.model_id AND (m.model_type = 'App\\\\Models\\\\Food')
   WHERE us.user_id = ?
-  AND us.start_date <= ?
-  AND (us.end_date IS NULL OR us.end_date >= ?)
-  AND us.active = 1
-  AND (
-    us.subscription_type = 'everyday'
-    OR 
-    (us.subscription_type = 'alternative_day' AND DATEDIFF(?, us.start_date) % 2 = 0)
-    OR 
-    (us.subscription_type = 'every_3_day' AND DATEDIFF(?, us.start_date) % 3 = 0)
-    OR 
-    (us.subscription_type = 'every_7_day' AND DATEDIFF(?, us.start_date) % 7 = 0)
-    OR 
-    (us.subscription_type = 'customize' AND 
-      (
-        (DAYNAME(?) = 'Monday' AND us.monday_qty IS NOT NULL) OR
-        (DAYNAME(?) = 'Tuesday' AND us.tuesday_qty IS NOT NULL) OR
-        (DAYNAME(?) = 'Wednesday' AND us.wednesday_qty IS NOT NULL) OR
-        (DAYNAME(?) = 'Thursday' AND us.thursday_qty IS NOT NULL) OR
-        (DAYNAME(?) = 'Friday' AND us.friday_qty IS NOT NULL) OR
-        (DAYNAME(?) = 'Saturday' AND us.saturday_qty IS NOT NULL) OR
-        (DAYNAME(?) = 'Sunday' AND us.sunday_qty IS NOT NULL)
+    AND us.start_date <= ?
+    AND (us.end_date IS NULL OR us.end_date >= ?)
+    AND us.active = 1
+    AND (
+      us.subscription_type = 'everyday'
+      OR 
+      (us.subscription_type = 'alternative_day' AND DATEDIFF(?, us.start_date) % 2 = 0)
+      OR 
+      (us.subscription_type = 'every_3_day' AND DATEDIFF(?, us.start_date) % 3 = 0)
+      OR 
+      (us.subscription_type = 'every_7_day' AND DATEDIFF(?, us.start_date) % 7 = 0)
+      OR 
+      (us.subscription_type = 'customize' AND 
+        (
+          (DAYNAME(?) = 'Monday' AND us.monday_qty IS NOT NULL AND us.monday_qty > 0) OR
+          (DAYNAME(?) = 'Tuesday' AND us.tuesday_qty IS NOT NULL AND us.tuesday_qty > 0) OR
+          (DAYNAME(?) = 'Wednesday' AND us.wednesday_qty IS NOT NULL AND us.wednesday_qty > 0) OR
+          (DAYNAME(?) = 'Thursday' AND us.thursday_qty IS NOT NULL AND us.thursday_qty > 0) OR
+          (DAYNAME(?) = 'Friday' AND us.friday_qty IS NOT NULL AND us.friday_qty > 0) OR
+          (DAYNAME(?) = 'Saturday' AND us.saturday_qty IS NOT NULL AND us.saturday_qty > 0) OR
+          (DAYNAME(?) = 'Sunday' AND us.sunday_qty IS NOT NULL AND us.sunday_qty > 0)
+        )
       )
     )
-  )
   `;
 
   return new Promise((resolve, reject) => {
     const queryParams = [
-      formattedDate, // Monday
-      formattedDate, // Tuesday
-      formattedDate, // Wednesday
-      formattedDate, // Thursday
-      formattedDate, // Friday
-      formattedDate, // Saturday
-      formattedDate, // Sunday
-      formattedDate, // Cancel date comparison
-      formattedDate, // Order date comparison
-      formattedDate, // Cancel date comparison
-      userId, // User ID
-      formattedDate, // Start date filter
-      formattedDate, // End date filter
-      formattedDate, // Alternative day calculation
-      formattedDate, // Every 3-day calculation
-      formattedDate, // Every 7-day calculation
-      formattedDate, // Monday in customize
-      formattedDate, // Tuesday in customize
-      formattedDate, // Wednesday in customize
-      formattedDate, // Thursday in customize
-      formattedDate, // Friday in customize
-      formattedDate, // Saturday in customize
-      formattedDate, // Sunday in customize
+      formattedDate,
+      formattedDate,
+      formattedDate,
+      formattedDate,
+      formattedDate,
+      formattedDate,
+      formattedDate,
+      formattedDate,
+      formattedDate,
+      formattedDate,
+      userId,
+      formattedDate,
+      formattedDate,
+      formattedDate,
+      formattedDate,
+      formattedDate,
+      formattedDate,
+      formattedDate,
+      formattedDate,
+      formattedDate,
+      formattedDate,
+      formattedDate,
+      formattedDate,
     ];
 
-    db.query<RowDataPacket[]>(query, queryParams, (error, results) => {
+    db.query<any[]>(query, queryParams, (error, results) => {
       if (error) {
         console.error("SQL Error:", error);
         return reject(error);
