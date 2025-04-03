@@ -15,8 +15,8 @@ export const getAllCategories = async (
     updated_at: "c.updated_at",
   };
 
-  const sortColumn = validSortFields[sortField] || validSortFields["name"];
-  const orderDirection = sortOrder.toUpperCase() === "DESC" ? "DESC" : "ASC";
+  const sortColumn = validSortFields[sortField] || validSortFields["weightage"];
+  const orderDirection = sortOrder.toUpperCase() === "ASC" ? "ASC" : "DESC";
 
   let query = `
     SELECT 

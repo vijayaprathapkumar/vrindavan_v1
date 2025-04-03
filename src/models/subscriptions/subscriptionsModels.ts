@@ -88,7 +88,7 @@ export const addSubscriptionQuantityChangeModel = (
       created_at: new Date(),
       updated_at: new Date(),
     };
-    
+
     db.query<OkPacket>(
       "INSERT INTO subscription_quantity_changes SET ?",
       [changeData],
@@ -225,15 +225,21 @@ export const getAllSubscriptionsModel = (
                       OR foods.unit LIKE ? 
                       OR foods.status LIKE ? 
                       OR foods.weightage LIKE ? 
-                      OR foods.description LIKE ?)`; 
-      params.push(searchQuery, searchQuery, searchQuery, searchQuery, searchQuery);
+                      OR foods.description LIKE ?)`;
+      params.push(
+        searchQuery,
+        searchQuery,
+        searchQuery,
+        searchQuery,
+        searchQuery
+      );
     }
 
     if (startDate && endDate) {
       query += ` AND user_subscriptions.start_date >= ? AND user_subscriptions.end_date <= ? `;
       params.push(
-        startDate.toISOString().slice(0, 19).replace('T', ' '), 
-        endDate.toISOString().slice(0, 19).replace('T', ' ')
+        startDate.toISOString().slice(0, 19).replace("T", " "),
+        endDate.toISOString().slice(0, 19).replace("T", " ")
       );
     }
 
@@ -255,7 +261,6 @@ export const getAllSubscriptionsModel = (
     });
   });
 };
-
 
 export const getTotalSubscriptionsCountModel = (
   userId: number
@@ -474,6 +479,7 @@ WHERE user_subscriptions.id = ?`,
 };
 
 export const updateSubscriptionPauseInfo = async (
+  id: number | string,
   userId: number,
   isPauseSubscription: number,
   pauseUntilComeBack?: number,
@@ -490,7 +496,7 @@ export const updateSubscriptionPauseInfo = async (
       pause_until_i_come_back = ?, 
       pause_specific_period_startDate = ?, 
       pause_specific_period_endDate = ? 
-    WHERE user_id = ?;
+    WHERE id = ?;
   `;
 
   const values = [
@@ -498,7 +504,7 @@ export const updateSubscriptionPauseInfo = async (
     pauseUntilComeBack || 0,
     startDate || null,
     endDate || null,
-    userId,
+    id,
   ];
 
   try {
