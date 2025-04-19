@@ -220,28 +220,55 @@ export const createDeal = async (dealData: {
     );
   }
 
-  const sql = `
-    INSERT INTO deal_of_the_days 
-    (food_id, unit, price, offer_price, quantity, description, status, weightage, created_at, updated_at) 
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW());
-  `;
-
-  const values = [
-    foodId,
-    unit,
-    price,
-    offer_price,
-    quantity,
-    description,
-    status,
-    weightage,
-  ];
-
+  const connection = await db.promise().getConnection();
   try {
-    const [result]: [OkPacket, any] = await db.promise().query(sql, values);
-    return result;
+    await connection.beginTransaction();
+
+    // 1. Insert deal into deal_of_the_days
+    const insertSql = `
+      INSERT INTO deal_of_the_days 
+      (food_id, unit, price, offer_price, quantity, description, status, weightage, created_at, updated_at) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW());
+    `;
+
+    const insertValues = [
+      foodId,
+      unit,
+      price,
+      offer_price,
+      quantity,
+      description || null,
+      status,
+      weightage || null,
+    ];
+
+    await connection.query(insertSql, insertValues);
+
+    // 2. Update discount_price in foods table
+    const updateDiscountSql = `
+      UPDATE foods
+      SET discount_price = ?
+      WHERE id = ?;
+    `;
+    await connection.query(updateDiscountSql, [offer_price, foodId]);
+
+    // 3. If quantity is 0, update foods table to match price and clear discount
+    if (quantity === 0) {
+      const resetSql = `
+        UPDATE foods
+        SET price = ?, discount_price = NULL
+        WHERE id = ?;
+      `;
+      await connection.query(resetSql, [price, foodId]);
+    }
+
+    await connection.commit();
+    return { message: "Deal created and food updated successfully." };
   } catch (error) {
-    throw new Error("Failed to create deal.");
+    await connection.rollback();
+    throw new Error("Failed to create deal and update food.");
+  } finally {
+    connection.release();
   }
 };
 
@@ -410,7 +437,9 @@ export const deleteDealById = async (id: number): Promise<ResultSetHeader> => {
   return result;
 };
 
-export const getDealByFoodId = async (foodId: number): Promise<RowDataPacket | null> => {
+export const getDealByFoodId = async (
+  foodId: number
+): Promise<RowDataPacket | null> => {
   const sql = `
     SELECT * FROM deal_of_the_days WHERE food_id = ? AND status = 1;
   `;
@@ -418,9 +447,11 @@ export const getDealByFoodId = async (foodId: number): Promise<RowDataPacket | n
   return rows.length ? rows[0] : null;
 };
 
-
-export const updateDealQuantity = async (foodId: number, quantityOrdered: number) => {
-  const dealSql = `SELECT quantity, status FROM deal_of_the_days WHERE food_id = ?`;
+export const updateDealQuantity = async (
+  foodId: number,
+  quantityOrdered: number
+) => {
+  const dealSql = `SELECT quantity, status, offer_price FROM deal_of_the_days WHERE food_id = ?`;
 
   try {
     const [dealRows]: any = await db.promise().query(dealSql, [foodId]);
@@ -434,23 +465,59 @@ export const updateDealQuantity = async (foodId: number, quantityOrdered: number
     let newQuantity = deal.quantity - quantityOrdered;
     let newStatus = deal.status;
 
-    if (newQuantity <= 0) {
-      newQuantity = 0; 
-      newStatus = 0;
-      await db.promise().query(
-        `UPDATE deal_of_the_days SET quantity = ?, status = 0 WHERE food_id = ?`,
-        [newQuantity, foodId]
-      );
-    } else {
-      await db.promise().query(
-        `UPDATE deal_of_the_days SET quantity = ? WHERE food_id = ?`,
-        [newQuantity, foodId]
-      );
-    }
+    const connection = await db.promise().getConnection();
+    try {
+      await connection.beginTransaction();
 
-    return { status: newStatus };
+      if (newQuantity <= 0) {
+        newQuantity = 0;
+        newStatus = 0;
+
+        await connection.query(
+          `UPDATE deal_of_the_days SET quantity = ?, status = 0 WHERE food_id = ?`,
+          [newQuantity, foodId]
+        );
+
+        await connection.query(
+          `UPDATE foods SET discount_price = price WHERE id = ?`,
+          [foodId]
+        );
+      } else {
+        await connection.query(
+          `UPDATE deal_of_the_days SET quantity = ? WHERE food_id = ?`,
+          [newQuantity, foodId]
+        );
+
+        await connection.query(
+          `UPDATE foods SET discount_price = ? WHERE id = ?`,
+          [deal.offer_price, foodId]
+        );
+      }
+
+      await connection.commit();
+      return { status: newStatus, quantity: newQuantity };
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
   } catch (error) {
     console.error("Error updating deal quantity:", error);
     throw new Error("Error updating deal quantity.");
   }
+};
+
+export const updateFoodDiscountPrice = async (
+  food_id: number,
+  offer_price: number
+) => {
+  const sql = `UPDATE foods SET discount_price = ? WHERE id = ?`;
+  await db.promise().query(sql, [offer_price, food_id]);
+};
+
+// Reset discount_price to price when deal ends
+export const resetFoodDiscountPrice = async (food_id: number) => {
+  const sql = `UPDATE foods SET discount_price = price WHERE id = ?`;
+  await db.promise().query(sql, [food_id]);
 };

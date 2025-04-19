@@ -116,14 +116,7 @@ export const addFoodOrderEntry = async (
     `;
     await connection.query(foodOrderSql, [productAmount, quantity, productId, orderId]);
 
-    // Update stock in stock_mutations
-    const updateStockSql = `
-      INSERT INTO stock_mutations (
-        stockable_type, stockable_id, reference_type, reference_id, 
-        amount, description, created_at, updated_at
-      ) VALUES ('food', ?, 'order', ?, ?, 'Stock reduced due to order', NOW(), NOW());
-    `;
-    await connection.query(updateStockSql, [productId, orderId, -quantity]);
+   
 
     await connection.commit();
   } catch (error) {
