@@ -6,8 +6,12 @@ import {
   getCartItemsByUserId,
 } from "../../models/placeOrder/placeOrderModels";
 import { createResponse } from "../../utils/responseHandler";
-import { getDealByFoodId, updateDealQuantity } from "../../models/dealOfTheDay/dealOfTheDayModel";
-
+import {
+  getDealByFoodId,
+  resetFoodDiscountPrice,
+  updateDealQuantity,
+  updateFoodDiscountPrice,
+} from "../../models/dealOfTheDay/dealOfTheDayModel";
 
 // Add a place order and clear the cart
 export const placeOneTimeOrder = async (
@@ -24,7 +28,7 @@ export const placeOneTimeOrder = async (
 
     const orderPromises = cartItems.map(async (item) => {
       if (item.quantity > 0) {
-        await placeOrder(item, userId, orderDate); 
+        await placeOrder(item, userId, orderDate);
       } else {
         console.log("Failed to add place order.");
       }
@@ -57,23 +61,35 @@ const placeOrder = async (productData, user_id, orderDate) => {
 
   let productAmount;
   if (deal && deal.quantity > 0) {
-    productAmount = deal.offer_price; 
+    productAmount = deal.offer_price;
+
+    await updateFoodDiscountPrice(food_id, deal.offer_price);
   } else {
-    productAmount = price; 
+    productAmount = price;
   }
 
   if (productAmount > 0) {
     const orderData = await addOrdersEntry(user_id, orderDate);
 
     if (orderData?.orderId) {
-      await addFoodOrderEntry(productAmount, quantity, food_id, orderData.orderId);
+      await addFoodOrderEntry(
+        productAmount,
+        quantity,
+        food_id,
+        orderData.orderId
+      );
 
       if (deal && deal.quantity > 0) {
-        const updatedDeal = await updateDealQuantity(food_id, quantity);
-        if (updatedDeal?.status === 0) { 
+        const updatedDeal = (await updateDealQuantity(
+          food_id,
+          quantity
+        )) as any;
+        if (updatedDeal?.quantity === 0) {
+          await resetFoodDiscountPrice(food_id);
           console.log(`Deal for food ID ${food_id} is now inactive.`);
         }
       }
+
       return;
     }
   }
@@ -82,21 +98,19 @@ const placeOrder = async (productData, user_id, orderDate) => {
   return null;
 };
 
-
-
 //admin panel One time order
 
 export const oneTimeOrdersInCustomer = async (req: any, res: any) => {
   try {
-    const { user_id, orderDate, productData } = req.body; 
-    console.log('body date',orderDate);
-    
+    const { user_id, orderDate, productData } = req.body;
+    console.log("body date", orderDate);
+
     if (!user_id || !orderDate || !productData) {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
     const { discount_price, price, food_id, quantity } = productData;
-    const productAmount = discount_price > 0 ? discount_price : price;  
+    const productAmount = discount_price > 0 ? discount_price : price;
 
     if (productAmount <= 0) {
       return res.status(400).json({ message: "Invalid product amount" });
@@ -110,15 +124,18 @@ export const oneTimeOrdersInCustomer = async (req: any, res: any) => {
         food_id,
         orderData.orderId
       );
-      return res.status(201).json({ message: "Order placed successfully", orderId: orderData.orderId });
+      return res.status(201).json({
+        message: "Order placed successfully",
+        orderId: orderData.orderId,
+      });
     } else {
       console.error("Failed to create order entry");
       return res.status(500).json({ message: "Failed to place order" });
     }
   } catch (error) {
     console.error("Error placing order:", error);
-    return res.status(500).json({ message: "Internal server error", error: error.message });
+    return res
+      .status(500)
+      .json({ message: "Internal server error", error: error.message });
   }
 };
-
-
