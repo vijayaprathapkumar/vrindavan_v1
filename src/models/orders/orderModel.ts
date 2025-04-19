@@ -1258,38 +1258,27 @@ export const getPlaceOrderById = async (
 // Update Order
 export const updateOneTimeOrders = async (
   orderId: number,
-  quantity?: number
+  newQuantity?: number
 ): Promise<void> => {
   const connection = await db.promise().getConnection();
   try {
     await connection.beginTransaction();
 
-    const currentOrderSql = `SELECT quantity, food_id FROM food_orders WHERE order_id = ?`;
-    const [orderRows]: any = await connection.query(currentOrderSql, [orderId]);
+    const getOrderSql = `SELECT quantity FROM food_orders WHERE order_id = ?`;
+    const [orderRows]: any = await connection.query(getOrderSql, [orderId]);
 
     if (orderRows.length === 0) {
       throw new Error(`Order ID ${orderId} not found.`);
     }
 
-    const { quantity: currentQuantity, food_id } = orderRows[0];
+    const { quantity: currentQuantity } = orderRows[0];
 
-    if (quantity !== undefined && quantity !== currentQuantity) {
-      const quantityDifference = quantity - currentQuantity;
-
-      const updateOrderSql = `UPDATE food_orders SET quantity = ? WHERE order_id = ?`;
-      await connection.query(updateOrderSql, [quantity, orderId]);
-
-      const updateStockSql = `
-        INSERT INTO stock_mutations (
-          stockable_type, stockable_id, reference_type, reference_id, 
-          amount, description, created_at, updated_at
-        ) VALUES ('food', ?, 'order_update', ?, ?, 'Stock adjusted due to order update', NOW(), NOW());
-      `;
-      await connection.query(updateStockSql, [
-        food_id,
-        orderId,
-        -quantityDifference,
-      ]);
+    // ✅ Only update if quantity has changed
+    if (newQuantity !== undefined && newQuantity !== currentQuantity) {
+      const updateOrderSql = `UPDATE food_orders SET quantity = ?, updated_at = NOW() WHERE order_id = ?`;
+      await connection.query(updateOrderSql, [newQuantity, orderId]);
+    } else {
+      console.log(`No quantity change for order ${orderId}, skipping update.`);
     }
 
     await connection.commit();
@@ -1482,7 +1471,7 @@ export const getUpcomingOrdersModel = (
   userId: number,
   currentDate: Date
 ): Promise<any[]> => {
-  const formattedDate = currentDate.toISOString().split("T")[0]; 
+  const formattedDate = currentDate.toISOString().split("T")[0];
 
   const query = `
   SELECT 
@@ -1908,7 +1897,18 @@ WHERE (
     OR (us.subscription_type = 'alternative_day' AND MOD(DATEDIFF(c.calendar_date, us.start_date), 2) = 0)
     OR (us.subscription_type = 'every_3_day' AND MOD(DATEDIFF(c.calendar_date, us.start_date), 3) = 0)
     OR (us.subscription_type = 'every_7_day' AND MOD(DATEDIFF(c.calendar_date, us.start_date), 7) = 0)
-    OR (us.subscription_type = 'customize')
+    OR (
+        us.subscription_type = 'customize'
+        AND (
+            (DAYNAME(c.calendar_date) = 'Monday' AND us.monday_qty IS NOT NULL)
+            OR (DAYNAME(c.calendar_date) = 'Tuesday' AND us.tuesday_qty IS NOT NULL)
+            OR (DAYNAME(c.calendar_date) = 'Wednesday' AND us.wednesday_qty IS NOT NULL)
+            OR (DAYNAME(c.calendar_date) = 'Thursday' AND us.thursday_qty IS NOT NULL)
+            OR (DAYNAME(c.calendar_date) = 'Friday' AND us.friday_qty IS NOT NULL)
+            OR (DAYNAME(c.calendar_date) = 'Saturday' AND us.saturday_qty IS NOT NULL)
+            OR (DAYNAME(c.calendar_date) = 'Sunday' AND us.sunday_qty IS NOT NULL)
+        )
+    )
 )
 ORDER BY c.calendar_date ASC;
   `;
