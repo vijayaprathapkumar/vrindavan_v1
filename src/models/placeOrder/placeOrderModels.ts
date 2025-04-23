@@ -9,7 +9,6 @@ export const orderTypes = {
   // 5: "App Order",
 };
 
-
 export const getCartItemsByUserId = async (
   userId: number
 ): Promise<RowDataPacket[]> => {
@@ -98,25 +97,18 @@ export const addFoodOrderEntry = async (
   try {
     await connection.beginTransaction();
 
-    // Fetch current stock for the food item
-    const stockSql = `SELECT amount FROM stock_mutations WHERE stockable_id = ? ORDER BY created_at DESC LIMIT 1`;
-    const [stockRows]: any = await connection.query(stockSql, [productId]);
-
-    if (stockRows.length === 0 || stockRows[0].amount < quantity) {
-      throw new Error("Insufficient stock for this food item.");
-    }
-
-    const newStockAmount = stockRows[0].amount - quantity;
-
     // Insert food order
     const foodOrderSql = `
       INSERT INTO food_orders (
         price, quantity, food_id, order_id, created_at, updated_at
       ) VALUES (?, ?, ?, ?, NOW(), NOW());
     `;
-    await connection.query(foodOrderSql, [productAmount, quantity, productId, orderId]);
-
-   
+    await connection.query(foodOrderSql, [
+      productAmount,
+      quantity,
+      productId,
+      orderId,
+    ]);
 
     await connection.commit();
   } catch (error) {
@@ -127,7 +119,6 @@ export const addFoodOrderEntry = async (
     connection.release();
   }
 };
-
 
 export const deleteAllCartItemsByUserId = async (userId: number) => {
   const sql = `
