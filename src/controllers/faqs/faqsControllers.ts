@@ -11,16 +11,16 @@ import { createResponse } from "../../utils/responseHandler";
 // Fetch all FAQs
 export const getFaqs = async (req: Request, res: Response): Promise<void> => {
   try {
+    const limit = parseInt(req.query.limit as string);
     const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 10;
     const searchTerm = (req.query.searchTerm as string) || "";
     const faqCategoryId = req.query.faqCategoryId
       ? req.query.faqCategoryId === "All"
-        ? undefined 
+        ? undefined
         : parseInt(req.query.faqCategoryId as string)
       : undefined;
-      const sortField = String(req.query.sortField || "");
-      const sortOrder = String(req.query.sortOrder || "");
+    const sortField = String(req.query.sortField || "");
+    const sortOrder = String(req.query.sortOrder || "");
     if (faqCategoryId !== undefined && isNaN(faqCategoryId)) {
       res.status(400).json({
         status: 400,
@@ -29,7 +29,14 @@ export const getFaqs = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    const { faqs, total } = await getAllFaqs(page, limit, searchTerm, faqCategoryId,sortField,sortOrder);
+    const { faqs, total } = await getAllFaqs(
+      page,
+      limit,
+      searchTerm,
+      faqCategoryId,
+      sortField,
+      sortOrder
+    );
 
     res.status(200).json({
       status: 200,
@@ -42,10 +49,12 @@ export const getFaqs = async (req: Request, res: Response): Promise<void> => {
         totalCount: total,
       },
     });
-    return; 
+    return;
   } catch (error) {
-    res.status(500).json({ status: 500, message: "Error fetching FAQs", error });
-    return; 
+    res
+      .status(500)
+      .json({ status: 500, message: "Error fetching FAQs", error });
+    return;
   }
 };
 

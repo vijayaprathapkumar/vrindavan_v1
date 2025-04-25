@@ -19,8 +19,8 @@ export const fetchAllOrders = async (
   res: Response
 ): Promise<Response> => {
   const userId = parseInt(req.params.userId);
+  const limit = parseInt(req.query.limit as string);
   const page = parseInt(req.query.page as string) || 1;
-  const limit = parseInt(req.query.limit as string) || 10;
   const searchTerm: string | null = req.query.searchTerm
     ? (req.query.searchTerm as string)
     : null;
@@ -404,8 +404,10 @@ export const getCalendarWiseOrders = async (req: Request, res: Response) => {
   }
 };
 
-
-export const getCalendarWiseOneTimeOrders = async (req: Request, res: Response) => {
+export const getCalendarWiseOneTimeOrders = async (
+  req: Request,
+  res: Response
+) => {
   const userId = parseInt(req.params.userId, 10);
   const { startDate, endDate } = req.query;
 
@@ -433,11 +435,18 @@ export const getCalendarWiseOneTimeOrders = async (req: Request, res: Response) 
       parsedStartDate,
       parsedEndDate
     );
-    const filteredResults = calendarData.filter(result => result.order_id !== null);
+    const filteredResults = calendarData.filter(
+      (result) => result.order_id !== null
+    );
     res.status(200).json(
-      createResponse(200, "Calendar-wise One time orders fetched successfully.", {
-        calendarOneTimeData: filteredResults.length > 0 ? filteredResults : []
-      })
+      createResponse(
+        200,
+        "Calendar-wise One time orders fetched successfully.",
+        {
+          calendarOneTimeData:
+            filteredResults.length > 0 ? filteredResults : [],
+        }
+      )
     );
   } catch (error) {
     console.error("Error fetching calendar-wise orders:", error);

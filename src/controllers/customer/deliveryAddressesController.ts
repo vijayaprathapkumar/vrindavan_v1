@@ -9,14 +9,22 @@ export const getDeliveryAddresses = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-  const page = parseInt(req.query.page as string, 10) || 1;
-  const limit = parseInt(req.query.limit as string, 10) || 10;
-  const searchTerm = req.query.searchTerm ? (req.query.searchTerm as string) : "";
-  const sortField = req.query.sortField as string || "created_at";
+  const limit = parseInt(req.query.limit as string);
+  const page = parseInt(req.query.page as string) || 1;
+  const searchTerm = req.query.searchTerm
+    ? (req.query.searchTerm as string)
+    : "";
+  const sortField = (req.query.sortField as string) || "created_at";
   const sortOrder = req.query.sortOrder === "desc" ? "desc" : "asc";
 
   try {
-    const { deliveryAddresses, total } = await getDeliveryAddress(page, limit, searchTerm,sortField,sortOrder);
+    const { deliveryAddresses, total } = await getDeliveryAddress(
+      page,
+      limit,
+      searchTerm,
+      sortField,
+      sortOrder
+    );
 
     const totalPages = Math.ceil(total / limit);
 
@@ -30,7 +38,7 @@ export const getDeliveryAddresses = async (
         limit,
         totalPages,
         sortField,
-        sortOrder
+        sortOrder,
       },
     });
   } catch (error: any) {
@@ -43,7 +51,6 @@ export const getDeliveryAddresses = async (
   }
 };
 
-
 export const updateDeliveryAddress = async (
   req: Request,
   res: Response
@@ -51,7 +58,7 @@ export const updateDeliveryAddress = async (
   const { id } = req.params;
   const { locality_id, approveStatus } = req.body;
 
-  if ( locality_id === undefined || approveStatus === undefined) {
+  if (locality_id === undefined || approveStatus === undefined) {
     res.status(400).json({
       statusCode: 400,
       message: "Missing required fields: locality_id, or approveStatus",

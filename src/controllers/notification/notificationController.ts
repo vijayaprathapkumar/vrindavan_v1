@@ -18,13 +18,17 @@ export const fetchNotifications = async (
   req: Request,
   res: Response
 ): Promise<Response> => {
-  const page = Number(req.query.page) || 1;
-  const limit = Number(req.query.limit) || 10;
+  const limit = parseInt(req.query.limit as string);
+  const page = parseInt(req.query.page as string) || 1;
   const searchTerm = req.query.searchTerm
     ? String(req.query.searchTerm)
     : undefined;
-    const sortField=req.query.sortField ? String(req.query.sortField) : undefined;
-    const sortOrder=req.query.sortOrder ? String(req.query.sortOrder) : undefined;
+  const sortField = req.query.sortField
+    ? String(req.query.sortField)
+    : undefined;
+  const sortOrder = req.query.sortOrder
+    ? String(req.query.sortOrder)
+    : undefined;
 
   try {
     const { notifications, total } = await getAllNotifications(
@@ -159,10 +163,10 @@ export const updateNotificationController = async (
     const result = await updateNotification(notificationId, req.body);
 
     if (result.affectedRows > 0) {
-       if (media && media.media_id) {
-            const { media_id, file_name, mime_type, size } = media;
-            await updateMediaRecord(media_id, file_name, mime_type, size);
-          }
+      if (media && media.media_id) {
+        const { media_id, file_name, mime_type, size } = media;
+        await updateMediaRecord(media_id, file_name, mime_type, size);
+      }
       return res
         .status(200)
         .json(createResponse(200, "Notification updated successfully."));

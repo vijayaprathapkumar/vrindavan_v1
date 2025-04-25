@@ -14,23 +14,23 @@ export const getTruckRoutes = async (
   res: Response
 ): Promise<void> => {
   const {
-    page = 1,
-    limit = 10,
+   
     searchTerm = "",
     sortField = "",
     sortOrder = "",
   } = req.query;
-  const validLimit = Number(limit) > 0 ? Number(limit) : 10;
-
+ 
+  const limit = parseInt(req.query.limit as string);
+  const page = parseInt(req.query.page as string) || 1;
   try {
     const { routes, totalRecords } = await getAllTruckRoutes(
       Number(page),
-      validLimit,
+      limit,
       searchTerm.toString(),
       sortField.toString(),
       sortOrder.toString()
     );
-    const totalPages = Math.ceil(totalRecords / validLimit);
+    const totalPages = Math.ceil(totalRecords / limit);
 
     res.status(200).json({
       statusCode: 200,
@@ -39,7 +39,7 @@ export const getTruckRoutes = async (
         truckRoutes: routes,
         totalCount: totalRecords,
         currentPage: Number(page),
-        limit: validLimit,
+        limit: limit,
         totalPage: totalPages,
       },
     });

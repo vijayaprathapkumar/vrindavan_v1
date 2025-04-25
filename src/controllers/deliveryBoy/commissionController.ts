@@ -6,31 +6,45 @@ import {
 } from "../../models/deliveryBoy/commissionModel";
 import { createResponse } from "../../utils/responseHandler";
 
-export const getDetailedCommissions = async (req: Request, res: Response): Promise<void> => {
-  const searchTerm = req.query.searchTerm as string || '';
-  const categoryId = req.query.categoryId as string || ''; 
-  const limit = parseInt(req.query.limit as string) || 10; 
-  const page = parseInt(req.query.page as string) || 1; 
-  const offset = (page - 1) * limit; 
-  const sortField = req.query.sortField as string || '';
-  const sortOrder=  req.query.sortOrder as string || '';
+export const getDetailedCommissions = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  const searchTerm = (req.query.searchTerm as string) || "";
+  const categoryId = (req.query.categoryId as string) || "";
+  const limit = parseInt(req.query.limit as string);
+  const page = parseInt(req.query.page as string) || 1;
+  const offset = (page - 1) * limit;
+  const sortField = (req.query.sortField as string) || "";
+  const sortOrder = (req.query.sortOrder as string) || "";
   try {
-    const result = await getAllDetailedCommissions(searchTerm, limit, offset, categoryId,sortField,sortOrder);
+    const result = await getAllDetailedCommissions(
+      searchTerm,
+      limit,
+      offset,
+      categoryId,
+      sortField,
+      sortOrder
+    );
     const data = result.data;
-    const totalCount = result.totalCount; 
+    const totalCount = result.totalCount;
 
     // Calculate total pages for pagination
     const totalPages = Math.ceil(totalCount / limit);
 
-    res.status(200).json(createResponse(200, "Detailed commissions fetched successfully", {
-      commissions: data,
-      totalCount,
-      totalPages,
-      currentPage: page,
-      limit,
-    }));
+    res.status(200).json(
+      createResponse(200, "Detailed commissions fetched successfully", {
+        commissions: data,
+        totalCount,
+        totalPages,
+        currentPage: page,
+        limit,
+      })
+    );
   } catch (error) {
-    res.status(500).json(createResponse(500, "Error fetching detailed commissions", error));
+    res
+      .status(500)
+      .json(createResponse(500, "Error fetching detailed commissions", error));
   }
 };
 
@@ -63,19 +77,35 @@ export const getDetailedCommission = async (
   }
 };
 
-export const updateCommissionController = async (req: Request, res: Response): Promise<void> => {
+export const updateCommissionController = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
   const { commissionId } = req.params;
   const { commissionValue } = req.body;
 
   try {
-    const updatedCommission = await updateCommission(commissionId, commissionValue);
+    const updatedCommission = await updateCommission(
+      commissionId,
+      commissionValue
+    );
 
     if (updatedCommission) {
-      res.status(200).json(createResponse(200, "Commission updated successfully", updatedCommission));
+      res
+        .status(200)
+        .json(
+          createResponse(
+            200,
+            "Commission updated successfully",
+            updatedCommission
+          )
+        );
     } else {
       res.status(404).json(createResponse(404, "Commission not found"));
     }
   } catch (error) {
-    res.status(500).json(createResponse(500, "Error updating commission", error));
+    res
+      .status(500)
+      .json(createResponse(500, "Error updating commission", error));
   }
 };
