@@ -17,14 +17,20 @@ export const fetchBanners = async (
   req: Request,
   res: Response
 ): Promise<Response> => {
-  const page = Number(req.query.page) || 1;
-  const limit = Number(req.query.limit) || 10;
+  const limit = parseInt(req.query.limit as string);
+  const page = parseInt(req.query.page as string) || 1;
   const searchTerm = (req.query.searchTerm as string) || "";
   const sortField = (req.query.sortField as string) || "";
   const sortOrder = (req.query.sortOrder as string) || "";
 
   try {
-    const { banners, total } = await getAllBanners(page, limit, searchTerm,sortField, sortOrder);
+    const { banners, total } = await getAllBanners(
+      page,
+      limit,
+      searchTerm,
+      sortField,
+      sortOrder
+    );
 
     if (!banners || banners.length === 0 || total === 0) {
       return res.status(404).json(createResponse(404, "No banners found."));

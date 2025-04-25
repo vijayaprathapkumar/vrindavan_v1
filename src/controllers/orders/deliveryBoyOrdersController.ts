@@ -4,8 +4,8 @@ import { getAllDeliveryBoyOrders } from '../../models/orders/deliveryBoysOrdersM
 
 export const getDeliveryBoyOrders = async (req: Request, res: Response) => {
   try {
+    const limit = parseInt(req.query.limit as string);
     const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 10;
     const searchTerm = req.query.searchTerm as string || '';
     const localityId = req.query.localityId ? parseInt(req.query.localityId as string) : null;
     const foodName = req.query.foodName as string || null;

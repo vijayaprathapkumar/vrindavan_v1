@@ -13,23 +13,15 @@ export const getCustomers = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-  const {
-    page = 1,
-    limit = 10,
-    locality,
-    status,
-    searchTerm,
-    sortField,
-    sortOrder,
-  } = req.query;
+  const { locality, status, searchTerm, sortField, sortOrder } = req.query;
 
-  const validPage = Math.max(1, Number(page));
-  const validLimit = Math.min(Math.max(1, Number(limit)), 100);
+  const limit = parseInt(req.query.limit as string);
+  const page = parseInt(req.query.page as string) || 1;
 
   try {
     const { customers, total, statusCount } = await getAllCustomers(
-      validPage,
-      validLimit,
+      page,
+      limit,
       locality?.toString(),
       status?.toString(),
       searchTerm?.toString(),
@@ -37,13 +29,13 @@ export const getCustomers = async (
       sortOrder?.toString()
     );
 
-    const totalPages = Math.ceil(total / validLimit);
+    const totalPages = Math.ceil(total / limit);
     res.status(200).json(
       createResponse(200, "Customers fetched successfully", {
         customers,
         totalCount: total,
-        currentPage: validPage,
-        limit: validLimit,
+        currentPage: page,
+        limit: limit,
         totalPages,
         statusCount,
       })

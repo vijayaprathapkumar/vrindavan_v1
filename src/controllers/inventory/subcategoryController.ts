@@ -21,21 +21,28 @@ export const getSubcategories = async (
   const limit = parseInt(req.query.limit as string);
   const page = parseInt(req.query.page as string) || 1;
   const searchTerm = (req.query.searchTerm as string) || "";
-  const categoryId = req.query.categoryId ? parseInt(req.query.categoryId as string) : null;
+  const categoryId = req.query.categoryId
+    ? parseInt(req.query.categoryId as string)
+    : null;
   const sortField = (req.query.sortField as string) || "";
   const sortOrder = (req.query.sortOrder as string) || "ASC";
 
   // Handle active filter: "All" (null) = show all, "0" = inactive, "1" = active
-  const active = req.query.active !== undefined && req.query.active !== "" && !isNaN(parseInt(req.query.active as string))
-  ? parseInt(req.query.active as string)
-  : null;
-
-
+  const active =
+    req.query.active !== undefined &&
+    req.query.active !== "" &&
+    !isNaN(parseInt(req.query.active as string))
+      ? parseInt(req.query.active as string)
+      : null;
 
   const offset = (page - 1) * limit;
 
   try {
-    const totalCount = await getSubcategoriesCount(searchTerm, categoryId, active);
+    const totalCount = await getSubcategoriesCount(
+      searchTerm,
+      categoryId,
+      active
+    );
     const subcategories = await getAllSubCategoriesWithCategory(
       limit,
       offset,
@@ -97,7 +104,6 @@ export const getSubcategories = async (
       .json(createResponse(500, "Error fetching subcategories", error.message));
   }
 };
-
 
 // Add a new subcategory (POST)
 export const addSubcategory = async (
@@ -205,7 +211,7 @@ export const updateSubcategory = async (
       weightage,
       active
     );
-    if (media && media.media_id)  {
+    if (media && media.media_id) {
       const { media_id, file_name, mime_type, size } = media;
       await updateMediaRecord(media_id, file_name, mime_type, size);
     }
@@ -223,7 +229,6 @@ export const updateSubcategory = async (
       .json(createResponse(500, "Error updating subcategory", error.message));
   }
 };
-
 
 // Delete subcategory by ID (DELETE)
 export const deleteSubcategory = async (

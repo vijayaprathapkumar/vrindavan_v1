@@ -17,7 +17,7 @@ export const getDeliveryBoysWithLocalities = async (
   res: Response
 ): Promise<void> => {
   try {
-    const limit = parseInt(req.query.limit as string) || 10;
+    const limit = parseInt(req.query.limit as string);
     const page = parseInt(req.query.page as string) || 1;
     const offset = (page - 1) * limit;
     const searchTerm = req.query.searchTerm
@@ -110,7 +110,10 @@ export const getDeliveryBoy = async (
 
 // Update delivery boy by ID
 // Update delivery boy by ID
-export const updateDeliveryBoy = async (req: Request, res: Response): Promise<void> => {
+export const updateDeliveryBoy = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
   const { id } = req.params;
   const {
     userId,
@@ -178,17 +181,24 @@ export const updateDeliveryBoy = async (req: Request, res: Response): Promise<vo
     }
 
     await connection.commit();
-    res.status(200).json(createResponse(200, "Delivery boy updated successfully"));
+    res
+      .status(200)
+      .json(createResponse(200, "Delivery boy updated successfully"));
   } catch (error) {
     await connection.rollback();
     res
       .status(500)
-      .json(createResponse(500, "Error updating delivery boy", error.message || error));
+      .json(
+        createResponse(
+          500,
+          "Error updating delivery boy",
+          error.message || error
+        )
+      );
   } finally {
     connection.release();
   }
 };
-
 
 // Delete delivery boy by ID
 export const deleteDeliveryBoy = async (

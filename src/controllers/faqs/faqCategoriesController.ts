@@ -13,23 +13,10 @@ export const getFaqCategories = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-  let {
-    page = 1,
-    limit = 10,
-    searchTerm = "",
-    sortField = "",
-    sortOrder = "",
-  } = req.query;
+  let { searchTerm = "", sortField = "", sortOrder = "" } = req.query;
 
-  page = Number(page);
-  limit = Number(limit);
-
-  if (isNaN(page) || page <= 0) {
-    page = 1;
-  }
-  if (isNaN(limit) || limit <= 0) {
-    limit = 10;
-  }
+  const limit = parseInt(req.query.limit as string);
+  const page = parseInt(req.query.page as string) || 1;
 
   try {
     const { faqCategories, total } = await getAllFaqCategories(
