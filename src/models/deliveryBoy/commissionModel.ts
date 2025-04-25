@@ -7,7 +7,7 @@ export const getAllDetailedCommissions = async (
   limit: number = 10,
   offset: number = 0,
   categoryId: string = "",
-  sortField: string = "food_name", 
+  sortField: string = "food_name",
   sortOrder: string = "asc"
 ): Promise<{ data: any[]; totalCount: number }> => {
   const searchPattern = `%${searchTerm}%`;
@@ -81,15 +81,14 @@ export const getAllDetailedCommissions = async (
     LIMIT ? OFFSET ?;
 `;
 
-
   const queryCount = `
-    SELECT COUNT(*) AS total_count
-    FROM standard_commissions sc
-    LEFT JOIN categories c ON sc.category_id = c.id
-    LEFT JOIN foods p ON sc.product_id = p.id
-    WHERE 
-      (p.name LIKE ? OR p.unit LIKE ? OR p.price LIKE ?)${categoryFilter};
-  `;
+  SELECT COUNT(*) AS total_count
+  FROM foods p
+  LEFT JOIN standard_commissions sc ON p.id = sc.product_id
+  LEFT JOIN categories c ON p.category_id = c.id
+  WHERE 
+    (p.name LIKE ? OR p.unit LIKE ? OR p.price LIKE ? OR sc.commission LIKE ?)${categoryFilter};
+`;
 
   const params = [
     searchPattern,
