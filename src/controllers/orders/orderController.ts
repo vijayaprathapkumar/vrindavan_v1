@@ -19,7 +19,7 @@ export const fetchAllOrders = async (
   res: Response
 ): Promise<Response> => {
   const userId = parseInt(req.params.userId);
-  const limit = parseInt(req.query.limit as string);
+  const limit = parseInt(req.query.limit as string) || 10;
   const page = parseInt(req.query.page as string) || 1;
   const searchTerm: string | null = req.query.searchTerm
     ? (req.query.searchTerm as string)

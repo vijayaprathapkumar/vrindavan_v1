@@ -5,7 +5,7 @@ import { createResponse } from "../../utils/responseHandler";
 
 export const getCronLogsController = async (req: Request, res: Response) => {
   try {
-    const limit = parseInt(req.query.limit as string);
+    const limit = parseInt(req.query.limit as string) || 10;
     const page = parseInt(req.query.page as string) || 1;
 
     const startDate = req.query.startDate
