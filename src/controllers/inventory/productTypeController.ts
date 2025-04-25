@@ -13,15 +13,21 @@ export const getProductTypes = async (
   req: Request,
   res: Response
 ): Promise<Response<any, Record<string, any>> | void> => {
-  const page = Number(req.query.page) || 1;
-  const limit = Number(req.query.limit) || 10;
+  const limit = parseInt(req.query.limit as string);
+  const page = parseInt(req.query.page as string) || 1;
   const searchTerm = (req.query.searchTerm as string) || "";
-  const sortField = (req.query.sortField as string) || ""; 
+  const sortField = (req.query.sortField as string) || "";
   const sortOrder = (req.query.sortOrder as string) || "";
   const offset = (page - 1) * limit;
 
   try {
-    const { total, rows } = await getAllProductTypes(searchTerm, limit, offset,sortField,sortOrder);
+    const { total, rows } = await getAllProductTypes(
+      searchTerm,
+      limit,
+      offset,
+      sortField,
+      sortOrder
+    );
 
     if (!rows || rows.length === 0 || total === 0) {
       return res
@@ -79,9 +85,7 @@ export const getProductTypeById = async (
   const productTypeId = Number(req.params.id);
 
   if (isNaN(productTypeId)) {
-    return res
-      .status(400)
-      .json(createResponse(400, "Invalid product type ID"));
+    return res.status(400).json(createResponse(400, "Invalid product type ID"));
   }
 
   try {
@@ -114,9 +118,7 @@ export const updateProductType = async (
   const { name, weightage, active } = req.body;
 
   if (isNaN(productTypeId)) {
-    return res
-      .status(400)
-      .json(createResponse(400, "Invalid product type ID"));
+    return res.status(400).json(createResponse(400, "Invalid product type ID"));
   }
 
   try {
@@ -154,9 +156,7 @@ export const deleteProductType = async (
   const productTypeId = Number(req.params.id);
 
   if (isNaN(productTypeId)) {
-    return res
-      .status(400)
-      .json(createResponse(400, "Invalid product type ID"));
+    return res.status(400).json(createResponse(400, "Invalid product type ID"));
   }
 
   try {

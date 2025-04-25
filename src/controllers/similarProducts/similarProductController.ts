@@ -10,8 +10,8 @@ export const fetchSimilarProducts = async (
   res: Response
 ): Promise<Response> => {
   const foodId = parseInt(req.params.foodId);
+  const limit = parseInt(req.query.limit as string);
   const page = parseInt(req.query.page as string) || 1;
-  const limit = parseInt(req.query.limit as string) || 10;
   const offset = (page - 1) * limit;
 
   if (isNaN(foodId) || foodId <= 0) {

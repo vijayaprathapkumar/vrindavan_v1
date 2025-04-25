@@ -13,8 +13,8 @@ export const getLocalities = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-  const page = Number(req.query.page) || 1;
-  const limit = Number(req.query.limit) || 10;
+  const limit = parseInt(req.query.limit as string);
+  const page = parseInt(req.query.page as string) || 1;
   const searchTerm = String(req.query.searchTerm || "");
   const sortField = String(req.query.sortField || "");
   const sortOrder = String(req.query.sortOrder || "");
@@ -61,7 +61,7 @@ export const addLocality = async (
     longitude,
     city,
     active,
-    deliveryBoyId
+    deliveryBoyId,
   } = req.body;
   try {
     await createLocality(
@@ -147,7 +147,7 @@ export const updateLocality = async (
     longitude,
     city,
     active,
-    deliveryBoyId
+    deliveryBoyId,
   } = req.body;
   try {
     await updateLocalityById(
