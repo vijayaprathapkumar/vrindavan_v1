@@ -18,7 +18,7 @@ export const fetchNotifications = async (
   req: Request,
   res: Response
 ): Promise<Response> => {
-  const limit = parseInt(req.query.limit as string);
+  const limit = parseInt(req.query.limit as string) || 10;
   const page = parseInt(req.query.page as string) || 1;
   const searchTerm = req.query.searchTerm
     ? String(req.query.searchTerm)

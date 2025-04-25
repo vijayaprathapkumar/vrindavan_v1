@@ -10,7 +10,7 @@ export const fetchDiscontinuedCustomers = async (
   res: Response
 ): Promise<Response> => {
   try {
-    const limit = parseInt(req.query.limit as string);
+    const limit = parseInt(req.query.limit as string) || 10;
     const page = parseInt(req.query.page as string) || 1;
     const sortField = (req.query.sortField as string) || "name";
     const sortOrder = (req.query.sortOrder as string) || "";

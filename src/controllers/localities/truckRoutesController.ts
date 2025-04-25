@@ -20,7 +20,7 @@ export const getTruckRoutes = async (
     sortOrder = "",
   } = req.query;
  
-  const limit = parseInt(req.query.limit as string);
+  const limit = parseInt(req.query.limit as string) || 10;
   const page = parseInt(req.query.page as string) || 1;
   try {
     const { routes, totalRecords } = await getAllTruckRoutes(

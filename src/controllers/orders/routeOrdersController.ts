@@ -3,7 +3,7 @@ import { getAllRouteOrders } from "../../models/orders/routeOrdersModel";
 import { createResponse } from "../../utils/responseHandler";
 
 export const getRouteOrders = async (req: Request, res: Response) => {
-  const limit = parseInt(req.query.limit as string);
+  const limit = parseInt(req.query.limit as string) || 10;
   const page = parseInt(req.query.page as string) || 1;
   const startDate = req.query.startDate as string;
   const endDate = req.query.endDate as string;
