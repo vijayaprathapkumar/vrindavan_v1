@@ -55,8 +55,8 @@ export const addSubscription = async (req: Request, res: Response) => {
 // Fetch Subscriptions
 export const getSubscriptions = async (req: Request, res: Response) => {
   const userId = parseInt(req.params.userId);
+  const limit = parseInt(req.query.limit as string);
   const page = parseInt(req.query.page as string) || 1;
-  const limit = parseInt(req.query.limit as string) || 10;
   const searchTerm = (req.query.searchTerm as string) || "";
 
   const startDate = req.query.startDate

@@ -10,18 +10,18 @@ export const fetchDiscontinuedCustomers = async (
   res: Response
 ): Promise<Response> => {
   try {
+    const limit = parseInt(req.query.limit as string);
     const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 10;
-    const sortField = (req.query.sortField as string) || 'name';
+    const sortField = (req.query.sortField as string) || "name";
     const sortOrder = (req.query.sortOrder as string) || "";
-    const searchTerm = (req.query.searchTerm as string) || '';
+    const searchTerm = (req.query.searchTerm as string) || "";
     const offset = (page - 1) * limit;
 
     const discontinuedCustomers = await getDiscontinuedCustomers(
       limit,
       offset,
       sortField,
-      sortOrder as 'asc' | 'desc',
+      sortOrder as "asc" | "desc",
       searchTerm
     );
 

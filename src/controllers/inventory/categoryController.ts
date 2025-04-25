@@ -18,7 +18,7 @@ export const getCategories = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-  const limit = parseInt(req.query.limit as string) ||1000 ;
+  const limit = parseInt(req.query.limit as string);
   const page = parseInt(req.query.page as string) || 1;
   const searchTerm = (req.query.searchTerm as string) || "";
   const sortField = (req.query.sortField as string) || "";

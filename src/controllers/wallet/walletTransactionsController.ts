@@ -90,7 +90,8 @@ export const walletRecharges = async (req: Request, res: Response) => {
 
 export const getTransactionsByUserId = async (req: Request, res: Response) => {
   const userId = req.params.userId;
-  const { page = 1, limit = 10 } = req.query;
+  const limit = parseInt(req.query.limit as string);
+  const page = parseInt(req.query.page as string) || 1;
 
   try {
     const { transactions, total }: TransactionsResponse =

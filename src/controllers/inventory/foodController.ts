@@ -26,6 +26,7 @@ export const fetchAllFoods = async (
       sortField,
       sortOrder,
     } = req.query;
+
     const limit = parseInt(req.query.limit as string);
     const page = parseInt(req.query.page as string) || 1;
     const offset = (page - 1) * limit;
@@ -209,9 +210,9 @@ export const modifyStock = async (
     }
 
     const amountChange = type === "add" ? amount : -Math.abs(amount);
-console.log('amountChange',amountChange);
+    console.log("amountChange", amountChange);
 
-    await updateStock(foodId, amountChange,type, description);
+    await updateStock(foodId, amountChange, type, description);
 
     return res.status(200).json({
       statusCode: 200,
