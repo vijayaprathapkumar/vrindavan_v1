@@ -11,7 +11,7 @@ import { createResponse } from "../../utils/responseHandler";
 // Fetch all FAQs
 export const getFaqs = async (req: Request, res: Response): Promise<void> => {
   try {
-    const limit = parseInt(req.query.limit as string);
+    const limit = parseInt(req.query.limit as string) || 10;
     const page = parseInt(req.query.page as string) || 1;
     const searchTerm = (req.query.searchTerm as string) || "";
     const faqCategoryId = req.query.faqCategoryId
