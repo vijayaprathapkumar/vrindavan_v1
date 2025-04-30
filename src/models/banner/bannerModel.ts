@@ -161,19 +161,94 @@ export const getAllBanners = async (
             m.name AS media_name,
             m.file_name AS media_file_name,
             m.mime_type AS media_mime_type,
+            m.disk,
+            m.conversions_disk,
+            m.size,
+            m.manipulations,
+            m.custom_properties,
+            m.generated_conversions,
+            m.responsive_images,
+            m.order_column,
+            m.created_at AS media_created_at,
+            m.updated_at AS media_updated_at,
             CASE 
               WHEN m.conversions_disk = 'public1' 
               THEN CONCAT('https://media-image-upload.s3.ap-south-1.amazonaws.com/foods/', m.file_name)
               ELSE CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name)
-            END AS original_url
+            END AS original_url,
+              (SELECT SUM(amount) FROM stock_mutations WHERE stockable_id = f.id) AS outOfStock
           FROM foods f
-          LEFT JOIN media m ON f.id = m.model_id AND (m.model_type = 'App\\\\Models\\\\Food')
+          LEFT JOIN media m ON f.id = m.model_id AND m.model_type = 'App\\\\Models\\\\Food'
           WHERE f.id IN (${foodIds.map(() => "?").join(", ")})
           `,
           foodIds
         );
 
-        foodItems = foodRows;
+        const foodMap: Record<number, any> = {};
+
+        foodRows.forEach((foodRow) => {
+          const foodId = foodRow.id;
+          if (!foodMap[foodId]) {
+            foodMap[foodId] = {
+              id: foodRow.id,
+              name: foodRow.name,
+              price: foodRow.price,
+              discount_price: foodRow.discount_price,
+              description: foodRow.description,
+              ingredients: foodRow.ingredients,
+              package_items_count: foodRow.package_items_count,
+              weight: foodRow.weight,
+              unit: foodRow.unit,
+              sku_code: foodRow.sku_code,
+              barcode: foodRow.barcode,
+              cgst: foodRow.cgst,
+              sgst: foodRow.sgst,
+              subscription_type: foodRow.subscription_type,
+              track_inventory: foodRow.track_inventory,
+              featured: foodRow.featured,
+              deliverable: foodRow.deliverable,
+              restaurant_id: foodRow.restaurant_id,
+              category_id: foodRow.category_id,
+              subcategory_id: foodRow.subcategory_id,
+              product_type_id: foodRow.product_type_id,
+              hub_id: foodRow.hub_id,
+              locality_id: foodRow.locality_id,
+              product_brand_id: foodRow.product_brand_id,
+              weightage: foodRow.weightage,
+              status: foodRow.status,
+              created_at: foodRow.created_at,
+              updated_at: foodRow.updated_at,
+              outOfStock: foodRow.outOfStock,
+              media: [],
+            };
+          }
+
+          if (foodRow.media_id) {
+            foodMap[foodId].media.push({
+              id: foodRow.media_id,
+              model_type: foodRow.model_type,
+              model_id: foodRow.model_id,
+              uuid: foodRow.uuid,
+              collection_name: foodRow.collection_name,
+              name: foodRow.media_name,
+              file_name: foodRow.media_file_name,
+              mime_type: foodRow.media_mime_type,
+              disk: foodRow.disk,
+              conversions_disk: foodRow.conversions_disk,
+              size: foodRow.size,
+              manipulations: foodRow.manipulations,
+              custom_properties: foodRow.custom_properties,
+              generated_conversions: foodRow.generated_conversions,
+              responsive_images: foodRow.responsive_images,
+              order_column: foodRow.order_column,
+              created_at: foodRow.media_created_at,
+              updated_at: foodRow.media_updated_at,
+              original_url: foodRow.original_url,
+            });
+          }
+        });
+
+        foodItems = Object.values(foodMap);
       }
 
       return {
@@ -215,7 +290,6 @@ export const getAllBanners = async (
       };
     })
   );
-
   return {
     banners,
     total: totalCount,
