@@ -1579,14 +1579,17 @@ export const getUpcomingOrdersModel = (
     ON us.product_id = f.id
   LEFT JOIN media m ON f.id = m.model_id AND (m.model_type = 'App\\\\Models\\\\Food')
   WHERE us.user_id = ?
-    AND us.start_date <= ?
-    AND (us.end_date IS NULL OR us.end_date >= ?)
-    AND us.active = 1
+  AND us.start_date <= ?
+  AND (us.end_date IS NULL OR us.end_date >= ?)
+  AND us.active = 1
+  AND (
+    us.is_pause_subscription = 0
     AND (
-    us.is_pause_subscription = 0 AND (
-      us.pause_specific_period_startDate IS NULL 
-      OR ? < us.pause_specific_period_startDate 
-      OR ? > us.pause_specific_period_endDate
+      us.pause_specific_period_startDate IS NULL
+      OR us.pause_specific_period_endDate IS NULL
+      OR NOT (
+        ? BETWEEN us.pause_specific_period_startDate AND us.pause_specific_period_endDate
+      )
     )
   )
     AND (
