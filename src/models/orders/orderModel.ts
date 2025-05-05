@@ -1582,7 +1582,13 @@ export const getUpcomingOrdersModel = (
     AND us.start_date <= ?
     AND (us.end_date IS NULL OR us.end_date >= ?)
     AND us.active = 1
-    AND us.is_pause_subscription != 1
+    AND (
+    us.is_pause_subscription = 0 AND (
+      us.pause_specific_period_startDate IS NULL 
+      OR ? < us.pause_specific_period_startDate 
+      OR ? > us.pause_specific_period_endDate
+    )
+  )
     AND (
       us.subscription_type = 'everyday'
       OR 
@@ -1630,6 +1636,8 @@ export const getUpcomingOrdersModel = (
       formattedDate,
       formattedDate,
       formattedDate,
+      formattedDate,
+      formattedDate, // for < pause_specific_period_startDate
       formattedDate,
     ];
 
