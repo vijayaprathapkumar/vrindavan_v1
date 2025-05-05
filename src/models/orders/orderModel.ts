@@ -1583,12 +1583,11 @@ export const getUpcomingOrdersModel = (
   AND (us.end_date IS NULL OR us.end_date >= ?)
   AND us.active = 1
   AND (
-  (us.is_pause_subscription = 0)
-  OR 
-  (
+  us.is_pause_subscription = 0
+  OR (
     us.is_pause_subscription = 1
     AND us.pause_specific_period_endDate IS NOT NULL
-    AND ? > us.pause_specific_period_endDate
+    AND DATE(?) > DATE(us.pause_specific_period_endDate)
   )
 )
 
