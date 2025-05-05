@@ -1640,8 +1640,7 @@ export const getUpcomingOrdersModel = (
       formattedDate,
       formattedDate,
       formattedDate,
-      formattedDate, // for < pause_specific_period_startDate
-      formattedDate,
+      formattedDate
     ];
 
     db.query<any[]>(query, queryParams, (error, results) => {
