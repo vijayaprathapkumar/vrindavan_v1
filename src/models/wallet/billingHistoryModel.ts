@@ -345,7 +345,7 @@ export const getOrdersBillingForMobile = async (
       WHERE wl.user_id = ? 
       ${dateCondition} 
       ${searchCondition} 
-      ORDER BY wl.created_at DESC 
+   ORDER BY wl.id DESC
       LIMIT ? OFFSET ?;
     `;
 
