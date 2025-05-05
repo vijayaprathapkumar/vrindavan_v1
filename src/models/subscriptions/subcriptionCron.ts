@@ -308,7 +308,7 @@ export const subcribtionsJob = () => {
       ) as any;
 
       const logMessage = `Subscription orders placed for date ${
-        nextDate.toISOString().split("T")[0]
+        currentDate.toISOString().split("T")[0]
       } and placed on ${currentDate.toLocaleString()}`;
 
       const sqlQuery = `
@@ -316,7 +316,7 @@ export const subcribtionsJob = () => {
         VALUES (?, ?, NOW(), NOW())
       `;
       const values = [
-        nextDate.toISOString().split("T")[0],
+        currentDate.toISOString().split("T")[0],
         `Job Start: ${jobStartTime}, Job End: ${jobEndTime}, Duration: ${jobDuration}s, Message: ${logMessage}`,
       ];
 
