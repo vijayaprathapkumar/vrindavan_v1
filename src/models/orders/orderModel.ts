@@ -1583,15 +1583,15 @@ export const getUpcomingOrdersModel = (
   AND (us.end_date IS NULL OR us.end_date >= ?)
   AND us.active = 1
   AND (
-    us.is_pause_subscription = 0
-    AND (
-      us.pause_specific_period_startDate IS NULL
-      OR us.pause_specific_period_endDate IS NULL
-      OR NOT (
-        ? BETWEEN us.pause_specific_period_startDate AND us.pause_specific_period_endDate
-      )
-    )
+  (us.is_pause_subscription = 0)
+  OR 
+  (
+    us.is_pause_subscription = 1
+    AND us.pause_specific_period_endDate IS NOT NULL
+    AND ? > us.pause_specific_period_endDate
   )
+)
+
     AND (
       us.subscription_type = 'everyday'
       OR 
