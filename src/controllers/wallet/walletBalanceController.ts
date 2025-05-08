@@ -4,6 +4,7 @@ import {
   getWalletBalanceByWithOutUserId,
   getWalletBalanceUserIdAdmin,
   getWalletLogsWithFoodDetails,
+  getWalletLogsWithFoodDetailsAdmin,
   WalletBalance,
 } from "../../models/wallet/walletBalanceModel";
 import { createResponse } from "../../utils/responseHandler";
@@ -138,6 +139,41 @@ export const getWalletLogs = async (req: Request, res: Response) => {
       .json(createResponse(500, "Internal Server Error", error.message));
   }
 };
+
+export const getWalletLogsAdmin = async (req: Request, res: Response) => {
+  const { userId } = req.params;
+  const page = parseInt(req.query.page as string) || 1;
+  const limit = parseInt(req.query.limit as string) || 10;
+
+  try {
+    const { data: walletLogsWithFood, totalCount } =
+      await getWalletLogsWithFoodDetailsAdmin(userId, page, limit);
+
+    if (!walletLogsWithFood || walletLogsWithFood.length === 0) {
+      return res
+        .status(404)
+        .json(createResponse(404, "No wallet logs found for this user"));
+    }
+
+    const totalPages = Math.ceil(totalCount / limit);
+
+    return res.status(200).json(
+      createResponse(200, "Wallet logs retrieveds successfully", {
+        walletLogs: walletLogsWithFood,
+        currentPage: page,
+        limit,
+        totalCount,
+        totalPages,
+      })
+    );
+  } catch (error) {
+    console.error("Error fetching wallet logs:", error.message);
+    return res
+      .status(500)
+      .json(createResponse(500, "Internal Server Error", error.message));
+  }
+};
+
 
 export const getWalletBalanceByUserIdAdmin = async (
   req: Request,
