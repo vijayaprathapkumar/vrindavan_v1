@@ -259,10 +259,21 @@ export const getWalletLogsWithFoodDetails = async (
     const walletLogsWithFoodDetails = rows.map((row) => {
       const totalPrice = parseFloat(row.food_price) * row.quantity;
 
+      const date = new Date(row.order_date);
+      const istDate = new Date(
+        date.toLocaleString("en-US", { timeZone: "Asia/Kolkata" })
+      );
+
+      const day = String(istDate.getDate()).padStart(2, "0");
+      const month = String(istDate.getMonth() + 1).padStart(2, "0"); // Months are 0-based
+      const year = istDate.getFullYear();
+
+      const istDateOnly = `${day}-${month}-${year}`;
+
       return {
         wallet_log_id: row.wallet_log_id,
         user_id: row.user_id,
-        order_id: row.order_id,
+        order_id: istDateOnly,
         order_date: row.order_date,
         order_item_id: row.order_item_id,
         before_balance: parseFloat(row.before_balance),
@@ -448,11 +459,22 @@ export const getWalletLogsWithFoodDetailsAdmin = async (
     const data = rows.map((row) => {
       const totalPrice = parseFloat(row.food_price) * row.quantity;
 
+      const date = new Date(row.order_date);
+      const istDate = new Date(
+        date.toLocaleString("en-US", { timeZone: "Asia/Kolkata" })
+      );
+
+      const day = String(istDate.getDate()).padStart(2, "0");
+      const month = String(istDate.getMonth() + 1).padStart(2, "0"); // Months are 0-based
+      const year = istDate.getFullYear();
+
+      const istDateOnly = `${day}-${month}-${year}`;
+
       return {
         wallet_log_id: row.wallet_log_id,
         user_id: row.user_id,
         order_id: row.order_id,
-        order_date: row.order_date,
+        order_date: istDateOnly,
         order_item_id: row.order_item_id,
         before_balance: parseFloat(row.before_balance),
         amount: parseFloat(row.amount),
@@ -523,11 +545,13 @@ export const getWalletLogsWithFoodDetailsAdmin = async (
 
     return { data, totalCount };
   } catch (error) {
-    console.error("Error fetching wallet logs with food details:", error.message);
+    console.error(
+      "Error fetching wallet logs with food details:",
+      error.message
+    );
     throw new Error("Failed to fetch wallet logs with food details");
   }
 };
-
 
 export const getWalletBalanceUserIdAdmin = async (
   userId: string,
