@@ -14,7 +14,7 @@ export const toISTMidnightMySQLFormat = (date: string): string => {
   return dt.toISOString().slice(0, 19).replace("T", " ");
 };
 
-const toISTMidnightISOString = (date: string): string => {
+export const toISTMidnightISOString = (date: string): string => {
   const dt = new Date(date);
   return dt.toISOString();
 };
