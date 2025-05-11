@@ -34,3 +34,17 @@ export const toISTMidnightISOString = (dateStr: any): string | null => {
 
   return istDate.toISOString();
 };
+
+export const toIST = (dateStr: string | Date | null) => {
+  if (!dateStr) return null;
+  const date = new Date(dateStr); // assumes input is in UTC or ISO format
+  return new Intl.DateTimeFormat("en-IN", {
+    timeZone: "Asia/Kolkata",
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  }).format(date);
+};
