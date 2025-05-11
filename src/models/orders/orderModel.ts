@@ -1578,18 +1578,19 @@ export const getUpcomingOrdersModel = (
   LEFT JOIN foods f
     ON us.product_id = f.id
   LEFT JOIN media m ON f.id = m.model_id AND (m.model_type = 'App\\\\Models\\\\Food')
-  WHERE us.user_id = ?
+ WHERE us.user_id = ?
   AND us.start_date <= ?
   AND (us.end_date IS NULL OR us.end_date >= ?)
   AND us.active = 1
   AND (
-  us.is_pause_subscription = 0
-  OR (
-    us.is_pause_subscription = 1
-    AND us.pause_specific_period_endDate IS NOT NULL
-    AND DATE(?) > DATE(us.pause_specific_period_endDate)
+    us.is_pause_subscription = 0
+    OR (
+      us.is_pause_subscription = 1
+      AND us.pause_specific_period_endDate IS NOT NULL
+      AND DATE(?) > DATE(us.pause_specific_period_endDate)
+    )
   )
-)
+  AND us.pause_until_i_come_back != 1 
 
     AND (
       us.subscription_type = 'everyday'
@@ -1639,7 +1640,7 @@ export const getUpcomingOrdersModel = (
       formattedDate,
       formattedDate,
       formattedDate,
-      formattedDate
+      formattedDate,
     ];
 
     db.query<any[]>(query, queryParams, (error, results) => {
