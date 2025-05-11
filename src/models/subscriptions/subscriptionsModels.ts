@@ -503,15 +503,48 @@ WHERE user_subscriptions.id = ?`,
 export const updateSubscriptionPauseInfo = async (
   id: number | string,
   userId: number,
-  isPauseSubscription: number,
+  isPauseSubscription: number, // 1 = pause, 0 = resume
   pauseUntilComeBack?: number,
   startDate?: string,
   endDate?: string
 ) => {
-  const shouldPause = pauseUntilComeBack === 1 || startDate || endDate;
-  isPauseSubscription = shouldPause ? 1 : 0;
+  let finalPauseUntilComeBack = pauseUntilComeBack || 0;
+  let finalStartDate = null;
+  let finalEndDate = null;
+  let finalIsPauseSubscription = 0;
 
-  let sql = `
+  // If request is to PAUSE
+  if (isPauseSubscription === 1) {
+    if (pauseUntilComeBack === 1) {
+      finalPauseUntilComeBack = 1;
+      finalIsPauseSubscription = 1;
+      finalStartDate = null;
+      finalEndDate = null;
+    } else if (startDate && endDate) {
+      finalStartDate = startDate;
+      finalEndDate = endDate;
+      finalPauseUntilComeBack = 0;
+      finalIsPauseSubscription = 1;
+    }
+  }
+
+  // If request is to RESUME
+  if (isPauseSubscription === 0) {
+    finalIsPauseSubscription = 0;
+    finalPauseUntilComeBack = 0;
+    finalStartDate = null;
+    finalEndDate = null;
+  }
+
+  const values = [
+    finalIsPauseSubscription,
+    finalPauseUntilComeBack,
+    finalStartDate,
+    finalEndDate,
+    id,
+  ];
+
+  const sql = `
     UPDATE user_subscriptions 
     SET 
       is_pause_subscription = ?,
@@ -521,14 +554,6 @@ export const updateSubscriptionPauseInfo = async (
     WHERE id = ?;
   `;
 
-  const values = [
-    isPauseSubscription,
-    pauseUntilComeBack || 0,
-    startDate || null,
-    endDate || null,
-    id,
-  ];
-
   try {
     const [result]: [OkPacket, any] = await db.promise().query(sql, values);
     return result;
@@ -537,3 +562,4 @@ export const updateSubscriptionPauseInfo = async (
     throw new Error("Failed to update subscription pause information.");
   }
 };
+
