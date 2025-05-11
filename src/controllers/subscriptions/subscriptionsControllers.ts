@@ -37,7 +37,7 @@ export const addSubscription = async (req: Request, res: Response) => {
   try {
     const result = await addSubscriptionModel(subscription);
     const user_subscription_id = result.insertId;
-  
+
     res.status(201).json(
       createResponse(201, "Subscription created successfully.", {
         id: user_subscription_id,
@@ -326,12 +326,15 @@ export const updateSubscriptionPauseController = async (
     pause_end_time,
     pause_until_come_back,
   } = req.body;
-
   const { id } = req.params;
 
   // Convert date strings to correct ISO strings
-  const pauseStartISO = pause_start_time ? toISTMidnightMySQLFormat(pause_start_time) : null;
-  const pauseEndISO = pause_end_time ? toISTMidnightMySQLFormat(pause_end_time) : null;
+  const pauseStartISO = pause_start_time
+    ? toISTMidnightMySQLFormat(pause_start_time)
+    : null;
+  const pauseEndISO = pause_end_time
+    ? toISTMidnightMySQLFormat(pause_end_time)
+    : null;
 
   try {
     await updateSubscriptionPauseInfo(
@@ -343,9 +346,13 @@ export const updateSubscriptionPauseController = async (
       pauseEndISO
     );
 
-    res.status(200).json(createResponse(200, "Pause info updated successfully."));
+    res
+      .status(200)
+      .json(createResponse(200, "Pause info updated successfully."));
   } catch (error) {
     console.error("Error updating subscription pause info:", error);
-    res.status(500).json(createResponse(500, "Failed to update pause info.", error.message));
+    res
+      .status(500)
+      .json(createResponse(500, "Failed to update pause info.", error.message));
   }
 };
