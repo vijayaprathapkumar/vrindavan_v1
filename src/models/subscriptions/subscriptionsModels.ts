@@ -1,6 +1,7 @@
 import { db } from "../../config/databaseConnection";
 import { RowDataPacket, OkPacket } from "mysql2";
 import cron from "node-cron";
+import { formatDateToIST } from "../../utils/istTimeFomate";
 
 export interface Subscription {
   id?: number;
@@ -254,8 +255,28 @@ export const getAllSubscriptionsModel = (
       if (error) {
         return reject(error);
       }
-      const transformedResults = results.map((change) => ({
-        ...change,
+      const transformedResults = results.map((item) => ({
+        ...item,
+        start_date: formatDateToIST(item.start_date),
+        end_date: formatDateToIST(item.end_date),
+        created_at: formatDateToIST(item.created_at),
+        updated_at: formatDateToIST(item.updated_at),
+        pause_specific_period_startDate: formatDateToIST(
+          item.pause_specific_period_startDate
+        ),
+        pause_specific_period_endDate: formatDateToIST(
+          item.pause_specific_period_endDate
+        ),
+        subscription_start_date: formatDateToIST(item.subscription_start_date),
+        subscription_end_date: formatDateToIST(item.subscription_end_date),
+        sqc_created_at: formatDateToIST(item.sqc_created_at),
+        sqc_updated_at: formatDateToIST(item.sqc_updated_at),
+        order_date: formatDateToIST(item.order_date),
+        pause_date: formatDateToIST(item.pause_date),
+        cancel_order_date: formatDateToIST(item.cancel_order_date),
+        cancel_subscription_date: formatDateToIST(
+          item.cancel_subscription_date
+        ),
       }));
       resolve(transformedResults);
     });
