@@ -358,7 +358,13 @@ export const pauseSubscriptionModel = (id: number): Promise<OkPacket> => {
 export const resumeSubscriptionModel = (id: number): Promise<OkPacket> => {
   return new Promise((resolve, reject) => {
     db.query<OkPacket>(
-      "UPDATE user_subscriptions SET is_pause_subscription = 0 WHERE id = ?",
+      `UPDATE user_subscriptions
+       SET 
+         is_pause_subscription = 0,
+         pause_until_i_come_back = 0,
+         pause_specific_period_startDate = NULL,
+         pause_specific_period_endDate = NULL
+       WHERE id = ? AND is_pause_subscription = 1 AND pause_until_i_come_back = 1`,
       [id],
       (error, results) => {
         if (error) {
@@ -369,6 +375,7 @@ export const resumeSubscriptionModel = (id: number): Promise<OkPacket> => {
     );
   });
 };
+
 
 export const updateCancelSubscriptionModel = (
   id: number,
