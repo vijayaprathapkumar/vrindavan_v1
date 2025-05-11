@@ -1577,21 +1577,29 @@ export const getUpcomingOrdersModel = (
     AND (sqc.order_date = DATE(?) OR sqc.cancel_order_date = DATE(?))
   LEFT JOIN foods f
     ON us.product_id = f.id
-  LEFT JOIN media m ON f.id = m.model_id AND (m.model_type = 'App\\\\Models\\\\Food')
- WHERE us.user_id = ?
-  AND us.start_date <= ?
-  AND (us.end_date IS NULL OR us.end_date >= ?)
-  AND us.active = 1
-  AND (
-    us.is_pause_subscription = 0
-    OR (
-      us.is_pause_subscription = 1
-      AND us.pause_specific_period_endDate IS NOT NULL
-      AND DATE(?) > DATE(us.pause_specific_period_endDate)
+  LEFT JOIN media m 
+    ON f.id = m.model_id AND m.model_type = 'App\\\\Models\\\\Food'
+  WHERE us.user_id = ?
+    AND us.start_date <= ?
+    AND (us.end_date IS NULL OR us.end_date >= ?)
+    AND us.active = 1
+    AND (
+      us.is_pause_subscription = 0
+      OR (
+        us.is_pause_subscription = 1
+        AND (
+          us.pause_specific_period_endDate IS NOT NULL
+          AND DATE(?) > DATE(us.pause_specific_period_endDate)
+        )
+      )
     )
-  )
-  AND us.pause_until_i_come_back != 1 
-
+    AND us.pause_until_i_come_back != 1
+    AND (
+      us.pause_specific_period_startDate IS NULL
+      OR us.pause_specific_period_endDate IS NULL
+      OR DATE(?) < DATE(us.pause_specific_period_startDate)
+      OR DATE(?) > DATE(us.pause_specific_period_endDate)
+    )
     AND (
       us.subscription_type = 'everyday'
       OR 
@@ -1603,13 +1611,13 @@ export const getUpcomingOrdersModel = (
       OR 
       (us.subscription_type = 'customize' AND 
         (
-          (DAYNAME(?) = 'Monday' AND us.monday_qty IS NOT NULL AND us.monday_qty > 0) OR
-          (DAYNAME(?) = 'Tuesday' AND us.tuesday_qty IS NOT NULL AND us.tuesday_qty > 0) OR
-          (DAYNAME(?) = 'Wednesday' AND us.wednesday_qty IS NOT NULL AND us.wednesday_qty > 0) OR
-          (DAYNAME(?) = 'Thursday' AND us.thursday_qty IS NOT NULL AND us.thursday_qty > 0) OR
-          (DAYNAME(?) = 'Friday' AND us.friday_qty IS NOT NULL AND us.friday_qty > 0) OR
-          (DAYNAME(?) = 'Saturday' AND us.saturday_qty IS NOT NULL AND us.saturday_qty > 0) OR
-          (DAYNAME(?) = 'Sunday' AND us.sunday_qty IS NOT NULL AND us.sunday_qty > 0)
+          (DAYNAME(?) = 'Monday' AND us.monday_qty > 0) OR
+          (DAYNAME(?) = 'Tuesday' AND us.tuesday_qty > 0) OR
+          (DAYNAME(?) = 'Wednesday' AND us.wednesday_qty > 0) OR
+          (DAYNAME(?) = 'Thursday' AND us.thursday_qty > 0) OR
+          (DAYNAME(?) = 'Friday' AND us.friday_qty > 0) OR
+          (DAYNAME(?) = 'Saturday' AND us.saturday_qty > 0) OR
+          (DAYNAME(?) = 'Sunday' AND us.sunday_qty > 0)
         )
       )
     )
@@ -1617,6 +1625,7 @@ export const getUpcomingOrdersModel = (
 
   return new Promise((resolve, reject) => {
     const queryParams = [
+      formattedDate, // DAYNAME
       formattedDate,
       formattedDate,
       formattedDate,
@@ -1624,17 +1633,19 @@ export const getUpcomingOrdersModel = (
       formattedDate,
       formattedDate,
       formattedDate,
-      formattedDate,
-      formattedDate,
-      formattedDate,
+      formattedDate, // cancel_order_date check
+      formattedDate, // cancel_order_date check
       userId,
       formattedDate,
       formattedDate,
       formattedDate,
-      formattedDate,
-      formattedDate,
-      formattedDate,
-      formattedDate,
+      formattedDate, // pause period logic
+      formattedDate, // exclude if inside pause range
+      formattedDate, // exclude if inside pause range
+      formattedDate, // alt day
+      formattedDate, // every 3rd day
+      formattedDate, // every 7th day
+      formattedDate, // customize Monday
       formattedDate,
       formattedDate,
       formattedDate,
@@ -1650,7 +1661,7 @@ export const getUpcomingOrdersModel = (
       }
 
       const mappedResults = results
-        .filter((row) => row.cancel_status !== 1) // Exclude rows with cancel_status = 1
+        .filter((row) => row.cancel_status !== 1)
         .map((row) => {
           return {
             user_subscription_id: row.user_subscription_id,
@@ -1672,8 +1683,7 @@ export const getUpcomingOrdersModel = (
             order_date: row?.order_date,
             is_pause_subscription: row.is_pause_subscription,
             pause_until_i_come_back: row.pause_until_i_come_back,
-            pause_specific_period_startDate:
-              row.pause_specific_period_startDate,
+            pause_specific_period_startDate: row.pause_specific_period_startDate,
             pause_specific_period_endDate: row.pause_specific_period_endDate,
             day_specific_quantity: row.day_specific_quantity,
             active: row.active,
@@ -1738,6 +1748,7 @@ export const getUpcomingOrdersModel = (
     });
   });
 };
+
 
 export const cancelOneTimeOrderModel = (
   orderId: number
