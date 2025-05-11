@@ -264,11 +264,9 @@ export const getAllSubscriptionsModel = (
               .toISOString()
               .split("T")[0]
           : null,
+
         pause_specific_period_endDate: change.pause_specific_period_endDate
-          ? new Date(
-              new Date(change.pause_specific_period_endDate).getTime() -
-                86400000
-            )
+          ? new Date(change.pause_specific_period_endDate)
               .toISOString()
               .split("T")[0]
           : null,
