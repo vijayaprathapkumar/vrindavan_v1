@@ -1,6 +1,7 @@
 import { db } from "../../config/databaseConnection";
 import { RowDataPacket, OkPacket } from "mysql2";
 import cron from "node-cron";
+import { toISTMidnightISOString } from "../../utils/istTimeFomate";
 
 export interface Subscription {
   id?: number;
@@ -254,15 +255,6 @@ export const getAllSubscriptionsModel = (
       if (error) {
         return reject(error);
       }
-      const toISTMidnightISOString = (
-        date: string | Date | null
-      ): string | null => {
-        if (!date) return null;
-        const d = new Date(date);
-        // Set to midnight IST (00:00 IST = 18:30 UTC of previous day)
-        d.setUTCHours(18, 30, 0, 0); // 00:00 IST
-        return d.toISOString();
-      };
 
       const transformedResults = results.map((change) => ({
         ...change,
