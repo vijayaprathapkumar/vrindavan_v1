@@ -254,8 +254,23 @@ export const getAllSubscriptionsModel = (
       if (error) {
         return reject(error);
       }
+      const toIST = (dateString: string) =>
+        new Date(dateString).toLocaleString("en-IN", {
+          timeZone: "Asia/Kolkata",
+        });
+
       const transformedResults = results.map((change) => ({
         ...change,
+        start_date: toIST(change.start_date),
+        end_date: toIST(change.end_date),
+        created_at: toIST(change.created_at),
+        updated_at: toIST(change.updated_at),
+        food_created_at: toIST(change.food_created_at),
+        food_updated_at: toIST(change.food_updated_at),
+        media_created_at: toIST(change.media_created_at),
+        media_updated_at: toIST(change.media_updated_at),
+        sqc_created_at: toIST(change.sqc_created_at),
+        sqc_updated_at: toIST(change.sqc_updated_at),
       }));
       resolve(transformedResults);
     });
