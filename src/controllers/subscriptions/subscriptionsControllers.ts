@@ -14,7 +14,6 @@ import {
   updateSubscriptionPauseInfo,
 } from "../../models/subscriptions/subscriptionsModels";
 import { createResponse } from "../../utils/responseHandler";
-import { toISTMidnightMySQLFormat } from "../../utils/istTimeFomate";
 
 const validSubscriptionTypes = [
   "everyday",
@@ -37,7 +36,7 @@ export const addSubscription = async (req: Request, res: Response) => {
   try {
     const result = await addSubscriptionModel(subscription);
     const user_subscription_id = result.insertId;
-
+  
     res.status(201).json(
       createResponse(201, "Subscription created successfully.", {
         id: user_subscription_id,
@@ -326,15 +325,9 @@ export const updateSubscriptionPauseController = async (
     pause_end_time,
     pause_until_come_back,
   } = req.body;
-  const { id } = req.params;
-
-  // Convert date strings to correct ISO strings
-  const pauseStartISO = pause_start_time
-    ? toISTMidnightMySQLFormat(pause_start_time)
-    : null;
-  const pauseEndISO = pause_end_time
-    ? toISTMidnightMySQLFormat(pause_end_time)
-    : null;
+  const {
+    id
+  } = req.params;
 
   try {
     await updateSubscriptionPauseInfo(
@@ -342,8 +335,8 @@ export const updateSubscriptionPauseController = async (
       user_id,
       is_pause_subscription,
       pause_until_come_back,
-      pauseStartISO,
-      pauseEndISO
+      pause_start_time,
+      pause_end_time
     );
 
     res
