@@ -1,7 +1,6 @@
 import { db } from "../../config/databaseConnection";
 import { RowDataPacket, OkPacket } from "mysql2";
 import cron from "node-cron";
-import { formatDateToIST } from "../../utils/istTimeFomate";
 
 export interface Subscription {
   id?: number;
@@ -255,28 +254,8 @@ export const getAllSubscriptionsModel = (
       if (error) {
         return reject(error);
       }
-      const transformedResults = results.map((item) => ({
-        ...item,
-        start_date: formatDateToIST(item.start_date),
-        end_date: formatDateToIST(item.end_date),
-        created_at: formatDateToIST(item.created_at),
-        updated_at: formatDateToIST(item.updated_at),
-        pause_specific_period_startDate: formatDateToIST(
-          item.pause_specific_period_startDate
-        ),
-        pause_specific_period_endDate: formatDateToIST(
-          item.pause_specific_period_endDate
-        ),
-        subscription_start_date: formatDateToIST(item.subscription_start_date),
-        subscription_end_date: formatDateToIST(item.subscription_end_date),
-        sqc_created_at: formatDateToIST(item.sqc_created_at),
-        sqc_updated_at: formatDateToIST(item.sqc_updated_at),
-        order_date: formatDateToIST(item.order_date),
-        pause_date: formatDateToIST(item.pause_date),
-        cancel_order_date: formatDateToIST(item.cancel_order_date),
-        cancel_subscription_date: formatDateToIST(
-          item.cancel_subscription_date
-        ),
+      const transformedResults = results.map((change) => ({
+        ...change,
       }));
       resolve(transformedResults);
     });
@@ -367,22 +346,16 @@ export const pauseSubscriptionModel = (id: number): Promise<OkPacket> => {
 
 export const resumeSubscriptionModel = (id: number): Promise<OkPacket> => {
   return new Promise((resolve, reject) => {
-    const query = `
-      UPDATE user_subscriptions 
-      SET 
-        is_pause_subscription = 0,
-        pause_until_i_come_back = 0,
-        pause_specific_period_startDate = NULL,
-        pause_specific_period_endDate = NULL 
-      WHERE id = ?
-    `;
-
-    db.query<OkPacket>(query, [id], (error, results) => {
-      if (error) {
-        return reject(error);
+    db.query<OkPacket>(
+      "UPDATE user_subscriptions SET is_pause_subscription = 0 WHERE id = ?",
+      [id],
+      (error, results) => {
+        if (error) {
+          return reject(error);
+        }
+        resolve(results);
       }
-      resolve(results);
-    });
+    );
   });
 };
 
@@ -509,48 +482,15 @@ WHERE user_subscriptions.id = ?`,
 export const updateSubscriptionPauseInfo = async (
   id: number | string,
   userId: number,
-  isPauseSubscription: number, // 1 = pause, 0 = resume
+  isPauseSubscription: number,
   pauseUntilComeBack?: number,
   startDate?: string,
   endDate?: string
 ) => {
-  let finalPauseUntilComeBack = pauseUntilComeBack || 0;
-  let finalStartDate = null;
-  let finalEndDate = null;
-  let finalIsPauseSubscription = 0;
+  const shouldPause = pauseUntilComeBack === 1 || startDate || endDate;
+  isPauseSubscription = shouldPause ? 1 : 0;
 
-  // If request is to PAUSE
-  if (isPauseSubscription === 1) {
-    if (pauseUntilComeBack === 1) {
-      finalPauseUntilComeBack = 1;
-      finalIsPauseSubscription = 1;
-      finalStartDate = null;
-      finalEndDate = null;
-    } else if (startDate && endDate) {
-      finalStartDate = startDate;
-      finalEndDate = endDate;
-      finalPauseUntilComeBack = 0;
-      finalIsPauseSubscription = 1;
-    }
-  }
-
-  // If request is to RESUME
-  if (isPauseSubscription === 0) {
-    finalIsPauseSubscription = 0;
-    finalPauseUntilComeBack = 0;
-    finalStartDate = null;
-    finalEndDate = null;
-  }
-
-  const values = [
-    finalIsPauseSubscription,
-    finalPauseUntilComeBack,
-    finalStartDate,
-    finalEndDate,
-    id,
-  ];
-
-  const sql = `
+  let sql = `
     UPDATE user_subscriptions 
     SET 
       is_pause_subscription = ?,
@@ -560,6 +500,14 @@ export const updateSubscriptionPauseInfo = async (
     WHERE id = ?;
   `;
 
+  const values = [
+    isPauseSubscription,
+    pauseUntilComeBack || 0,
+    startDate || null,
+    endDate || null,
+    id,
+  ];
+
   try {
     const [result]: [OkPacket, any] = await db.promise().query(sql, values);
     return result;
@@ -568,4 +516,3 @@ export const updateSubscriptionPauseInfo = async (
     throw new Error("Failed to update subscription pause information.");
   }
 };
-
