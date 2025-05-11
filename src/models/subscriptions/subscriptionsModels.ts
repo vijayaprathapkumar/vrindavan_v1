@@ -1,7 +1,6 @@
 import { db } from "../../config/databaseConnection";
 import { RowDataPacket, OkPacket } from "mysql2";
 import cron from "node-cron";
-import { toISTMidnightISOString } from "../../utils/istTimeFomate";
 
 export interface Subscription {
   id?: number;
@@ -255,15 +254,20 @@ export const getAllSubscriptionsModel = (
       if (error) {
         return reject(error);
       }
-
       const transformedResults = results.map((change) => ({
         ...change,
-        pause_specific_period_startDate: toISTMidnightISOString(
-          change.pause_specific_period_startDate
-        ),
-        pause_specific_period_endDate: toISTMidnightISOString(
-          change.pause_specific_period_endDate
-        ),
+        pause_specific_period_startDate: change.pause_specific_period_startDate
+          ? new Date(
+              new Date(change.pause_specific_period_startDate).getTime() +
+                86400000
+            ).toISOString()
+          : null,
+        pause_specific_period_endDate: change.pause_specific_period_endDate
+          ? new Date(
+              new Date(change.pause_specific_period_endDate).getTime() +
+                86400000
+            ).toISOString()
+          : null,
       }));
       resolve(transformedResults);
     });
@@ -336,13 +340,10 @@ export const pauseSubscriptionModel = (id: number): Promise<OkPacket> => {
           return reject(error);
         }
 
+        const pauseDate = new Date();
         db.query<OkPacket>(
-          `UPDATE subscription_quantity_changes 
-           SET pause_specific_period_startDate = ?, 
-               pause_specific_period_endDate = ?, 
-               updated_at = NOW() 
-           WHERE user_subscription_id = ?`,
-          [null, null, id],
+          "UPDATE subscription_quantity_changes SET pause_subscription = 1, pause_date = ?, updated_at = NOW() WHERE user_subscription_id = ?",
+          [pauseDate, id],
           (err, result) => {
             if (err) {
               return reject(err);
@@ -354,7 +355,6 @@ export const pauseSubscriptionModel = (id: number): Promise<OkPacket> => {
     );
   });
 };
-
 
 export const resumeSubscriptionModel = (id: number): Promise<OkPacket> => {
   return new Promise((resolve, reject) => {
