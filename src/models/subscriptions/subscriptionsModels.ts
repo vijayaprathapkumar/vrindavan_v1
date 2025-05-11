@@ -257,14 +257,10 @@ export const getAllSubscriptionsModel = (
       const transformedResults = results.map((change) => ({
         ...change,
         pause_specific_period_startDate: change.pause_specific_period_startDate
-          ? new Date(
-              new Date(change.pause_specific_period_startDate).getTime() +
-                86400000
-            )
+          ? new Date(change.pause_specific_period_startDate)
               .toISOString()
               .split("T")[0]
           : null,
-
         pause_specific_period_endDate: change.pause_specific_period_endDate
           ? new Date(change.pause_specific_period_endDate)
               .toISOString()
