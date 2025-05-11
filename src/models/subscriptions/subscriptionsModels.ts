@@ -336,10 +336,13 @@ export const pauseSubscriptionModel = (id: number): Promise<OkPacket> => {
           return reject(error);
         }
 
-        const pauseDate = new Date();
         db.query<OkPacket>(
-          "UPDATE subscription_quantity_changes SET pause_subscription = 1, pause_date = ?, updated_at = NOW() WHERE user_subscription_id = ?",
-          [pauseDate, id],
+          `UPDATE subscription_quantity_changes 
+           SET pause_specific_period_startDate = ?, 
+               pause_specific_period_endDate = ?, 
+               updated_at = NOW() 
+           WHERE user_subscription_id = ?`,
+          [null, null, id],
           (err, result) => {
             if (err) {
               return reject(err);
@@ -351,6 +354,7 @@ export const pauseSubscriptionModel = (id: number): Promise<OkPacket> => {
     );
   });
 };
+
 
 export const resumeSubscriptionModel = (id: number): Promise<OkPacket> => {
   return new Promise((resolve, reject) => {
