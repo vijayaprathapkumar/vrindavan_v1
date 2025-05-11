@@ -260,15 +260,20 @@ export const getAllSubscriptionsModel = (
           ? new Date(
               new Date(change.pause_specific_period_startDate).getTime() +
                 86400000
-            ).toISOString()
+            )
+              .toISOString()
+              .split("T")[0]
           : null,
         pause_specific_period_endDate: change.pause_specific_period_endDate
           ? new Date(
-              new Date(change.pause_specific_period_endDate).getTime() +
+              new Date(change.pause_specific_period_endDate).getTime() -
                 86400000
-            ).toISOString()
+            )
+              .toISOString()
+              .split("T")[0]
           : null,
       }));
+
       resolve(transformedResults);
     });
   });
