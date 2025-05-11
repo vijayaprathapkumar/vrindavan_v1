@@ -254,32 +254,22 @@ export const getAllSubscriptionsModel = (
       if (error) {
         return reject(error);
       }
-      const toISTDate = (dateString: string | null) =>
-        dateString
-          ? new Date(dateString).toLocaleDateString("en-IN", {
-              timeZone: "Asia/Kolkata",
-              day: "2-digit",
-              month: "2-digit",
-              year: "numeric",
-            })
-          : null;
+      const toISTMidnightISOString = (
+        date: string | Date | null
+      ): string | null => {
+        if (!date) return null;
+        const d = new Date(date);
+        // Set to midnight IST (00:00 IST = 18:30 UTC of previous day)
+        d.setUTCHours(18, 30, 0, 0); // 00:00 IST
+        return d.toISOString();
+      };
 
       const transformedResults = results.map((change) => ({
         ...change,
-        start_date: toISTDate(change.start_date),
-        end_date: toISTDate(change.end_date),
-        created_at: toISTDate(change.created_at),
-        updated_at: toISTDate(change.updated_at),
-        food_created_at: toISTDate(change.food_created_at),
-        food_updated_at: toISTDate(change.food_updated_at),
-        media_created_at: toISTDate(change.media_created_at),
-        media_updated_at: toISTDate(change.media_updated_at),
-        sqc_created_at: toISTDate(change.sqc_created_at),
-        sqc_updated_at: toISTDate(change.sqc_updated_at),
-        pause_specific_period_startDate: toISTDate(
+        pause_specific_period_startDate: toISTMidnightISOString(
           change.pause_specific_period_startDate
         ),
-        pause_specific_period_endDate: toISTDate(
+        pause_specific_period_endDate: toISTMidnightISOString(
           change.pause_specific_period_endDate
         ),
       }));
