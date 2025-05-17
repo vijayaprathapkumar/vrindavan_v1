@@ -12,6 +12,8 @@ import {
   insertMediaRecord,
   updateMediaRecord,
 } from "../imageUpload/imageUploadController";
+import { db } from "../../config/databaseConnection";
+import admin from "../../config/firebase/firebaseAdmin";
 
 // Fetch all notifications
 export const fetchNotifications = async (
@@ -217,40 +219,72 @@ export const deleteNotification = async (
 };
 
 // Send notification and log it
-export const sendNotification = async (
-  req: Request,
-  res: Response
-): Promise<Response> => {
+export const sendNotification = async (req, res) => {
   const notificationId = Number(req.params.id);
 
   if (isNaN(notificationId)) {
-    return res
-      .status(400)
-      .json(createResponse(400, "Invalid notification ID."));
+    return res.status(400).json({ message: "Invalid notification ID" });
   }
+
+  const notification = await getNotificationById(notificationId);
+
+  if (!notification) {
+    return res.status(404).json({ message: "Notification not found" });
+  }
+
+  const message = {
+    notification: {
+      title: notification.title,
+      body: notification.description,
+      imageUrl: notification.media?.url ?? undefined,
+    },
+    data: {
+      notificationId: notificationId.toString(),
+    },
+    topic: notification.is_global ? "global_notifications" : undefined,
+    token: notification.is_global
+      ? undefined
+      : await getUserFcmToken(notification.user_id),
+  };
 
   try {
-    const notification = await getNotificationById(notificationId);
+    let response;
 
-    if (!notification) {
-      return res
-        .status(404)
-        .json(createResponse(404, "Notification not found."));
+    if (message.token) {
+      response = await admin.messaging().send({
+        token: message.token,
+        notification: message.notification,
+        data: message.data,
+      });
+    } else if (message.topic) {
+      response = await admin.messaging().send({
+        topic: message.topic,
+        notification: message.notification,
+        data: message.data,
+      });
+    } else {
+      return res.status(400).json({ message: "No valid recipient" });
     }
 
-    // Log the notification sending
-    await logNotificationSend(notificationId);
+    console.log("Firebase notification sent:", response);
 
-    // Update notification status
+    await logNotificationSend(notificationId);
     await updateNotification(notificationId, { notification_send: true });
 
-    return res
-      .status(200)
-      .json(createResponse(200, "Notification sent successfully."));
+    return res.status(200).json({ message: "Notification sent" });
   } catch (error) {
-    console.error("Error sending notification:", error);
+    console.error("FCM Error:", error);
     return res
       .status(500)
-      .json(createResponse(500, "Error sending notification.", error.message));
+      .json({ message: "Notification failed", error: error.message });
   }
 };
+
+async function getUserFcmToken(userId) {
+  const [row]: any = await db.query(
+    "SELECT token FROM user_fcm_tokens WHERE user_id = ?",
+    [userId]
+  );
+  return row?.token || null;
+}
+
