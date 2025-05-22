@@ -971,7 +971,7 @@ export const getPlaceOrderById = async (
     query += ` AND f.name LIKE ?`;
     queryParams.push(`%${searchTerm}%`);
   }
-
+  query += `ORDER BY o.order_date DESC`;
   const [rows]: [RowDataPacket[], any] = await db
     .promise()
     .query(query, queryParams);
@@ -1683,7 +1683,8 @@ export const getUpcomingOrdersModel = (
             order_date: row?.order_date,
             is_pause_subscription: row.is_pause_subscription,
             pause_until_i_come_back: row.pause_until_i_come_back,
-            pause_specific_period_startDate: row.pause_specific_period_startDate,
+            pause_specific_period_startDate:
+              row.pause_specific_period_startDate,
             pause_specific_period_endDate: row.pause_specific_period_endDate,
             day_specific_quantity: row.day_specific_quantity,
             active: row.active,
@@ -1748,7 +1749,6 @@ export const getUpcomingOrdersModel = (
     });
   });
 };
-
 
 export const cancelOneTimeOrderModel = (
   orderId: number
@@ -1996,8 +1996,8 @@ export const getCalendarOneTimeOrdersModel = (
     FROM calendar c
     LEFT JOIN orders o
         ON DATE(o.order_date) = c.calendar_date
-        AND o.order_type = '1'
         AND o.user_id = ?
+        AND (o.order_type = '1' OR o.order_type = '3' OR o.order_type = '5')
     LEFT JOIN food_orders fo
         ON fo.order_id = o.id
     LEFT JOIN foods f

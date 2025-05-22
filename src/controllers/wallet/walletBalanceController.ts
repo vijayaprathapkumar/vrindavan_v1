@@ -146,10 +146,10 @@ export const getWalletLogsAdmin = async (req: Request, res: Response) => {
   const limit = parseInt(req.query.limit as string) || 10;
 
   try {
-    const { data: walletLogsWithFood, totalCount } =
+    const { data: walletLogs, totalCount } =
       await getWalletLogsWithFoodDetailsAdmin(userId, page, limit);
 
-    if (!walletLogsWithFood || walletLogsWithFood.length === 0) {
+    if (!walletLogs || walletLogs.length === 0) {
       return res
         .status(404)
         .json(createResponse(404, "No wallet logs found for this user"));
@@ -158,8 +158,8 @@ export const getWalletLogsAdmin = async (req: Request, res: Response) => {
     const totalPages = Math.ceil(totalCount / limit);
 
     return res.status(200).json(
-      createResponse(200, "Wallet logs retrieveds successfully", {
-        walletLogs: walletLogsWithFood,
+      createResponse(200, "Wallet logs retrieved successfully", {
+        walletLogs,
         currentPage: page,
         limit,
         totalCount,
@@ -173,7 +173,6 @@ export const getWalletLogsAdmin = async (req: Request, res: Response) => {
       .json(createResponse(500, "Internal Server Error", error.message));
   }
 };
-
 
 export const getWalletBalanceByUserIdAdmin = async (
   req: Request,
@@ -190,21 +189,20 @@ export const getWalletBalanceByUserIdAdmin = async (
     const userId = req.params.userId; // Extract userId from route parameters
 
     if (!userId) {
-      return res
-        .status(400)
-        .json(createResponse(400, "User ID is required"));
+      return res.status(400).json(createResponse(400, "User ID is required"));
     }
 
-    const { walletBalancesData, totalCount } = await getWalletBalanceUserIdAdmin(
-      userId,
-      page,
-      limit,
-      startDate,
-      endDate,
-      searchTerm,
-      sortField,
-      sortOrder
-    );
+    const { walletBalancesData, totalCount } =
+      await getWalletBalanceUserIdAdmin(
+        userId,
+        page,
+        limit,
+        startDate,
+        endDate,
+        searchTerm,
+        sortField,
+        sortOrder
+      );
 
     if (!walletBalancesData || walletBalancesData.length === 0) {
       return res
