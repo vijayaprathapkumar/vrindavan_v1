@@ -102,7 +102,7 @@ export const getTransactionsByUserId = async (req: Request, res: Response) => {
     return res.status(200).json(
       createResponse(200, "Transactions retrieved successfully", {
         transactions,
-        totalRecord: total,
+        totalCount: total,
         currentPage: Number(page),
         limit: Number(limit),
         totalPages,
