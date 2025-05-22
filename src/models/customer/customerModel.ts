@@ -380,7 +380,7 @@ export const getCustomerById = async (id: number): Promise<any | null> => {
     is_deactivated_at: row.is_deactivated_at,
     created_at: row.created_at,
     updated_at: row.updated_at,
-    wallet_balance: row.wallet_balance,
+    wallet_balance: row.wallet_balance ?? "0.00",
     address: {
       address_id: row.address_id,
       description: row.description,
