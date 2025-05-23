@@ -231,13 +231,12 @@ export const sendNotification = async (req, res) => {
   if (!notification) {
     return res.status(404).json({ message: "Notification not found" });
   }
-console.log('notification',notification);
 
   const message = {
     notification: {
       title: notification.title,
       body: notification.description,
-      imageUrl: notification.media?.url ?? undefined,
+      imageUrl: notification.original_url ?? undefined,
     },
     data: {
       notificationId: notificationId.toString(),
@@ -288,4 +287,3 @@ async function getUserFcmToken(userId) {
   );
   return row?.token || null;
 }
-
