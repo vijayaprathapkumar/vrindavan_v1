@@ -240,6 +240,7 @@ export const sendNotification = async (req, res) => {
     },
     data: {
       notificationId: notificationId.toString(),
+      imageUrl: notification.original_url ?? undefined,
     },
     topic: notification.is_global ? "global_notifications" : undefined,
     token: notification.is_global
