@@ -231,6 +231,7 @@ export const sendNotification = async (req, res) => {
   if (!notification) {
     return res.status(404).json({ message: "Notification not found" });
   }
+console.log('notification',notification);
 
   const message = {
     notification: {
