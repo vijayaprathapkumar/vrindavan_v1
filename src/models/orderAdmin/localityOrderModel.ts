@@ -1,0 +1,153 @@
+import { RowDataPacket } from "mysql2";
+import { db } from "../../config/databaseConnection";
+
+export const getLocalityOrdersAdmin = async (
+  page: number,
+  limit: number,
+  localityId?: number | null,
+  startDate?: Date | null,
+  endDate?: Date | null,
+  searchTerm?: string | null
+): Promise<{ orders: RowDataPacket[]; total: number }> => {
+  const offset = (page - 1) * limit;
+  let conditions = "WHERE o.locality_id IS NOT NULL";
+  const queryParams: (string | number)[] = [];
+
+  if (localityId) {
+    conditions += " AND o.locality_id = ?";
+    queryParams.push(localityId);
+  }
+
+  if (startDate && endDate) {
+    conditions += " AND DATE(o.order_date) BETWEEN ? AND ?";
+    queryParams.push(startDate.toISOString().split('T')[0], endDate.toISOString().split('T')[0]);
+  }
+
+  if (searchTerm) {
+    conditions += " AND (u.name LIKE ? OR u.phone LIKE ? OR f.name LIKE ? OR da.house_no LIKE ?)";
+    const term = `%${searchTerm}%`;
+    queryParams.push(term, term, term, term);
+  }
+
+  const ordersQuery = `
+    SELECT 
+      u.name AS customer_name,
+      u.phone AS mobile,
+      da.house_no AS flat,
+      da.complete_address AS address,
+      f.name AS product_name,
+      f.unit AS unit_size,
+      f.discount_price AS discount_price,
+      fo.quantity,
+      CASE 
+        WHEN f.discount_price IS NOT NULL AND f.discount_price > 0 
+        THEN f.discount_price 
+        ELSE f.price 
+      END AS unit_price,
+      fo.quantity * 
+      CASE 
+        WHEN f.discount_price IS NOT NULL AND f.discount_price > 0 
+        THEN f.discount_price 
+        ELSE f.price 
+      END AS amount
+    FROM food_orders fo
+    JOIN orders o ON fo.order_id = o.id
+    JOIN users u ON o.user_id = u.id
+    LEFT JOIN delivery_addresses da ON o.delivery_address_id = da.id
+    JOIN foods f ON fo.food_id = f.id
+    ${conditions}
+    ORDER BY o.order_date DESC
+    LIMIT ? OFFSET ?
+  `;
+
+  const countQuery = `
+    SELECT COUNT(*) AS total
+    FROM food_orders fo
+    JOIN orders o ON fo.order_id = o.id
+    JOIN users u ON o.user_id = u.id
+    LEFT JOIN delivery_addresses da ON o.delivery_address_id = da.id
+    JOIN foods f ON fo.food_id = f.id
+    ${conditions}
+  `;
+
+  const [orders] = await db.promise().query<RowDataPacket[]>(ordersQuery, [...queryParams, limit, offset]);
+  const [[{ total }]] = await db.promise().query<RowDataPacket[]>(countQuery, queryParams);
+
+  return { orders, total };
+};
+
+
+export const getLocalityOrderSummaryAdmin = async (
+  page: number,
+  limit: number,
+  localityId?: number | null,
+  startDate?: Date | null,
+  endDate?: Date | null,
+  searchTerm?: string | null
+): Promise<{ summaryData: RowDataPacket[]; total: number }> => {
+  const offset = (page - 1) * limit;
+  let conditions = "WHERE o.locality_id IS NOT NULL";
+  const queryParams: (string | number)[] = [];
+
+  if (localityId) {
+    conditions += " AND o.locality_id = ?";
+    queryParams.push(localityId);
+  }
+
+  if (startDate && endDate) {
+    conditions += " AND DATE(o.order_date) BETWEEN ? AND ?";
+    queryParams.push(startDate.toISOString().split('T')[0], endDate.toISOString().split('T')[0]);
+  }
+
+  if (searchTerm) {
+    conditions += " AND (f.name LIKE ? OR u.name LIKE ? OR u.phone LIKE ?)";
+    const term = `%${searchTerm}%`;
+    queryParams.push(term, term, term);
+  }
+
+  const summaryQuery = `
+  SELECT 
+    o.id AS order_id,
+    f.id AS food_id,
+    f.name AS product_name,
+    f.unit AS unit_size,
+    f.discount_price AS discount_price,
+    SUM(fo.quantity) AS total_quantity,
+    CASE 
+      WHEN f.discount_price IS NOT NULL AND f.discount_price > 0 
+      THEN f.discount_price 
+      ELSE f.price 
+    END AS unit_price,
+    SUM(
+      fo.quantity * (
+        CASE 
+          WHEN f.discount_price IS NOT NULL AND f.discount_price > 0 
+          THEN f.discount_price 
+          ELSE f.price 
+        END
+      )
+    ) AS total_amount
+  FROM food_orders fo
+  JOIN orders o ON fo.order_id = o.id
+  JOIN foods f ON fo.food_id = f.id
+  JOIN users u ON o.user_id = u.id
+  ${conditions}
+  GROUP BY o.id, f.id, f.name, f.unit, unit_price
+  ORDER BY o.id ASC
+  LIMIT ? OFFSET ?
+`;
+
+  const countQuery = `
+    SELECT COUNT(DISTINCT f.id) AS total
+    FROM food_orders fo
+    JOIN orders o ON fo.order_id = o.id
+    JOIN foods f ON fo.food_id = f.id
+    JOIN users u ON o.user_id = u.id
+    ${conditions}
+  `;
+
+  const [summaryData] = await db.promise().query<RowDataPacket[]>(summaryQuery, [...queryParams, limit, offset]);
+  const [[{ total }]] = await db.promise().query<RowDataPacket[]>(countQuery, queryParams);
+
+  return { summaryData, total };
+};

@@ -36,6 +36,10 @@ import cronLogsRoutes from "./routes/cronLogsRoutes/cronLogsRoutes";
 import discontinuedCustomersRoutes from "./routes/discontinuedCustomersRoutes/discontinuedCustomersRoutes";
 import stockCountRoutes from "./routes/inventory/stockCountRoutes";
 import orderStatusRoutes from "./routes/orderStatus/orderStatusRoutes";
+import routeOrderRoutes from "./routes/orderAdmin/routeOrderRoutes";
+import hubsOrderRoutes from "./routes/orderAdmin/hubsOrderRoutes";
+import localityOrderRoutes from "./routes/orderAdmin/localityOrderRoutes";
+import deliveryBoyOrdersRoutes from "./routes/orderAdmin/deliveryBoyOrdersRoutes";
 
 const router = express.Router();
 
@@ -120,5 +124,10 @@ router.use("/discontinued", discontinuedCustomersRoutes);
 //order-service-status
 router.use("/order-service-status", orderStatusRoutes);
 
+// admin orders
+router.use("/routeOrders", routeOrderRoutes);
+router.use("/hubOrders", hubsOrderRoutes);
+router.use("/locality", localityOrderRoutes);
+router.use("/deliveryOrder", deliveryBoyOrdersRoutes);
 
 export default router;
