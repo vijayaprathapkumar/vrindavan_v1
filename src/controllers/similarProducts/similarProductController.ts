@@ -3,6 +3,7 @@ import { createResponse } from "../../utils/responseHandler";
 import {
   getSimilarProductsWithCount,
   getSubcategoryId,
+
 } from "../../models/similarProducts/similarProductModel";
 
 export const fetchSimilarProducts = async (
@@ -10,8 +11,8 @@ export const fetchSimilarProducts = async (
   res: Response
 ): Promise<Response> => {
   const foodId = parseInt(req.params.foodId);
-  const limit = parseInt(req.query.limit as string) || 10;
-  const page = parseInt(req.query.page as string) || 1;
+  const limit = Math.min(parseInt(req.query.limit as string) || 10, 100); // Add upper limit
+  const page = Math.max(parseInt(req.query.page as string) || 1, 1); // Ensure page >= 1
   const offset = (page - 1) * limit;
 
   if (isNaN(foodId) || foodId <= 0) {
@@ -36,10 +37,12 @@ export const fetchSimilarProducts = async (
     return res.status(200).json(
       createResponse(200, "Similar products fetched successfully.", {
         products,
-        currentPage: page,
-        limit,
-        totalPages: Math.ceil(totalProducts / limit),
-        totalItems: totalProducts,
+        pagination: {
+          currentPage: page,
+          limit,
+          totalPages: Math.ceil(totalProducts / limit),
+          totalItems: totalProducts,
+        }
       })
     );
   } catch (error) {
