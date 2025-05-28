@@ -19,7 +19,7 @@ export interface Media {
   order_column: number;
   created_at: Date;
   updated_at: Date;
-  original_url: string;  // Ensure this property is present
+  original_url: string; // Ensure this property is present
 }
 
 export interface Food {
@@ -50,9 +50,9 @@ export interface Food {
   product_brand_id?: number | null;
   weightage?: number | null;
   status?: boolean | null;
-  created_at?: Date;   // Add these properties if needed
-  updated_at?: Date;   // Add these properties if needed
+  created_at?: Date; // Add these properties if needed
+  updated_at?: Date; // Add these properties if needed
   food_locality?: string | null;
-  outOfStock?:string | null;
-  media?: Media[];  // Ensure this property is present
+  outOfStock?: string | null | number;
+  media?: Media[]; // Ensure this property is present
 }
