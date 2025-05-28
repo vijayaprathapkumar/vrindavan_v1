@@ -71,7 +71,7 @@ export const getSimilarProductsWithCount = async (
       products: productRows.map((row) => ({
         ...row,
         original_url: row.original_url,
-        outOfStock: row.outOfStock
+        outOfStock: row.outOfStock === 1 ? 0 : 1
       })),
       totalProducts: countRows[0]?.totalProducts || 0,
     };
