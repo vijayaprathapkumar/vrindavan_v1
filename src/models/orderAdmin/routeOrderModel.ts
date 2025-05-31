@@ -38,7 +38,6 @@ export const getAllFoodOrders = async (
 
   const dataQuery = `
   SELECT 
-    o.id AS order_id, 
     tr.name AS route,
     h.name AS hub,
     f.name AS product_name,
@@ -51,10 +50,8 @@ export const getAllFoodOrders = async (
   JOIN hubs h ON o.hub_id = h.id
   JOIN truck_routes tr ON h.route_id = tr.id
   ${conditions}
-  GROUP BY o.id, tr.name, h.name, f.name, f.unit
-  ORDER BY o.id ASC
+  GROUP BY tr.name, h.name, f.name, f.unit
   LIMIT ? OFFSET ?
-
 `;
 
   const countQuery = `
@@ -146,7 +143,9 @@ export const getFoodOrderSummary = async (
   `;
 
   const [[summaryRows], [[{ total }]]] = await Promise.all([
-    db.promise().query<RowDataPacket[]>(summaryQuery, [...queryParams, limit, offset]),
+    db
+      .promise()
+      .query<RowDataPacket[]>(summaryQuery, [...queryParams, limit, offset]),
     db.promise().query<RowDataPacket[]>(countQuery, queryParams),
   ]);
 
