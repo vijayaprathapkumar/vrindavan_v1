@@ -73,7 +73,6 @@ export const getDeliveryBoyOrders = async (
     JOIN foods f ON fo.food_id = f.id
     LEFT JOIN localities l ON o.locality_id = l.id
     ${conditions}
-    ORDER BY o.order_date DESC
     LIMIT ? OFFSET ?
   `;
 
@@ -169,7 +168,6 @@ export const getDeliveryBoyOrderSummary = async (
     LEFT JOIN localities l ON o.locality_id = l.id
     ${conditions}
     GROUP BY f.id, f.name, f.unit, unit_price
-    ORDER BY quantity DESC
     LIMIT ? OFFSET ?
   `;
 
