@@ -37,64 +37,60 @@ export const getAllHubOrders = async (
   }
 
   if (searchTerm) {
+    conditions +=
+      " AND (f.name LIKE ? OR h.name LIKE ? OR db.name LIKE ? OR pt.name LIKE ?)";
     const term = `%${searchTerm}%`;
-    conditions += `
-      AND (
-        f.name LIKE ? OR
-        h.name LIKE ? OR
-        db.name LIKE ? OR
-        pt.name LIKE ?
-      )
-    `;
     queryParams.push(term, term, term, term);
   }
 
+  // Main query with grouped data including delivery_boy_id
   const dataQuery = `
-  SELECT
-    tr.id AS route_id,
-    tr.name AS route_name,
-    h.id AS hub_id,
-    h.name AS hub_name,
-    f.id AS food_id,
-    f.name AS product_name,
-    f.unit AS unit_size,
-    f.product_type_id,
-    pt.name AS product_type_name,
-    pt.weightage AS product_type_weightage,
-    o.delivery_boy_id,
-    COALESCE(db.name, 'Unassigned') AS delivery_boy_name,
-    SUM(fo.quantity) AS total_quantity,
-    f.weightage AS product_weightage,
-    f.price AS unit_price,
-    f.discount_price,
-    (
-      SUM(fo.quantity) * 
-      CASE 
-        WHEN f.discount_price IS NOT NULL AND f.discount_price > 0 
-        THEN f.discount_price 
-        ELSE f.price 
-      END
-    ) AS total_amount,
-    MAX(o.order_date) AS latest_order_date,
-    MAX(o.id) AS latest_order_id
-  FROM food_orders fo
-  JOIN orders o ON fo.order_id = o.id
-  JOIN foods f ON fo.food_id = f.id
-  JOIN hubs h ON o.hub_id = h.id
-  JOIN truck_routes tr ON h.route_id = tr.id
-  LEFT JOIN delivery_boys db ON o.delivery_boy_id = db.user_id
-  LEFT JOIN product_types pt ON f.product_type_id = pt.id
-  ${conditions}
-  GROUP BY
-    tr.id, tr.name,
-    h.id, h.name,
-    f.id, f.name, f.unit, f.product_type_id, f.weightage, f.price, f.discount_price,
-    o.delivery_boy_id, db.name,
-    pt.name, pt.weightage
-  ORDER BY latest_order_id DESC
-  LIMIT ? OFFSET ?
-`;
+    SELECT
+      tr.id AS route_id,
+      tr.name AS route,
+      h.id AS hub_id,
+      h.name AS hub,
+      f.id AS food_id,
+      f.name AS product_name,
+      f.unit AS unit_size,
+      f.product_type_id,
+      pt.name AS product_type_name,
+      pt.weightage AS product_type_weightage,
+      o.delivery_boy_id,
+      COALESCE(db.name, 'Unassigned') AS delivery_boy_name,
+      SUM(fo.quantity) AS total_quantity,
+      f.weightage AS product_weightage,
+      f.price AS unit_price,
+      f.discount_price,
+      (
+        SUM(fo.quantity) * 
+        CASE 
+          WHEN f.discount_price IS NOT NULL AND f.discount_price > 0 
+          THEN f.discount_price 
+          ELSE f.price 
+        END
+      ) AS total_amount,
+       o.order_date,
+      MAX(o.id) AS latest_order_id
+    FROM food_orders fo
+    JOIN orders o ON fo.order_id = o.id
+    JOIN foods f ON fo.food_id = f.id
+    JOIN hubs h ON o.hub_id = h.id
+    JOIN truck_routes tr ON h.route_id = tr.id
+    LEFT JOIN delivery_boys db ON o.delivery_boy_id = db.user_id
+    LEFT JOIN product_types pt ON f.product_type_id = pt.id
+    ${conditions}
+    GROUP BY 
+      tr.id, tr.name, 
+      h.id, h.name, 
+      f.id, f.name, f.unit, f.product_type_id, f.weightage, f.price, f.discount_price,
+      o.delivery_boy_id, db.name,  o.order_date,
+      pt.name, pt.weightage
+    ORDER BY latest_order_id DESC
+    LIMIT ? OFFSET ?
+  `;
 
+  // Count query for ALL individual food orders (not grouped)
   const countQuery = `
     SELECT COUNT(*) AS total FROM (
       SELECT 1
@@ -106,11 +102,11 @@ export const getAllHubOrders = async (
       LEFT JOIN delivery_boys db ON o.delivery_boy_id = db.user_id
       LEFT JOIN product_types pt ON f.product_type_id = pt.id
       ${conditions}
-      GROUP BY
-        tr.id, tr.name,
-        h.id, h.name,
+      GROUP BY 
+        tr.id, tr.name, 
+        h.id, h.name, 
         f.id, f.name, f.unit, f.product_type_id, f.weightage, f.price, f.discount_price,
-        o.delivery_boy_id, db.name,
+        o.delivery_boy_id, db.name,  o.order_date,
         pt.name, pt.weightage
     ) AS grouped
   `;
@@ -118,14 +114,12 @@ export const getAllHubOrders = async (
   const [rows] = await db
     .promise()
     .query<RowDataPacket[]>(dataQuery, [...queryParams, limit, offset]);
-
   const [[{ total }]] = await db
     .promise()
     .query<RowDataPacket[]>(countQuery, queryParams);
 
   return { hubOrders: rows, total };
 };
-
 export const getHubOrderSummary = async (
   page: number,
   limit: number,
