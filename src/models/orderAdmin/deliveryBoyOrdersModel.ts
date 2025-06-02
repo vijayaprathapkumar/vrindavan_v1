@@ -7,7 +7,8 @@ export const getDeliveryBoyOrders = async (
   deliveryBoyId?: string | number | null,
   startDate?: Date | null,
   endDate?: Date | null,
-  searchTerm?: string | null
+  searchTerm?: string | null,
+  productId?: number | null
 ): Promise<{ orders: RowDataPacket[]; total: number }> => {
   const offset = (page - 1) * limit;
   let conditions = "WHERE o.delivery_boy_id IS NOT NULL";
@@ -19,6 +20,11 @@ export const getDeliveryBoyOrders = async (
       conditions += " AND o.delivery_boy_id = ?";
       queryParams.push(parsedDeliveryBoyId);
     }
+  }
+
+  if (productId) {
+    conditions += " AND f.id = ?";
+    queryParams.push(productId);
   }
 
   if (startDate && endDate) {
@@ -142,16 +148,17 @@ export const getDeliveryBoyOrderSummary = async (
   }
 
   const summaryQuery = `
-    SELECT 
+  SELECT
       f.id AS food_id,
       f.name AS product_name,
       f.unit AS unit_size,
-      SUM(fo.quantity) AS quantity,
-      CASE 
-        WHEN f.discount_price IS NOT NULL AND f.discount_price > 0 
-        THEN f.discount_price 
-        ELSE f.price 
-      END AS unit_price,
+      f.product_type_id,
+      pt.name AS product_type_name,
+      pt.weightage AS product_type_weightage,
+      SUM(fo.quantity) AS total_quantity,
+      f.weightage AS product_weightage,
+      f.price AS unit_price,
+      f.discount_price,
       SUM(
         fo.quantity * 
         CASE 
@@ -159,15 +166,19 @@ export const getDeliveryBoyOrderSummary = async (
           THEN f.discount_price 
           ELSE f.price 
         END
-      ) AS amount
+      ) AS total_amount
     FROM food_orders fo
     JOIN orders o ON fo.order_id = o.id
-    JOIN users u ON o.user_id = u.id
-    LEFT JOIN delivery_addresses da ON o.user_id = da.user_id
     JOIN foods f ON fo.food_id = f.id
-    LEFT JOIN localities l ON o.locality_id = l.id
+    JOIN hubs h ON o.hub_id = h.id
+    JOIN truck_routes tr ON h.route_id = tr.id
+    LEFT JOIN delivery_boys db ON o.delivery_boy_id = db.user_id
+    LEFT JOIN product_types pt ON f.product_type_id = pt.id
     ${conditions}
-    GROUP BY f.id, f.name, f.unit, unit_price
+    GROUP BY 
+      f.id, f.name, f.unit, f.product_type_id, 
+      pt.name, pt.weightage,
+      f.weightage, f.price, f.discount_price
     LIMIT ? OFFSET ?
   `;
 
@@ -176,9 +187,10 @@ export const getDeliveryBoyOrderSummary = async (
     FROM food_orders fo
     JOIN orders o ON fo.order_id = o.id
     JOIN foods f ON fo.food_id = f.id
-    JOIN users u ON o.user_id = u.id
-    LEFT JOIN delivery_addresses da ON o.user_id = da.user_id
-    LEFT JOIN localities l ON o.locality_id = l.id
+    JOIN hubs h ON o.hub_id = h.id
+    JOIN truck_routes tr ON h.route_id = tr.id
+    LEFT JOIN delivery_boys db ON o.delivery_boy_id = db.user_id
+    LEFT JOIN product_types pt ON f.product_type_id = pt.id
     ${conditions}
   `;
 

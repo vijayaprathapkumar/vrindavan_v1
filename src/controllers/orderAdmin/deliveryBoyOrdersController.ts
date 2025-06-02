@@ -12,6 +12,9 @@ export const fetchDeliveryBoyOrders = async (req: Request, res: Response) => {
     const deliveryBoyId = req.query.deliveryBoyId
       ? parseInt(req.query.deliveryBoyId as string)
       : null;
+    const productId =
+      req.query.productId !== "All" ? Number(req.query.productId) : null;
+
     const startDate = req.query.startDate
       ? new Date(req.query.startDate as string)
       : null;
@@ -28,7 +31,8 @@ export const fetchDeliveryBoyOrders = async (req: Request, res: Response) => {
       deliveryBoyId,
       startDate,
       endDate,
-      searchTerm
+      searchTerm,
+      productId
     );
 
     return res.status(200).json(
