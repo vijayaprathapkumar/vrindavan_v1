@@ -43,7 +43,8 @@ export const getAllFoodOrders = async (
     f.name AS product_name,
     f.unit AS unit_size,
     SUM(fo.quantity) AS total_quantity,
-    MAX(o.created_at) AS last_created_at
+    MAX(o.order_date) AS order_date
+  
   FROM food_orders fo
   JOIN orders o ON fo.order_id = o.id
   JOIN foods f ON fo.food_id = f.id
