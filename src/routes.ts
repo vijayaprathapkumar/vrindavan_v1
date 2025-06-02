@@ -127,7 +127,7 @@ router.use("/order-service-status", orderStatusRoutes);
 // admin orders
 router.use("/routeOrders", routeOrderRoutes);
 router.use("/hubOrders", hubsOrderRoutes);
-router.use("/locality", localityOrderRoutes);
+router.use("/localityOrders", localityOrderRoutes);
 router.use("/deliveryOrder", deliveryBoyOrdersRoutes);
 
 export default router;

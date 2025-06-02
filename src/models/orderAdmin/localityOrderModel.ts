@@ -35,6 +35,7 @@ export const getLocalityOrdersAdmin = async (
       u.phone AS mobile,
       da.house_no AS flat,
       da.complete_address AS address,
+      o.order_date,
       f.name AS product_name,
       f.unit AS unit_size,
       f.discount_price AS discount_price,

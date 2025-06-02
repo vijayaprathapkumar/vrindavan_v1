@@ -64,7 +64,8 @@ export const getDeliveryBoyOrders = async (
         ELSE f.price 
       END AS amount,
       l.name AS locality_name,
-      l.city AS locality_city
+      l.city AS locality_city,
+      o.order_date
     FROM food_orders fo
     JOIN orders o ON fo.order_id = o.id
     JOIN users u ON o.user_id = u.id
