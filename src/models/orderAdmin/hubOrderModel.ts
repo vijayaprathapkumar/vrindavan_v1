@@ -13,26 +13,26 @@ export const getAllHubOrders = async (
   hubId?: number | null
 ): Promise<{ hubOrders: RowDataPacket[]; total: number }> => {
   const offset = (page - 1) * limit;
-  let conditions = 'WHERE 1=1';
+  let conditions = "WHERE 1=1";
   const queryParams: (string | number)[] = [];
 
   if (routeId) {
-    conditions += ' AND tr.id = ?';
+    conditions += " AND tr.id = ?";
     queryParams.push(routeId);
   }
 
   if (hubId) {
-    conditions += ' AND o.hub_id = ?';
+    conditions += " AND o.hub_id = ?";
     queryParams.push(hubId);
   }
 
   if (productId) {
-    conditions += ' AND f.id = ?';
+    conditions += " AND f.id = ?";
     queryParams.push(productId);
   }
 
   if (startDate && endDate) {
-    conditions += ' AND DATE(o.order_date) BETWEEN ? AND ?';
+    conditions += " AND DATE(o.order_date) BETWEEN ? AND ?";
     queryParams.push(formatDate(startDate), formatDate(endDate));
   }
 
@@ -50,62 +50,50 @@ export const getAllHubOrders = async (
   }
 
   const dataQuery = `
-    SELECT
-      u.name AS user_name,
-      u.phone,
-      da.house_no,
-      da.address,
-      da.complete_address,
-      l.name AS locality_name,
-      tr.id AS route_id,
-      tr.name AS route_name,
-      h.id AS hub_id,
-      h.name AS hub_name,
-      f.id AS food_id,
-      f.name AS product_name,
-      f.unit AS unit_size,
-      f.product_type_id,
-      pt.name AS product_type_name,
-      pt.weightage AS product_type_weightage,
-      o.delivery_boy_id,
-      COALESCE(db.name, 'Unassigned') AS delivery_boy_name,
-      o.order_date,
-      SUM(fo.quantity) AS total_quantity,
-      f.weightage AS product_weightage,
-      f.price AS unit_price,
-      f.discount_price,
-      (
-        SUM(fo.quantity) * 
-        CASE 
-          WHEN f.discount_price IS NOT NULL AND f.discount_price > 0 
-          THEN f.discount_price 
-          ELSE f.price 
-        END
-      ) AS total_amount,
-      MAX(o.id) AS latest_order_id
-    FROM food_orders fo
-    JOIN orders o ON fo.order_id = o.id
-    JOIN users u ON o.user_id = u.id
-    JOIN foods f ON fo.food_id = f.id
-    JOIN hubs h ON o.hub_id = h.id
-    JOIN truck_routes tr ON h.route_id = tr.id
-    LEFT JOIN delivery_boys db ON o.delivery_boy_id = db.user_id
-    LEFT JOIN product_types pt ON f.product_type_id = pt.id
-    LEFT JOIN delivery_addresses da ON o.user_id = da.user_id
-    LEFT JOIN localities l ON o.locality_id = l.id
-    ${conditions}
-    GROUP BY
-      tr.id, tr.name,
-      h.id, h.name,
-      f.id, f.name, f.unit, f.product_type_id, f.weightage, f.price, f.discount_price,
-      o.delivery_boy_id, db.name,
-      pt.name, pt.weightage,
-      u.name, u.phone,
-      da.house_no, da.address, da.complete_address,
-      l.name, o.order_date
-    ORDER BY latest_order_id DESC
-    LIMIT ? OFFSET ?
-  `;
+  SELECT
+    tr.id AS route_id,
+    tr.name AS route_name,
+    h.id AS hub_id,
+    h.name AS hub_name,
+    f.id AS food_id,
+    f.name AS product_name,
+    f.unit AS unit_size,
+    f.product_type_id,
+    pt.name AS product_type_name,
+    pt.weightage AS product_type_weightage,
+    o.delivery_boy_id,
+    COALESCE(db.name, 'Unassigned') AS delivery_boy_name,
+    SUM(fo.quantity) AS total_quantity,
+    f.weightage AS product_weightage,
+    f.price AS unit_price,
+    f.discount_price,
+    (
+      SUM(fo.quantity) * 
+      CASE 
+        WHEN f.discount_price IS NOT NULL AND f.discount_price > 0 
+        THEN f.discount_price 
+        ELSE f.price 
+      END
+    ) AS total_amount,
+    MAX(o.order_date) AS latest_order_date,
+    MAX(o.id) AS latest_order_id
+  FROM food_orders fo
+  JOIN orders o ON fo.order_id = o.id
+  JOIN foods f ON fo.food_id = f.id
+  JOIN hubs h ON o.hub_id = h.id
+  JOIN truck_routes tr ON h.route_id = tr.id
+  LEFT JOIN delivery_boys db ON o.delivery_boy_id = db.user_id
+  LEFT JOIN product_types pt ON f.product_type_id = pt.id
+  ${conditions}
+  GROUP BY
+    tr.id, tr.name,
+    h.id, h.name,
+    f.id, f.name, f.unit, f.product_type_id, f.weightage, f.price, f.discount_price,
+    o.delivery_boy_id, db.name,
+    pt.name, pt.weightage
+  ORDER BY latest_order_id DESC
+  LIMIT ? OFFSET ?
+`;
 
   const countQuery = `
     SELECT COUNT(*) AS total FROM (
