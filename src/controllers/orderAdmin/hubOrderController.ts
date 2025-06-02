@@ -9,10 +9,10 @@ export const getHubOrders = async (req: Request, res: Response): Promise<void> =
   const limit = parseInt(req.query.limit as string) || 10;
   const page = parseInt(req.query.page as string) || 1;
 
- const routeId = req.query.routeId
-    ? parseInt(req.query.routeId as string)
+ const routeId = req.query.route_id
+    ? parseInt(req.query.route_id as string)
     : null;
-  const hubId = req.query.hubId ? parseInt(req.query.hubId as string) : null;
+  const hubId = req.query.hub_id ? parseInt(req.query.hub_id as string) : null;
   const productId = req.query.productId !== "All" ? Number(req.query.productId) : null;
 
   const startDate = req.query.startDate ? new Date(req.query.startDate as string) : null;
