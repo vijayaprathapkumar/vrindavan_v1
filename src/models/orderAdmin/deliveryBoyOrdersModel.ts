@@ -114,7 +114,8 @@ export const getDeliveryBoyOrderSummary = async (
   deliveryBoyId?: string | number | null,
   startDate?: Date | null,
   endDate?: Date | null,
-  searchTerm?: string | null
+  searchTerm?: string | null,
+  productId?: number | null
 ): Promise<{ summary: RowDataPacket[]; total: number }> => {
   const offset = (page - 1) * limit;
   let conditions = "WHERE o.delivery_boy_id IS NOT NULL";
@@ -126,6 +127,11 @@ export const getDeliveryBoyOrderSummary = async (
       conditions += " AND o.delivery_boy_id = ?";
       queryParams.push(parsedDeliveryBoyId);
     }
+  }
+
+  if (productId) {
+    conditions += " AND f.id = ?";
+    queryParams.push(productId);
   }
 
   if (startDate && endDate) {

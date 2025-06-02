@@ -71,13 +71,17 @@ export const fetchDeliveryBoyOrderSummary = async (
       ? (req.query.searchTerm as string)
       : null;
 
+    const productId =
+      req.query.productId !== "All" ? Number(req.query.productId) : null;
+
     const { summary, total } = await getDeliveryBoyOrderSummary(
       page,
       limit,
       deliveryBoyId,
       startDate,
       endDate,
-      searchTerm
+      searchTerm,
+      productId
     );
 
     return res.status(200).json(
