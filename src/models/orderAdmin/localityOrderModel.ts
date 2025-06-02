@@ -7,7 +7,8 @@ export const getLocalityOrdersAdmin = async (
   localityId?: number | null,
   startDate?: Date | null,
   endDate?: Date | null,
-  searchTerm?: string | null
+  searchTerm?: string | null,
+  productId?: number | null
 ): Promise<{ orders: RowDataPacket[]; total: number }> => {
   const offset = (page - 1) * limit;
   let conditions = "WHERE o.locality_id IS NOT NULL";
@@ -20,11 +21,20 @@ export const getLocalityOrdersAdmin = async (
 
   if (startDate && endDate) {
     conditions += " AND DATE(o.order_date) BETWEEN ? AND ?";
-    queryParams.push(startDate.toISOString().split('T')[0], endDate.toISOString().split('T')[0]);
+    queryParams.push(
+      startDate.toISOString().split("T")[0],
+      endDate.toISOString().split("T")[0]
+    );
+  }
+
+  if (productId) {
+    conditions += " AND f.id = ?";
+    queryParams.push(productId);
   }
 
   if (searchTerm) {
-    conditions += " AND (u.name LIKE ? OR u.phone LIKE ? OR f.name LIKE ? OR da.house_no LIKE ?)";
+    conditions +=
+      " AND (u.name LIKE ? OR u.phone LIKE ? OR f.name LIKE ? OR da.house_no LIKE ?)";
     const term = `%${searchTerm}%`;
     queryParams.push(term, term, term, term);
   }
@@ -71,12 +81,15 @@ export const getLocalityOrdersAdmin = async (
     ${conditions}
   `;
 
-  const [orders] = await db.promise().query<RowDataPacket[]>(ordersQuery, [...queryParams, limit, offset]);
-  const [[{ total }]] = await db.promise().query<RowDataPacket[]>(countQuery, queryParams);
+  const [orders] = await db
+    .promise()
+    .query<RowDataPacket[]>(ordersQuery, [...queryParams, limit, offset]);
+  const [[{ total }]] = await db
+    .promise()
+    .query<RowDataPacket[]>(countQuery, queryParams);
 
   return { orders, total };
 };
-
 
 export const getLocalityOrderSummaryAdmin = async (
   page: number,
@@ -97,7 +110,10 @@ export const getLocalityOrderSummaryAdmin = async (
 
   if (startDate && endDate) {
     conditions += " AND DATE(o.order_date) BETWEEN ? AND ?";
-    queryParams.push(startDate.toISOString().split('T')[0], endDate.toISOString().split('T')[0]);
+    queryParams.push(
+      startDate.toISOString().split("T")[0],
+      endDate.toISOString().split("T")[0]
+    );
   }
 
   if (searchTerm) {
@@ -153,8 +169,12 @@ export const getLocalityOrderSummaryAdmin = async (
     ${conditions}
   `;
 
-  const [summaryData] = await db.promise().query<RowDataPacket[]>(summaryQuery, [...queryParams, limit, offset]);
-  const [[{ total }]] = await db.promise().query<RowDataPacket[]>(countQuery, queryParams);
+  const [summaryData] = await db
+    .promise()
+    .query<RowDataPacket[]>(summaryQuery, [...queryParams, limit, offset]);
+  const [[{ total }]] = await db
+    .promise()
+    .query<RowDataPacket[]>(countQuery, queryParams);
 
   return { summaryData, total };
 };

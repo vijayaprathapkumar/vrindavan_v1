@@ -21,6 +21,9 @@ export const getLocalityOrders = async (
     : null;
   const searchTerm = (req.query.searchTerm as string) || null;
 
+  const productId =
+    req.query.productId !== "All" ? Number(req.query.productId) : null;
+
   try {
     const { orders, total } = await getLocalityOrdersAdmin(
       page,
@@ -28,7 +31,8 @@ export const getLocalityOrders = async (
       localityId,
       startDate,
       endDate,
-      searchTerm
+      searchTerm,
+      productId
     );
 
     const totalPages = Math.ceil(total / limit);
