@@ -47,9 +47,9 @@ export const getAllHubOrders = async (
   const dataQuery = `
     SELECT
       tr.id AS route_id,
-      tr.name AS route,
+      tr.name AS route_name,
       h.id AS hub_id,
-      h.name AS hub,
+      h.name AS hub_name,
       f.id AS food_id,
       f.name AS product_name,
       f.unit AS unit_size,
