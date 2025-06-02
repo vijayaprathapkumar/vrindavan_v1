@@ -4,19 +4,21 @@ import { db } from "../../config/databaseConnection";
 export const getDeliveryBoyOrders = async (
   page: number,
   limit: number,
-  deliveryBoyId?: number | null,
+  deliveryBoyId?: string | number | null,
   startDate?: Date | null,
   endDate?: Date | null,
   searchTerm?: string | null
 ): Promise<{ orders: RowDataPacket[]; total: number }> => {
   const offset = (page - 1) * limit;
-  let conditions =
-    "WHERE o.delivery_boy_id IS NOT NULL AND o.user_id = da.user_id";
+  let conditions = "WHERE o.delivery_boy_id IS NOT NULL";
   const queryParams: (string | number)[] = [];
 
-  if (deliveryBoyId) {
-    conditions += " AND o.delivery_boy_id = ?";
-    queryParams.push(deliveryBoyId);
+  if (deliveryBoyId !== null && deliveryBoyId !== "All") {
+    const parsedDeliveryBoyId = Number(deliveryBoyId);
+    if (!isNaN(parsedDeliveryBoyId)) {
+      conditions += " AND o.delivery_boy_id = ?";
+      queryParams.push(parsedDeliveryBoyId);
+    }
   }
 
   if (startDate && endDate) {
@@ -66,7 +68,7 @@ export const getDeliveryBoyOrders = async (
     FROM food_orders fo
     JOIN orders o ON fo.order_id = o.id
     JOIN users u ON o.user_id = u.id
-    LEFT JOIN delivery_addresses da ON o.user_id = da.user_id
+    LEFT JOIN delivery_addresses da ON o.delivery_address_id = da.id
     JOIN foods f ON fo.food_id = f.id
     LEFT JOIN localities l ON o.locality_id = l.id
     ${conditions}
@@ -85,33 +87,39 @@ export const getDeliveryBoyOrders = async (
     ${conditions}
   `;
 
-  const [orders] = await db
-    .promise()
-    .query<RowDataPacket[]>(ordersQuery, [...queryParams, limit, offset]);
-  const [[{ total }]] = await db
-    .promise()
-    .query<RowDataPacket[]>(countQuery, queryParams);
+  try {
+    const [orders] = await db
+      .promise()
+      .query<RowDataPacket[]>(ordersQuery, [...queryParams, limit, offset]);
 
-  return { orders, total };
+    const [[{ total }]] = await db
+      .promise()
+      .query<RowDataPacket[]>(countQuery, queryParams);
+
+    return { orders, total };
+  } catch (error) {
+    console.error("Database error in getDeliveryBoyOrders:", error);
+    throw error;
+  }
 };
-
-
 export const getDeliveryBoyOrderSummary = async (
   page: number,
   limit: number,
-  deliveryBoyId?: number | null,
+  deliveryBoyId?: string | number | null,
   startDate?: Date | null,
   endDate?: Date | null,
   searchTerm?: string | null
 ): Promise<{ summary: RowDataPacket[]; total: number }> => {
   const offset = (page - 1) * limit;
-  let conditions =
-    "WHERE o.delivery_boy_id IS NOT NULL AND o.user_id = da.user_id";
+  let conditions = "WHERE o.delivery_boy_id IS NOT NULL";
   const queryParams: (string | number)[] = [];
 
-  if (deliveryBoyId) {
-    conditions += " AND o.delivery_boy_id = ?";
-    queryParams.push(deliveryBoyId);
+  if (deliveryBoyId !== null && deliveryBoyId !== "All") {
+    const parsedDeliveryBoyId = Number(deliveryBoyId);
+    if (!isNaN(parsedDeliveryBoyId)) {
+      conditions += " AND o.delivery_boy_id = ?";
+      queryParams.push(parsedDeliveryBoyId);
+    }
   }
 
   if (startDate && endDate) {
