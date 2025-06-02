@@ -9,7 +9,8 @@ export const getAllHubOrders = async (
   productId?: number | null,
   startDate?: Date | null,
   endDate?: Date | null,
-  searchTerm?: string | null
+  searchTerm?: string | null,
+  hubId?: number | null
 ): Promise<{ hubOrders: RowDataPacket[]; total: number }> => {
   const offset = (page - 1) * limit;
   let conditions = "WHERE 1=1";
@@ -18,6 +19,11 @@ export const getAllHubOrders = async (
   if (routeId) {
     conditions += " AND tr.id = ?";
     queryParams.push(routeId);
+  }
+
+  if (hubId) {
+    conditions += " AND o.hub_id = ?";
+    queryParams.push(hubId);
   }
 
   if (productId) {
