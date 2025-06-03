@@ -71,12 +71,14 @@ export const getDeliveryBoyOrders = async (
       END AS amount,
       l.name AS locality_name,
       l.city AS locality_city,
-      o.order_date
+      o.order_date,
+      db.name AS delivery_boy_name
     FROM food_orders fo
     JOIN orders o ON fo.order_id = o.id
     JOIN users u ON o.user_id = u.id
     LEFT JOIN delivery_addresses da ON o.delivery_address_id = da.id
     JOIN foods f ON fo.food_id = f.id
+    JOIN delivery_boys db ON o.delivery_boy_id = db.user_id
     LEFT JOIN localities l ON o.locality_id = l.id
     ${conditions}
     LIMIT ? OFFSET ?
@@ -89,6 +91,7 @@ export const getDeliveryBoyOrders = async (
     JOIN users u ON o.user_id = u.id
     LEFT JOIN delivery_addresses da ON o.delivery_address_id = da.id
     JOIN foods f ON fo.food_id = f.id
+    JOIN delivery_boys db ON o.delivery_boy_id = db.user_id
     LEFT JOIN localities l ON o.locality_id = l.id
     ${conditions}
   `;
