@@ -75,7 +75,7 @@ export const getWalletBalanceWithOutUserId = async (
 
     const response = {
       walletBalances,
-      currentPage: page,
+      currentPage: Number(page),
       limit,
       totalCount,
       totalPages,

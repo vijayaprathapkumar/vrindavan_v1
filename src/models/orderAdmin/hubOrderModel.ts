@@ -232,16 +232,12 @@ export const getOrdersGroupedByRoute = async (
       tr.id AS route_id,
       tr.name AS route_name,
       h.id AS hub_id,
-      h.name AS hub_name,
-      COUNT(DISTINCT o.id) AS order_count,
-      MIN(o.order_date) AS earliest_order_date,
-      MAX(o.order_date) AS latest_order_date
+      h.name AS hub_name
     FROM orders o
     JOIN hubs h ON o.hub_id = h.id
     JOIN truck_routes tr ON h.route_id = tr.id
     WHERE tr.id = ?
     GROUP BY tr.id, tr.name, h.id, h.name
-    ORDER BY latest_order_date DESC
     LIMIT ? OFFSET ?
   `;
 
