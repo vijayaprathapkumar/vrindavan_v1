@@ -39,7 +39,11 @@ export const getAllFoods = async (
               THEN CONCAT('https://media-image-upload.s3.ap-south-1.amazonaws.com/foods/', m.file_name)
               ELSE CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name)
            END AS original_url,
-           (SELECT SUM(amount) FROM stock_mutations WHERE stockable_id = f.id) AS outOfStock
+           CASE 
+  WHEN f.track_inventory = 1 THEN '-' 
+  ELSE COALESCE((SELECT SUM(amount) FROM stock_mutations WHERE stockable_id = f.id), 0)
+END AS outOfStock
+
     FROM foods f
     LEFT JOIN media m ON f.id = m.model_id AND (m.model_type = 'App\\\\Models\\\\Food')
   `;
