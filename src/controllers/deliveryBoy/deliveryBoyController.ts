@@ -17,9 +17,9 @@ export const getDeliveryBoysWithLocalities = async (
   res: Response
 ): Promise<void> => {
   try {
-    const limit = parseInt(req.query.limit as string) || 10;
-    const page = parseInt(req.query.page as string) || 1;
-    const offset = (page - 1) * limit;
+  const limit = parseInt(req.query.limit as string) || 10;
+  const page = parseInt(req.query.page as string) || 1;
+
     const searchTerm = req.query.searchTerm
       ? (req.query.searchTerm as string)
       : "";
@@ -32,21 +32,23 @@ export const getDeliveryBoysWithLocalities = async (
 
     const { deliveryBoys, totalCount } = await getAllDeliveryBoysWithLocalities(
       limit,
-      offset,
+      page,
       searchTerm,
       sortField.toString(),
       sortOrder.toString()
     );
 
+    const totalPages = Math.ceil(totalCount / limit);
     res.status(200).json(
       createResponse(200, "Delivery boys and localities fetched successfully", {
         deliveryBoys,
         totalCount,
         limit,
         currentPage: page,
-        totalPages: Math.ceil(totalCount / limit),
+        totalPages: totalPages,
       })
     );
+
   } catch (error) {
     res
       .status(500)

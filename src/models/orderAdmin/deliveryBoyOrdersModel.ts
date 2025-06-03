@@ -185,6 +185,7 @@ export const getDeliveryBoyOrderSummary = async (
       f.id, f.name, f.unit, f.product_type_id, 
       pt.name, pt.weightage,
       f.weightage, f.price, f.discount_price
+      ORDER BY product_type_weightage ASC  
     LIMIT ? OFFSET ?
   `;
 

@@ -15,35 +15,35 @@ export const getAllFoods = async (
   sortOrder?: string
 ): Promise<{ foods: Food[]; totalCount: number }> => {
   let query = `
-    SELECT f.*, 
-           m.id AS media_id,
-           m.model_type,
-           m.model_id,
-           m.uuid,
-           m.collection_name,
-           m.name AS media_name,
-           m.file_name AS media_file_name,
-           m.mime_type AS media_mime_type,
-           m.disk,
-           m.conversions_disk,
-           m.size,
-           m.manipulations,
-           m.custom_properties,
-           m.generated_conversions,
-           m.responsive_images,
-           m.order_column,
-           m.created_at AS media_created_at,
-           m.updated_at AS media_updated_at,
-           CASE 
-              WHEN m.conversions_disk = 'public1' 
-              THEN CONCAT('https://media-image-upload.s3.ap-south-1.amazonaws.com/foods/', m.file_name)
-              ELSE CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name)
-           END AS original_url,
-          CASE 
-  WHEN f.track_inventory = 0 THEN 1
-  ELSE IFNULL((SELECT SUM(amount) FROM stock_mutations WHERE stockable_id = f.id), 0)
-END AS outOfStock
-
+    SELECT 
+      f.*, 
+      m.id AS media_id,
+      m.model_type,
+      m.model_id,
+      m.uuid,
+      m.collection_name,
+      m.name AS media_name,
+      m.file_name AS media_file_name,
+      m.mime_type AS media_mime_type,
+      m.disk,
+      m.conversions_disk,
+      m.size,
+      m.manipulations,
+      m.custom_properties,
+      m.generated_conversions,
+      m.responsive_images,
+      m.order_column,
+      m.created_at AS media_created_at,
+      m.updated_at AS media_updated_at,
+      CASE 
+        WHEN m.conversions_disk = 'public1' 
+        THEN CONCAT('https://media-image-upload.s3.ap-south-1.amazonaws.com/foods/', m.file_name)
+        ELSE CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name)
+      END AS original_url,
+      CASE 
+        WHEN f.track_inventory = 0 THEN 999999
+        ELSE IFNULL((SELECT SUM(amount) FROM stock_mutations WHERE stockable_id = f.id), 0)
+      END AS current_stock
     FROM foods f
     LEFT JOIN media m ON f.id = m.model_id AND (m.model_type = 'App\\\\Models\\\\Food')
   `;
@@ -97,8 +97,9 @@ END AS outOfStock
 
   query += ` ORDER BY 
     CASE 
-      WHEN (SELECT SUM(amount) FROM stock_mutations WHERE stockable_id = f.id) <= 0 THEN 1 
-      ELSE 0 
+      WHEN f.track_inventory = 0 THEN 0 
+      WHEN current_stock > 0 THEN 0 
+      ELSE 1 
     END,
     ${
       sortField && validSortFields[sortField]
@@ -124,7 +125,6 @@ END AS outOfStock
 
   const [rows] = await db.promise().execute<RowDataPacket[]>(query, values);
 
-  // Construct the final foods array
   const foods: Food[] = rows.map((row) => {
     return {
       id: row.id,
@@ -155,7 +155,7 @@ END AS outOfStock
       status: row.status,
       created_at: row.created_at,
       updated_at: row.updated_at,
-      outOfStock: row.outOfStock,
+      outOfStock: row.current_stock <= 0 ? 1 : 0,
       media: row.media_id
         ? [
             {
@@ -186,6 +186,7 @@ END AS outOfStock
 
   return { foods, totalCount };
 };
+
 
 // Fetch a single food by ID
 export const getFoodById = async (
