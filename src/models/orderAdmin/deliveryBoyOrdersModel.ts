@@ -81,6 +81,7 @@ export const getDeliveryBoyOrders = async (
     JOIN delivery_boys db ON o.delivery_boy_id = db.user_id
     LEFT JOIN localities l ON o.locality_id = l.id
     ${conditions}
+    ORDER BY l.name ASC
     LIMIT ? OFFSET ?
   `;
 

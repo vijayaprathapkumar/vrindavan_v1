@@ -77,7 +77,7 @@ export const getAllLocalities = async (
       LEFT JOIN 
           hubs h ON l.hub_id = h.id 
       LEFT JOIN 
-          delivery_boys db ON lb.delivery_boy_id = db.id
+          delivery_boys db ON lb.delivery_boy_id = db.user_id
       ${whereClause}
       ORDER BY ${sortColumn} ${validSortOrder}
       LIMIT ? OFFSET ?;

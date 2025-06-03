@@ -117,15 +117,11 @@ export const getTransactionsByUserId = async (req: Request, res: Response) => {
 };
 
 export const getAllTransactions = async (req: Request, res: Response) => {
-  const {
-    page = 1,
-    limit = 10,
-    startDate,
-    endDate,
-    searchTerm,
-    sortField,
-    sortOrder,
-  } = req.query;
+  const limit = parseInt(req.query.limit as string) || 10;
+  const page = parseInt(req.query.page as string) || 1;
+  const searchTerm = (req.query.searchTerm as string) || "";
+  const startDate = (req.query.startDate as string) || null;
+  const endDate = (req.query.endDate as string) || null;
 
   try {
     const { transactions, total }: TransactionsResponse =
@@ -134,9 +130,7 @@ export const getAllTransactions = async (req: Request, res: Response) => {
         Number(limit),
         startDate as string | undefined,
         endDate as string | undefined,
-        searchTerm as string | undefined,
-        sortField as string | undefined,
-        sortOrder as string | undefined
+        searchTerm as string | undefined
       );
     const totalPages = Math.ceil(total / Number(limit));
     return res.status(200).json(
