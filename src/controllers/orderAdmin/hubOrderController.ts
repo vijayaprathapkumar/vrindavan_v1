@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import {
   getAllHubOrders,
   getHubOrderSummary,
+  getOrdersGroupedByRoute,
 } from "../../models/orderAdmin/hubOrderModel";
 import { createResponse } from "../../utils/responseHandler";
 
@@ -76,6 +77,40 @@ export const getHubOrderSummaryController = async (req: Request, res: Response):
   } catch (error) {
     res.status(500).json(
       createResponse(500, "Error fetching hub order summary", {
+        error: (error as Error).message,
+      })
+    );
+  }
+};
+
+
+export const getOrdersByRoute = async (req: Request, res: Response): Promise<void> => {
+  const routeId = parseInt(req.params.routeId);
+  const page = parseInt(req.query.page as string) || 1;
+  const limit = parseInt(req.query.limit as string) || 10;
+
+  if (isNaN(routeId)) {
+    res.status(400).json(createResponse(400, "Invalid route ID"));
+    return;
+  }
+
+  try {
+    const { orders, total } = await getOrdersGroupedByRoute(routeId, page, limit);
+
+    const totalPages = Math.ceil(total / limit);
+
+    res.status(200).json(
+      createResponse(200, "Orders fetched successfully", {
+        orders,
+        totalCount: total,
+        currentPage: page,
+        limit,
+        totalPages,
+      })
+    );
+  } catch (error) {
+    res.status(500).json(
+      createResponse(500, "Error fetching orders", {
         error: (error as Error).message,
       })
     );

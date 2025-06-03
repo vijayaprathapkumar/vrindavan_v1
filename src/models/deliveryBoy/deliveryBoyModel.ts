@@ -2,7 +2,7 @@ import { db } from "../../config/databaseConnection";
 import { RowDataPacket, OkPacket } from "mysql2";
 export const getAllDeliveryBoysWithLocalities = async (
   limit: number,
-  offset: number,
+  page: number,
   searchTerm: string,
   sortField: string,
   sortOrder: string
@@ -40,6 +40,8 @@ export const getAllDeliveryBoysWithLocalities = async (
   }>[];
   totalCount: number;
 }> => {
+   const offset = (page - 1) * limit;
+
   const activeFilter =
     searchTerm.toLowerCase() === "active"
       ? "AND db.active = 1"
@@ -354,3 +356,4 @@ export const deleteLocalitiesByDeliveryBoyId = async (
     connection.release();
   }
 };
+

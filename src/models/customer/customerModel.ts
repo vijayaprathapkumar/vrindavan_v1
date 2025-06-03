@@ -12,7 +12,8 @@ export const getAllCustomers = async (
 ): Promise<{ customers: any[]; total: number; statusCount: any }> => {
   const offset = (page - 1) * limit;
 
-  let query = `
+  // Base query for both main data and count
+  let baseQuery = `
     WITH RankedUsers AS (
       SELECT 
         u.id AS user_id,
@@ -44,7 +45,7 @@ export const getAllCustomers = async (
         da.complete_address,
         da.is_approve,
         da.is_default,
-        da.locality_id AS da_locality_id, -- Renamed to avoid conflict
+        da.locality_id AS da_locality_id,
         da.created_at AS address_created_at,
         da.updated_at AS address_updated_at,
         l.id AS locality_id,
@@ -72,38 +73,49 @@ export const getAllCustomers = async (
         locality_delivery_boys lb ON lb.locality_id = da.locality_id
       LEFT JOIN 
         delivery_boys db ON lb.delivery_boy_id = db.id
+      WHERE 1=1
+  `;
+
+  const params: any[] = [];
+  const countParams: any[] = [];
+
+  // Apply filters to both queries
+  if (searchTerm) {
+    const searchValue = `%${searchTerm}%`;
+    baseQuery += ` AND (u.name LIKE ? OR u.email LIKE ? OR u.phone LIKE ? OR u.id LIKE ? `;
+
+    if (searchTerm.toLowerCase() === "active") {
+      baseQuery += ` OR u.status = 1 `;
+    } else if (searchTerm.toLowerCase() === "inactive") {
+      baseQuery += ` OR u.status = 0 `;
+    }
+
+    baseQuery += `) `;
+    params.push(searchValue, searchValue, searchValue, searchValue);
+    countParams.push(...params.slice(-4)); // Add same params to count query
+  }
+
+  if (locality && locality !== "All") {
+    baseQuery += ` AND l.id = ? `;
+    params.push(parseInt(locality));
+    countParams.push(parseInt(locality));
+  }
+
+  if (status && status !== "All") {
+    baseQuery += ` AND u.status = ? `;
+    params.push(status);
+    countParams.push(status);
+  }
+
+  // Main data query
+  let dataQuery = baseQuery + `
     )
     SELECT *
     FROM RankedUsers
     WHERE row_num = 1
   `;
 
-  const params: any[] = [];
-
-  if (searchTerm) {
-    const searchValue = `%${searchTerm}%`;
-    query += ` AND (user_name LIKE ? OR email LIKE ? OR phone LIKE ? OR user_id LIKE ? `;
-
-    if (searchTerm.toLowerCase() === "active") {
-      query += ` OR status = 1 `;
-    } else if (searchTerm.toLowerCase() === "inactive") {
-      query += ` OR status = 0 `;
-    }
-
-    query += `) `;
-    params.push(searchValue, searchValue, searchValue, searchValue);
-  }
-
-  if (locality && locality !== "All") {
-    query += ` AND locality_id = ? `;
-    params.push(parseInt(locality));
-  }
-
-  if (status && status !== "All") {
-    query += ` AND status = ? `;
-    params.push(status);
-  }
-
+  // Apply sorting only to data query
   const validSortFields: { [key: string]: string } = {
     user_id: "user_id",
     user_name: "user_name",
@@ -116,33 +128,39 @@ export const getAllCustomers = async (
   if (sortField && validSortFields[sortField]) {
     const order = sortOrder === "desc" ? "desc" : "asc";
     if (sortField === "status") {
-      query += ` ORDER BY CAST(${validSortFields[sortField]} AS CHAR) ${order}`;
+      dataQuery += ` ORDER BY CAST(${validSortFields[sortField]} AS CHAR) ${order}`;
     } else {
-      query += ` ORDER BY ${validSortFields[sortField]} ${order}`;
+      dataQuery += ` ORDER BY ${validSortFields[sortField]} ${order}`;
     }
   } else {
-    query += " ORDER BY user_id desc";
+    dataQuery += " ORDER BY user_id desc";
   }
 
-  query += ` LIMIT ? OFFSET ?;`;
-
+  dataQuery += ` LIMIT ? OFFSET ?;`;
   params.push(limit, offset);
 
-  const [rows] = await db.promise().query<RowDataPacket[]>(query, params);
+  // Execute main query
+  const [rows] = await db.promise().query<RowDataPacket[]>(dataQuery, params);
 
-  const totalCountQuery = `
-    SELECT COUNT(*) as total 
-    FROM (
-      SELECT DISTINCT u.id
-      FROM users u
-      LEFT JOIN delivery_addresses da ON u.id = da.user_id
-    ) UniqueUsers;
+  // Count query - uses the same filters but without pagination
+  const countQuery = `
+    SELECT COUNT(DISTINCT u.id) as total
+    FROM users u
+    LEFT JOIN delivery_addresses da ON u.id = da.user_id
+    LEFT JOIN localities l ON da.locality_id = l.id
+    WHERE 1=1
+    ${searchTerm ? 'AND (u.name LIKE ? OR u.email LIKE ? OR u.phone LIKE ? OR u.id LIKE ?' + 
+      (searchTerm.toLowerCase() === "active" ? ' OR u.status = 1' : '') +
+      (searchTerm.toLowerCase() === "inactive" ? ' OR u.status = 0' : '') + ')' : ''}
+    ${locality && locality !== "All" ? 'AND l.id = ?' : ''}
+    ${status && status !== "All" ? 'AND u.status = ?' : ''}
   `;
 
   const [[totalCount]] = await db
     .promise()
-    .query<RowDataPacket[]>(totalCountQuery);
+    .query<RowDataPacket[]>(countQuery, countParams);
 
+  // Status count query remains the same
   const statusCountQuery = `
     SELECT 
       SUM(status = '0') AS status_0_count,

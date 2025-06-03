@@ -86,7 +86,7 @@ export const getAllHubOrders = async (
       f.id, f.name, f.unit, f.product_type_id, f.weightage, f.price, f.discount_price,
       o.delivery_boy_id, db.name,  o.order_date,
       pt.name, pt.weightage
-    ORDER BY latest_order_id DESC
+ORDER BY product_type_weightage ASC  
     LIMIT ? OFFSET ?
   `;
 
@@ -210,4 +210,58 @@ export const getHubOrderSummary = async (
     .query<RowDataPacket[]>(countQuery, queryParams);
 
   return { summaryData: summaryRows, total };
+};
+
+export const getHubsByRouteId = async (routeId: number): Promise<RowDataPacket[]> => {
+  const [rows] = await db.promise().query<RowDataPacket[]>(
+    "SELECT id, name FROM hubs WHERE route_id = ?",
+    [routeId]
+  );
+  return rows;
+};
+
+export const getOrdersGroupedByRoute = async (
+  routeId: number,
+  page: number = 1,
+  limit: number = 10
+): Promise<{ orders: RowDataPacket[]; total: number }> => {
+  const offset = (page - 1) * limit;
+
+  const dataQuery = `
+    SELECT 
+      tr.id AS route_id,
+      tr.name AS route_name,
+      h.id AS hub_id,
+      h.name AS hub_name,
+      COUNT(DISTINCT o.id) AS order_count,
+      MIN(o.order_date) AS earliest_order_date,
+      MAX(o.order_date) AS latest_order_date
+    FROM orders o
+    JOIN hubs h ON o.hub_id = h.id
+    JOIN truck_routes tr ON h.route_id = tr.id
+    WHERE tr.id = ?
+    GROUP BY tr.id, tr.name, h.id, h.name
+    ORDER BY latest_order_date DESC
+    LIMIT ? OFFSET ?
+  `;
+
+  const countQuery = `
+    SELECT COUNT(DISTINCT h.id) AS total
+    FROM orders o
+    JOIN hubs h ON o.hub_id = h.id
+    JOIN truck_routes tr ON h.route_id = tr.id
+    WHERE tr.id = ?
+  `;
+
+  const [rows] = await db.promise().query<RowDataPacket[]>(
+    dataQuery, 
+    [routeId, limit, offset]
+  );
+  
+  const [[{ total }]] = await db.promise().query<RowDataPacket[]>(
+    countQuery, 
+    [routeId]
+  );
+
+  return { orders: rows, total };
 };

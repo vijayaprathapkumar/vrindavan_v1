@@ -136,7 +136,10 @@ export const fetchAllTransactions = (
   sortField?: string,
   sortOrder?: string
 ): Promise<TransactionsResponse> => {
-  const offset = (page - 1) * limit;
+  // Ensure valid fallback values
+  const safePage = Number.isFinite(page) && page > 0 ? page : 1;
+  const safeLimit = Number.isFinite(limit) && limit > 0 ? limit : 20;
+  const offset = (safePage - 1) * safeLimit;
 
   const whereClauses: string[] = [];
   const queryParams: (string | number)[] = [];
@@ -145,12 +148,11 @@ export const fetchAllTransactions = (
     whereClauses.push("wt.updated_at >= ?");
     queryParams.push(`${startDate} 00:00:00`);
   }
-  
+
   if (endDate) {
     whereClauses.push("wt.updated_at <= ?");
     queryParams.push(`${endDate} 23:59:59`);
   }
-  
 
   if (searchTerm) {
     let formattedSearchTerm = `%${searchTerm}%`;
@@ -214,7 +216,7 @@ export const fetchAllTransactions = (
       LIMIT ? OFFSET ?
     `;
 
-  queryParams.push(limit, offset);
+  queryParams.push(safeLimit, offset);
 
   return new Promise((resolve, reject) => {
     db.query(query, queryParams, (err, results) => {
@@ -241,6 +243,7 @@ export const fetchAllTransactions = (
     });
   });
 };
+
 
 export const insertWalletLog = (log: any): Promise<void> => {
   const query = `
