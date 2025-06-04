@@ -88,7 +88,6 @@ export async function handleNextDayOrdersDemo() {
 
 // Create an order based on subscription
 export const createOrder = async (userId, cartItems) => {
-  console.log("Creating order for user:", userId);
 
   let totalPrice = 0;
   let orderId;

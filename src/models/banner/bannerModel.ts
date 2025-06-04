@@ -350,8 +350,6 @@ export const createBanner = async (bannerData: {
     status,
   } = bannerData;
 
-  console.log('bannerData', bannerData);
-
   // Convert food_id array to comma-separated string, or null if empty
   const foodIdString = food_id && food_id.length > 0 ? food_id.join(',') : null;
 
@@ -376,7 +374,6 @@ export const createBanner = async (bannerData: {
 
   try {
     const [result]: [OkPacket, any] = await db.promise().query(sql, values);
-    console.log('result', result);
     
     return result.insertId;
   } catch (error) {

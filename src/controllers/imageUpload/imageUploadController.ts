@@ -2,7 +2,8 @@ import { Request, Response } from "express";
 import { db } from "../../config/databaseConnection";
 import { v4 as uuidv4 } from "uuid";
 import path from "path";
-import AWS from "aws-sdk";
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+
 import dotenv from "dotenv";
 import multer from "multer";
 import { OkPacket } from "mysql2";
@@ -10,10 +11,12 @@ import { OkPacket } from "mysql2";
 dotenv.config();
 
 // AWS S3 configuration
-const s3 = new AWS.S3({
+const s3 = new S3Client({
   region: process.env.AWS_REGION,
-  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID || "",
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || "",
+  },
 });
 
 // Multer configuration to store files in memory
@@ -30,14 +33,10 @@ export const mediaConfig = {
 };
 
 // Image upload controller
-export const imageUpload = async (
-  req: Request,
-  res: Response
-): Promise<Response<any>> => {
+export const imageUpload = async (req: Request, res: Response) => {
   try {
     const { model_type } = req.body;
     const file = req.file;
-
     if (!file || !model_type) {
       return res
         .status(400)
@@ -47,21 +46,20 @@ export const imageUpload = async (
     const folderName = mediaConfig[model_type] || "default";
     const fileKey = `${folderName}/${file.originalname}`;
 
-    // Upload file to S3
-    const uploadPromise = s3
-    .upload({
+    const command = new PutObjectCommand({
       Bucket: "media-image-upload",
       Key: fileKey,
       Body: file.buffer,
       ContentType: file.mimetype,
-    })
-    .promise();
-    
-    const uploadResult = await uploadPromise;
+    });
+
+    await s3.send(command);
 
     return res.status(201).json({
       message: "Image uploaded successfully",
-      original_url: uploadResult.Location,
+      original_url: `https://${"media-image-upload"}.s3.${
+        process.env.AWS_REGION
+      }.amazonaws.com/${fileKey}`,
       file_name: file.originalname,
       mime_type: file.mimetype,
       size: file.size,
@@ -116,9 +114,8 @@ export const updateMediaRecord = async (
   media_id: string,
   file_name: string,
   mime_type: string,
-  size: number,
+  size: number
 ): Promise<void> => {
-
   const query = `
      UPDATE media
      SET 
@@ -131,7 +128,14 @@ export const updateMediaRecord = async (
      WHERE id = ?
   `;
 
-  const params = [ path.parse(file_name).name,file_name, mime_type, size, "public1", media_id];
+  const params = [
+    path.parse(file_name).name,
+    file_name,
+    mime_type,
+    size,
+    "public1",
+    media_id,
+  ];
 
   try {
     const [result] = await db.promise().query<OkPacket>(query, params);
