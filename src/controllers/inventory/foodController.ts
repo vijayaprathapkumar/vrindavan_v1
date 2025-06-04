@@ -198,9 +198,6 @@ export const modifyStock = async (
 ): Promise<Response> => {
   try {
     const { foodId, amount, description, type } = req.body;
-    console.log(
-      `foodId :${foodId},amount :${amount},description :${description},type :${type}`
-    );
 
     if (!["add", "sub"].includes(type)) {
       return res.status(400).json({
@@ -210,7 +207,6 @@ export const modifyStock = async (
     }
 
     const amountChange = type === "add" ? amount : -Math.abs(amount);
-    console.log("amountChange", amountChange);
 
     await updateStock(foodId, amountChange, type, description);
 

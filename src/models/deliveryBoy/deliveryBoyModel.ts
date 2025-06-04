@@ -340,7 +340,6 @@ export const deleteLocalitiesByDeliveryBoyId = async (
   id: number
 ): Promise<void> => {
   const connection = await db.promise().getConnection();
-  console.log("deliveryBoyId", id);
 
   try {
     await connection.beginTransaction();

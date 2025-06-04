@@ -3,12 +3,11 @@ import { db } from "../../config/databaseConnection";
 import cron from "node-cron";
 import moment from "moment";
 
-
 export const handlePaymentsOrders = async (placeOrderData: any) => {
-  console.log('placeOrderData',placeOrderData);
-  
-  const { user_id, food_price, quantity, order_id, status, food_name, unit } = placeOrderData;
-  const totalOrderValue = parseFloat(food_price || "0") * parseInt(quantity || "0");
+  const { user_id, food_price, quantity, order_id, status, food_name, unit } =
+    placeOrderData;
+  const totalOrderValue =
+    parseFloat(food_price || "0") * parseInt(quantity || "0");
 
   // Start transaction
   await db.promise().query("START TRANSACTION");
@@ -17,13 +16,18 @@ export const handlePaymentsOrders = async (placeOrderData: any) => {
     // 1. Verify wallet balance first
     const [walletRows]: [RowDataPacket[], any] = await db
       .promise()
-      .query(`SELECT balance FROM wallet_balances WHERE user_id = ? FOR UPDATE`, [user_id]);
+      .query(
+        `SELECT balance FROM wallet_balances WHERE user_id = ? FOR UPDATE`,
+        [user_id]
+      );
 
     const currentBalance = parseFloat(walletRows[0]?.balance || "0");
-    
+
     if (currentBalance < totalOrderValue) {
       await db.promise().query("ROLLBACK");
-      throw new Error(`Insufficient wallet balance. Current: ${currentBalance}, Required: ${totalOrderValue}`);
+      throw new Error(
+        `Insufficient wallet balance. Current: ${currentBalance}, Required: ${totalOrderValue}`
+      );
     }
 
     // 2. Create payment record
@@ -69,9 +73,11 @@ export const handlePaymentsOrders = async (placeOrderData: any) => {
     }
 
     // 5. Log wallet transaction
-    const afterBalance = parseFloat((currentBalance - totalOrderValue).toFixed(2));
+    const afterBalance = parseFloat(
+      (currentBalance - totalOrderValue).toFixed(2)
+    );
     const transactionDescription = `₹${totalOrderValue} deducted for ${food_name} ${unit} x ${quantity}. Balance ₹${currentBalance} → ₹${afterBalance}`;
-    
+
     await logWalletTransaction(
       user_id,
       order_id,
@@ -116,15 +122,17 @@ const logWalletTransaction = async (
   `;
 
   try {
-    await db.promise().query(walletLogSql, [
-      userId,
-      orderId,
-      beforeBalance,
-      amount,
-      afterBalance,
-      "deduction",
-      description,
-    ]);
+    await db
+      .promise()
+      .query(walletLogSql, [
+        userId,
+        orderId,
+        beforeBalance,
+        amount,
+        afterBalance,
+        "deduction",
+        description,
+      ]);
   } catch (error) {
     console.error("Error logging wallet transaction:", error);
     throw error;
@@ -152,7 +160,7 @@ export const getAllPlaceOrdersUsers = async (currentDate: string) => {
       DATE(o.order_date) = ?
       AND o.payment_id IS NULL
   `;
-  
+
   try {
     const [placeOrderRows]: [RowDataPacket[], any] = await db
       .promise()
@@ -189,7 +197,9 @@ export const processTodayOrderPayments = async (currentDate: string) => {
     }
 
     console.timeEnd("paymentProcessing");
-    console.log(`Payments processed: ${processedCount}, Skipped: ${skippedCount}`);
+    console.log(
+      `Payments processed: ${processedCount}, Skipped: ${skippedCount}`
+    );
     return { processed: processedCount, skipped: skippedCount };
   } catch (error) {
     console.error("Error processing today's orders:", error);
@@ -205,11 +215,14 @@ export const everyDayPaymentProcessJob = () => {
     try {
       const currentDate = new Date();
       const formattedDate = currentDate.toISOString().split("T")[0];
-      
+
       await processTodayOrderPayments(formattedDate);
 
       const jobEndTime = moment().format("YYYY-MM-DD HH:mm:ss");
-      const jobDuration = moment(jobEndTime).diff(moment(jobStartTime), "seconds");
+      const jobDuration = moment(jobEndTime).diff(
+        moment(jobStartTime),
+        "seconds"
+      );
 
       const logMessage = `Subscription orders bill placed on ${formattedDate}`;
       const cronLogEntry = `Job Start: ${jobStartTime}, Job End: ${jobEndTime}, Duration: ${jobDuration}s, Message: ${logMessage}`;
@@ -220,13 +233,20 @@ export const everyDayPaymentProcessJob = () => {
         [formattedDate, cronLogEntry]
       );
 
-      console.log(`Payment processing job completed at ${jobEndTime}. Duration: ${jobDuration}s`);
+      console.log(
+        `Payment processing job completed at ${jobEndTime}. Duration: ${jobDuration}s`
+      );
     } catch (error) {
       console.error("Payment processing job failed:", error);
-      
+
       // Log failure with the same format
-      const errorLogEntry = `Job Start: ${jobStartTime}, Job End: ${moment().format("YYYY-MM-DD HH:mm:ss")}, Duration: ${moment().diff(moment(jobStartTime), "seconds")}s, Message: Payment processing failed. Error: ${error.message}`;
-      
+      const errorLogEntry = `Job Start: ${jobStartTime}, Job End: ${moment().format(
+        "YYYY-MM-DD HH:mm:ss"
+      )}, Duration: ${moment().diff(
+        moment(jobStartTime),
+        "seconds"
+      )}s, Message: Payment processing failed. Error: ${error.message}`;
+
       await db.promise().query(
         `INSERT INTO cron_logs (log_date, cron_logs, created_at, updated_at)
          VALUES (NOW(), ?, NOW(), NOW())`,
