@@ -115,7 +115,10 @@ ORDER BY product_type_weightage ASC
 
   const [rows] = await db
     .promise()
-    .query<RowDataPacket[]>(dataQuery, [...queryParams, limit, offset]);
+    .query<RowDataPacket[]>(dataQuery, [
+      ...queryParams,
+      ...(limit > 0 ? [limit, offset] : []),
+    ]);
   const [[{ total }]] = await db
     .promise()
     .query<RowDataPacket[]>(countQuery, queryParams);
@@ -164,6 +167,8 @@ export const getHubOrderSummary = async (
     queryParams.push(term, term, term, term);
   }
 
+  const paginationClause = limit > 0 ? "LIMIT ? OFFSET ?" : "";
+
   const summaryQuery = `
     SELECT
       f.id AS food_id,
@@ -197,7 +202,7 @@ export const getHubOrderSummary = async (
       pt.name, pt.weightage,
       f.weightage, f.price, f.discount_price
       ORDER BY product_type_weightage ASC 
-    LIMIT ? OFFSET ?
+   ${paginationClause}
   `;
 
   const countQuery = `
@@ -214,7 +219,10 @@ export const getHubOrderSummary = async (
 
   const [summaryRows] = await db
     .promise()
-    .query<RowDataPacket[]>(summaryQuery, [...queryParams, limit, offset]);
+    .query<RowDataPacket[]>(summaryQuery, [
+      ...queryParams,
+      ...(limit > 0 ? [limit, offset] : []),
+    ]);
   const [[{ total }]] = await db
     .promise()
     .query<RowDataPacket[]>(countQuery, queryParams);

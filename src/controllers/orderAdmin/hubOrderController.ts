@@ -10,7 +10,7 @@ export const getHubOrders = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-  const limit = parseInt(req.query.limit as string) || 10;
+  const limit = req.query.limit === 'All' ? 0 : parseInt(req.query.limit as string) || 10;
   const page = parseInt(req.query.page as string) || 1;
 
   const routeId = req.query.route_id
@@ -65,7 +65,7 @@ export const getHubOrderSummaryController = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-  const limit = parseInt(req.query.limit as string) || 10;
+  const limit = req.query.limit === 'All' ? 0 : parseInt(req.query.limit as string) || 10;
   const page = parseInt(req.query.page as string) || 1;
 
   const hubId = req.query.hub_id ? parseInt(req.query.hub_id as string) : null;
