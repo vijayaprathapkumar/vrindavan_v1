@@ -46,7 +46,8 @@ export const getWalletBalanceWithOutUserId = async (
   res: Response
 ) => {
   try {
-    const limit = parseInt(req.query.limit as string) || 10;
+    const limit =
+      req.query.limit === "All" ? 0 : parseInt(req.query.limit as string) || 10;
     const page = parseInt(req.query.page as string) || 1;
     const startDate = req.query.startDate as string | undefined;
     const endDate = req.query.endDate as string | undefined;

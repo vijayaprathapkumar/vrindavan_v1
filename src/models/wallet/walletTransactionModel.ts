@@ -25,7 +25,7 @@ export const insertWalletTransaction = (
   transaction: WalletTransaction
 ): Promise<void> => {
   const generateTransactionId = (): string => {
-    const prefix = "TXN";
+    const prefix = "pay_";
     const userId = transaction.user_id;
     return `${prefix}${userId}`;
   };

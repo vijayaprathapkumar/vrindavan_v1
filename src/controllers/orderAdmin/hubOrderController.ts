@@ -68,6 +68,8 @@ export const getHubOrderSummaryController = async (
   const limit = parseInt(req.query.limit as string) || 10;
   const page = parseInt(req.query.page as string) || 1;
 
+  const hubId = req.query.hub_id ? parseInt(req.query.hub_id as string) : null;
+
   const routeId =
     req.query.routeId !== "All" ? Number(req.query.routeId) : null;
   const productId =
@@ -90,7 +92,8 @@ export const getHubOrderSummaryController = async (
       productId,
       startDate,
       endDate,
-      searchTerm
+      searchTerm,
+      hubId
     );
 
     const totalPages = Math.ceil(total / limit);
