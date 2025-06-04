@@ -15,7 +15,7 @@ export const getCustomers = async (
 ): Promise<void> => {
   const { locality, status, searchTerm, sortField, sortOrder } = req.query;
 
-  const limit = parseInt(req.query.limit as string) || 10;
+  const limit = req.query.limit === 'All' ? 0 : parseInt(req.query.limit as string) || 10;
   const page = parseInt(req.query.page as string) || 1;
 
   try {

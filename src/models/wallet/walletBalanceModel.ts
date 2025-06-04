@@ -60,7 +60,7 @@ export const getWalletBalanceByWithOutUserId = async (
     LEFT JOIN 
       localities l ON da.locality_id = l.id
     WHERE 1=1
-    AND wb.balance < 200  -- Added condition to filter balances below 200
+    AND wb.balance < 200
   `;
 
   const params: any[] = [];
@@ -69,6 +69,7 @@ export const getWalletBalanceByWithOutUserId = async (
     baseQuery += ` AND wb.created_at >= ?`;
     params.push(`${startDate} 00:00:00`);
   }
+
   if (endDate) {
     baseQuery += ` AND wb.created_at <= ?`;
     params.push(`${endDate} 23:59:59`);
@@ -76,8 +77,10 @@ export const getWalletBalanceByWithOutUserId = async (
 
   if (searchTerm) {
     baseQuery += ` 
-      AND (u.name LIKE ? OR u.email LIKE ? OR u.phone LIKE ? 
-      OR l.name LIKE ? OR da.complete_address LIKE ? OR wb.balance LIKE ?)`;
+      AND (
+        u.name LIKE ? OR u.email LIKE ? OR u.phone LIKE ? 
+        OR l.name LIKE ? OR da.complete_address LIKE ? OR wb.balance LIKE ?
+      )`;
     params.push(
       `%${searchTerm}%`,
       `%${searchTerm}%`,
@@ -88,7 +91,6 @@ export const getWalletBalanceByWithOutUserId = async (
     );
   }
 
-  // Handle sorting
   const allowedSortFields: Record<string, string> = {
     user_name: "u.name",
     email: "u.email",
@@ -103,14 +105,12 @@ export const getWalletBalanceByWithOutUserId = async (
     const validSortOrder = sortOrder === "desc" ? "DESC" : "ASC";
     orderByClause = ` ORDER BY ${allowedSortFields[sortField]} ${validSortOrder}`;
   } else {
-    orderByClause = ` ORDER BY wb.created_at DESC`; // Default sorting
+    orderByClause = ` ORDER BY wb.created_at DESC`;
   }
 
-  // Query for total count
   const countQuery = `SELECT COUNT(*) as totalCount ${baseQuery}`;
 
-  // Query for paginated data
-  const dataQuery = `
+  let dataQuery = `
     SELECT 
       wb.*,
       u.id AS user_id, u.name AS user_name, u.email, u.phone,
@@ -121,16 +121,18 @@ export const getWalletBalanceByWithOutUserId = async (
       l.google_address, l.latitude AS locality_latitude, l.longitude AS locality_longitude, l.city
     ${baseQuery}
     ${orderByClause}
-    LIMIT ? OFFSET ?
   `;
 
-  params.push(limit, offset);
+  if (limit > 0) {
+    dataQuery += ` LIMIT ? OFFSET ?`;
+    params.push(limit, offset);
+  }
 
   try {
     // Execute count query
     const [countResult]: [RowDataPacket[], any] = await db
       .promise()
-      .query(countQuery, params.slice(0, -2)); // Exclude limit and offset for count query
+      .query(countQuery, limit > 0 ? params.slice(0, -2) : params);
     const totalCount = countResult[0].totalCount;
 
     // Execute data query
@@ -139,8 +141,7 @@ export const getWalletBalanceByWithOutUserId = async (
       .query(dataQuery, params);
 
     return {
-      walletBalances:
-        walletBalances.length > 0 ? (walletBalances as WalletBalance[]) : null,
+      walletBalances: walletBalances.length > 0 ? (walletBalances as WalletBalance[]) : null,
       totalCount,
     };
   } catch (error) {
@@ -148,6 +149,7 @@ export const getWalletBalanceByWithOutUserId = async (
     throw new Error("Failed to retrieve wallet balance");
   }
 };
+
 
 export interface WalletLog {
   id: number;
@@ -354,8 +356,6 @@ export const getWalletLogsWithFoodDetails = async (
   }
 };
 
-
-
 export const getWalletLogsWithFoodDetailsAdmin = async (
   userId: string,
   page: number,
@@ -407,11 +407,11 @@ export const getWalletLogsWithFoodDetailsAdmin = async (
 
     // 3. Get all order IDs from the wallet logs
     const orderIds = walletLogsRows
-      .map(row => row.order_id)
-      .filter(id => id !== null);
+      .map((row) => row.order_id)
+      .filter((id) => id !== null);
 
     let foodOrders = [];
-    
+
     // 4. Only query for food orders if we have order IDs
     if (orderIds.length > 0) {
       const foodOrdersQuery = `
@@ -475,11 +475,11 @@ export const getWalletLogsWithFoodDetailsAdmin = async (
         LEFT JOIN media m ON f.id = m.model_id AND m.model_type = 'App\\\\Models\\\\Food'
         WHERE fo.order_id IN (?);
       `;
-      
+
       const [foodOrderRows]: [RowDataPacket[], any] = await db
         .promise()
         .query(foodOrdersQuery, [orderIds]);
-      
+
       foodOrders = foodOrderRows;
     }
 
@@ -504,8 +504,8 @@ export const getWalletLogsWithFoodDetailsAdmin = async (
       const istDateOnly = `${day}-${month}-${year}`;
 
       const foodItems = foodOrdersByOrderId[row.order_id] || [];
-      
-      const formattedFoodItems = foodItems.map(foodItem => ({
+
+      const formattedFoodItems = foodItems.map((foodItem) => ({
         food_order_id: foodItem.food_order_id,
         price: parseFloat(foodItem.price),
         quantity: foodItem.quantity,
@@ -559,7 +559,7 @@ export const getWalletLogsWithFoodDetailsAdmin = async (
           status: foodItem.food_status,
           created_at: foodItem.food_created_at,
           updated_at: foodItem.food_updated_at,
-        }
+        },
       }));
 
       return {
@@ -568,14 +568,16 @@ export const getWalletLogsWithFoodDetailsAdmin = async (
         order_id: row.order_id,
         order_date: istDateOnly,
         order_item_id: row.order_item_id,
-        before_balance: row.before_balance ? parseFloat(row.before_balance) : null,
+        before_balance: row.before_balance
+          ? parseFloat(row.before_balance)
+          : null,
         amount: parseFloat(row.amount),
         after_balance: row.after_balance ? parseFloat(row.after_balance) : null,
         wallet_type: row.wallet_type,
         description: row.description,
         created_at: row.created_at,
         updated_at: row.updated_at,
-        food_items: formattedFoodItems
+        food_items: formattedFoodItems,
       };
     });
 

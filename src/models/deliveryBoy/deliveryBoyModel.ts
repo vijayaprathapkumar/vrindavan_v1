@@ -24,6 +24,7 @@ export const getAllDeliveryBoysWithLocalities = async (
     delivery_boy_created_at: string;
     delivery_boy_updated_at: string;
     localities: Array<{
+      localityDeliveryBoysId: number;
       locality_id: number;
       route_id: number | null;
       hub_id: number | null;
@@ -36,11 +37,11 @@ export const getAllDeliveryBoysWithLocalities = async (
       locality_active: boolean;
       locality_created_at: string;
       locality_updated_at: string;
-    }>[];
-  }>[];
+    }>;
+  }>;
   totalCount: number;
 }> => {
-   const offset = (page - 1) * limit;
+  const offset = (page - 1) * limit;
 
   const activeFilter =
     searchTerm.toLowerCase() === "active"
@@ -87,8 +88,10 @@ export const getAllDeliveryBoysWithLocalities = async (
       db.longitudePickup,
       db.created_at AS delivery_boy_created_at,
       db.updated_at AS delivery_boy_updated_at,
+
       ldb.id AS delivery_boy_locality_id,
       ldb.locality_id,
+
       l.id AS locality_id,
       l.route_id,
       l.hub_id,
@@ -101,16 +104,19 @@ export const getAllDeliveryBoysWithLocalities = async (
       l.active AS locality_active,
       l.created_at AS locality_created_at,
       l.updated_at AS locality_updated_at
+
     FROM (
-      SELECT DISTINCT db.id, db.created_at
+      SELECT db.id
       FROM delivery_boys db
       ${searchCondition} ${activeFilter}
-      ORDER BY db.created_at DESC
+      ORDER BY ${sortColumn} ${validSortOrder}
       LIMIT ? OFFSET ?
     ) AS limited_db
-    LEFT JOIN delivery_boys db ON limited_db.id = db.id
-    LEFT JOIN locality_delivery_boys ldb ON db.id = ldb.delivery_boy_id
-    LEFT JOIN localities l ON ldb.locality_id = l.id
+
+    INNER JOIN delivery_boys db ON db.id = limited_db.id
+    LEFT JOIN locality_delivery_boys ldb ON ldb.delivery_boy_id = db.user_id
+    LEFT JOIN localities l ON l.id = ldb.locality_id
+
     ORDER BY ${sortColumn} ${validSortOrder}
   `,
     [...searchParams, limit, offset]
@@ -163,7 +169,6 @@ export const getAllDeliveryBoysWithLocalities = async (
 
   const deliveryBoys = Array.from(deliveryBoysMap.values());
 
-  // Query to get the total count of distinct delivery_boy_id
   const [[totalCountRow]] = await db.promise().query<RowDataPacket[]>(
     `
     SELECT COUNT(DISTINCT db.id) as totalCount
@@ -173,10 +178,12 @@ export const getAllDeliveryBoysWithLocalities = async (
     searchParams
   );
 
-  const totalCount = totalCountRow.totalCount;
-
-  return { deliveryBoys, totalCount };
+  return {
+    deliveryBoys,
+    totalCount: totalCountRow.totalCount,
+  };
 };
+
 
 export interface DeliveryBoyData {
   userId: number;

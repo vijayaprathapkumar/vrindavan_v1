@@ -136,8 +136,11 @@ export const getAllCustomers = async (
     dataQuery += " ORDER BY user_id desc";
   }
 
-  dataQuery += ` LIMIT ? OFFSET ?;`;
+  if (limit > 0) {
+  dataQuery += ` LIMIT ? OFFSET ?`;
   params.push(limit, offset);
+}
+ 
 
   // Execute main query
   const [rows] = await db.promise().query<RowDataPacket[]>(dataQuery, params);

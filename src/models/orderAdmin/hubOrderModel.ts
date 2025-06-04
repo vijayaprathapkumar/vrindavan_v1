@@ -43,6 +43,8 @@ export const getAllHubOrders = async (
     queryParams.push(term, term, term, term);
   }
 
+  const paginationClause = limit > 0 ? "LIMIT ? OFFSET ?" : "";
+
   // Main query with grouped data including delivery_boy_id
   const dataQuery = `
     SELECT
@@ -87,7 +89,7 @@ export const getAllHubOrders = async (
       o.delivery_boy_id, db.name,  o.order_date,
       pt.name, pt.weightage
 ORDER BY product_type_weightage ASC  
-    LIMIT ? OFFSET ?
+  ${paginationClause}
   `;
 
   // Count query for ALL individual food orders (not grouped)
@@ -120,6 +122,7 @@ ORDER BY product_type_weightage ASC
 
   return { hubOrders: rows, total };
 };
+
 export const getHubOrderSummary = async (
   page: number,
   limit: number,
@@ -127,7 +130,8 @@ export const getHubOrderSummary = async (
   productId?: number | null,
   startDate?: Date | null,
   endDate?: Date | null,
-  searchTerm?: string | null
+  searchTerm?: string | null,
+  hubId?: number | null
 ): Promise<{ summaryData: RowDataPacket[]; total: number }> => {
   const offset = (page - 1) * limit;
   let conditions = "WHERE 1=1";
@@ -141,6 +145,11 @@ export const getHubOrderSummary = async (
   if (productId) {
     conditions += " AND f.id = ?";
     queryParams.push(productId);
+  }
+
+  if (hubId) {
+    conditions += " AND o.hub_id = ?";
+    queryParams.push(hubId);
   }
 
   if (startDate && endDate) {
@@ -187,6 +196,7 @@ export const getHubOrderSummary = async (
       f.id, f.name, f.unit, f.product_type_id, 
       pt.name, pt.weightage,
       f.weightage, f.price, f.discount_price
+      ORDER BY product_type_weightage ASC 
     LIMIT ? OFFSET ?
   `;
 
@@ -212,11 +222,14 @@ export const getHubOrderSummary = async (
   return { summaryData: summaryRows, total };
 };
 
-export const getHubsByRouteId = async (routeId: number): Promise<RowDataPacket[]> => {
-  const [rows] = await db.promise().query<RowDataPacket[]>(
-    "SELECT id, name FROM hubs WHERE route_id = ?",
-    [routeId]
-  );
+export const getHubsByRouteId = async (
+  routeId: number
+): Promise<RowDataPacket[]> => {
+  const [rows] = await db
+    .promise()
+    .query<RowDataPacket[]>("SELECT id, name FROM hubs WHERE route_id = ?", [
+      routeId,
+    ]);
   return rows;
 };
 
@@ -242,22 +255,19 @@ export const getOrdersGroupedByRoute = async (
   `;
 
   const countQuery = `
-    SELECT COUNT(DISTINCT h.id) AS total
-    FROM orders o
-    JOIN hubs h ON o.hub_id = h.id
+    SELECT  h.id AS total
+    FROM hubs h
     JOIN truck_routes tr ON h.route_id = tr.id
     WHERE tr.id = ?
   `;
 
-  const [rows] = await db.promise().query<RowDataPacket[]>(
-    dataQuery, 
-    [routeId, limit, offset]
-  );
-  
-  const [[{ total }]] = await db.promise().query<RowDataPacket[]>(
-    countQuery, 
-    [routeId]
-  );
+  const [rows] = await db
+    .promise()
+    .query<RowDataPacket[]>(dataQuery, [routeId, limit, offset]);
+
+  const [[{ total }]] = await db
+    .promise()
+    .query<RowDataPacket[]>(countQuery, [routeId]);
 
   return { orders: rows, total };
 };
