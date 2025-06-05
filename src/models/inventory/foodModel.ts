@@ -99,12 +99,6 @@ export const getAllFoods = async (
     weightage: "CAST(f.weightage AS UNSIGNED)",
   };
 
-  const hasFilters =
-    filters.status !== undefined ||
-    filters.categoryId !== undefined ||
-    filters.subcategoryId !== undefined ||
-    (filters.searchTerm && filters.searchTerm.trim() !== "");
-
   const outOfStockOrder = `CASE
   WHEN f.track_inventory = 0 THEN 1
   WHEN f.track_inventory = 1 AND (

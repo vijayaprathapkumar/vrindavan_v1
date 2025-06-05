@@ -176,13 +176,38 @@ export const getAllBanners = async (
               THEN CONCAT('https://media-image-upload.s3.ap-south-1.amazonaws.com/foods/', m.file_name)
               ELSE CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name)
             END AS original_url,
-              (SELECT SUM(amount) FROM stock_mutations WHERE stockable_id = f.id) AS outOfStock
+                CASE 
+              WHEN f.track_inventory = 0 THEN 1
+              WHEN f.track_inventory = 1 AND (
+                SELECT COALESCE(SUM(amount), 0) 
+                FROM stock_mutations 
+                WHERE stockable_id = f.id
+              ) > 0 THEN 1
+              ELSE 0
+           END AS outOfStock
           FROM foods f
           LEFT JOIN media m ON f.id = m.model_id AND m.model_type = 'App\\\\Models\\\\Food'
           WHERE f.id IN (${foodIds.map(() => "?").join(", ")})
           `,
           foodIds
         );
+
+        const outOfStockOrder = `CASE
+  WHEN f.track_inventory = 0 THEN 1
+  WHEN f.track_inventory = 1 AND (
+    SELECT COALESCE(SUM(amount), 0) FROM stock_mutations WHERE stockable_id = f.id
+  ) > 0 THEN 1
+  ELSE 0
+END DESC`; // ✅ DESC puts '1' at top
+
+        query += ` ORDER BY 
+  ${outOfStockOrder},
+  ${
+    sortField && validSortFields[sortField]
+      ? validSortFields[sortField]
+      : "CAST(f.weightage AS UNSIGNED)"
+  } ${sortOrder === "desc" ? "DESC" : "ASC"}
+`;
 
         const foodMap: Record<number, any> = {};
 
@@ -218,7 +243,7 @@ export const getAllBanners = async (
               status: foodRow.status,
               created_at: foodRow.created_at,
               updated_at: foodRow.updated_at,
-              outOfStock: foodRow.outOfStock,
+              outOfStock: String(foodRow.outOfStock),
               media: [],
             };
           }
@@ -331,7 +356,7 @@ export const createBanner = async (bannerData: {
   banner_location: number;
   banner_link?: string;
   banner_content?: string;
-  food_id?: string[]; 
+  food_id?: string[];
   banner_weightage?: number;
   date_from?: string;
   date_to?: string;
@@ -351,7 +376,7 @@ export const createBanner = async (bannerData: {
   } = bannerData;
 
   // Convert food_id array to comma-separated string, or null if empty
-  const foodIdString = food_id && food_id.length > 0 ? food_id.join(',') : null;
+  const foodIdString = food_id && food_id.length > 0 ? food_id.join(",") : null;
 
   const sql = `
     INSERT INTO banners 
@@ -374,14 +399,13 @@ export const createBanner = async (bannerData: {
 
   try {
     const [result]: [OkPacket, any] = await db.promise().query(sql, values);
-    
+
     return result.insertId;
   } catch (error) {
     console.error("Error creating banner:", error);
     throw error;
   }
 };
-
 
 // Fetch banner by ID
 export const getBannerById = async (
@@ -529,7 +553,8 @@ export const updateBanner = async (
   status?: number
 ): Promise<{ affectedRows: number }> => {
   // Convert food_id array to a comma-separated string if it's provided
-  const foodIdString = food_id && food_id.length > 0 ? food_id.join(',') : undefined;
+  const foodIdString =
+    food_id && food_id.length > 0 ? food_id.join(",") : undefined;
 
   const updateBannerQuery = `
     UPDATE banners 
