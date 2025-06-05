@@ -29,7 +29,7 @@ export const checkUserProfileStatus = async (mobile_number: string): Promise<{ u
   const row = rows[0];
   const allFieldsFilled = row.name_filled && row.email_filled && row.phone_filled &&
                           row.user_id_filled && row.locality_id_filled && 
-                          row.house_no_filled && row.complete_address_filled;
+                          row.house_no_filled || row.complete_address_filled;
 
   return { user_id: row.user_id, status: allFieldsFilled ? 1 : 0 };
 };
