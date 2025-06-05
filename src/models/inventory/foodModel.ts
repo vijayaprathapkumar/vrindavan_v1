@@ -98,17 +98,19 @@ export const getAllFoods = async (
     weightage: "CAST(f.weightage AS UNSIGNED)",
   };
 
-  query += ` ORDER BY 
-    CASE 
-      WHEN f.track_inventory = 1 AND (SELECT COALESCE(SUM(amount), 0) FROM stock_mutations WHERE stockable_id = f.id) <= 0 THEN 1 
-      ELSE 0 
-    END,
-    ${
-      sortField && validSortFields[sortField]
-        ? validSortFields[sortField]
-        : "CAST(f.weightage AS UNSIGNED)"
-    } ${sortOrder === "desc" ? "DESC" : "ASC"}
-  `;
+ query += ` ORDER BY 
+  CASE
+    WHEN f.track_inventory = 0 THEN 0
+    WHEN f.track_inventory = 1 AND (SELECT COALESCE(SUM(amount), 0) FROM stock_mutations WHERE stockable_id = f.id) > 0 THEN 1
+    ELSE 2
+  END,
+  ${
+    sortField && validSortFields[sortField]
+      ? validSortFields[sortField]
+      : "CAST(f.weightage AS UNSIGNED)"
+  } ${sortOrder === "desc" ? "DESC" : "ASC"} 
+`;
+
 
   const countQuery = `
     SELECT COUNT(*) as count 
@@ -188,7 +190,6 @@ export const getAllFoods = async (
 
   return { foods, totalCount };
 };
-
 
 // Fetch a single food by ID
 export const getFoodById = async (
