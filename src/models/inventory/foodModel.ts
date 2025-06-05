@@ -101,19 +101,19 @@ export const getAllFoods = async (
 
   query += ` ORDER BY 
   CASE
-    WHEN f.track_inventory = 0 THEN 0
+    WHEN f.track_inventory = 0 THEN 1
     WHEN f.track_inventory = 1 AND (
       SELECT COALESCE(SUM(amount), 0) FROM stock_mutations WHERE stockable_id = f.id
     ) > 0 THEN 1
-    ELSE 2
-  END,
+    ELSE 0
+  END ASC, -- 0 will come last
   ${
     sortField && validSortFields[sortField]
       ? validSortFields[sortField]
       : "CAST(f.weightage AS UNSIGNED)"
-  } ${sortOrder === "desc" ? "DESC" : "ASC"},
-  outOfStock ASC
+  } ${sortOrder === "desc" ? "DESC" : "ASC"}
 `;
+
 
 
   const countQuery = `
