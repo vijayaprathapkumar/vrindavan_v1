@@ -159,7 +159,7 @@ export const getAllFoods = async (
       status: row.status,
       created_at: row.created_at,
       updated_at: row.updated_at,
-      outOfStock: row.outOfStock,
+     outOfStock: String(row.outOfStock),
       media: row.media_id
         ? [
             {
