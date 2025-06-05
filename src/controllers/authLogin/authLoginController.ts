@@ -9,11 +9,13 @@ import {
 import { createResponse } from "../../utils/responseHandler";
 import { generateDeviceToken } from "../../utils/tokenUtils";
 import { generateOTP, sendOTP } from "../../services/msg91";
+import { normalizeMobileNumber } from "../../utils/mobileNumberVaildation";
 
 // Request OTP
 
 export const requestOtp = async (req: Request, res: Response) => {
-  const { mobile_number } = req.body;
+  let { mobile_number } = req.body;
+  mobile_number = normalizeMobileNumber(mobile_number);
   const otp = generateOTP();
 
   try {
@@ -25,10 +27,6 @@ export const requestOtp = async (req: Request, res: Response) => {
     console.error("Error requesting OTP:", error);
     res.status(500).json(createResponse(500, "Failed to send OTP."));
   }
-};
-
-const normalizeMobileNumber = (mobile: string) => {
-  return mobile.replace(/^\+91|^0/, "");
 };
 
 // Verify OTP
