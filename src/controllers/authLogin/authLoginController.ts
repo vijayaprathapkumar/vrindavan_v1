@@ -59,7 +59,7 @@ export const verifyOtp = async (req: Request, res: Response) => {
 
       return res.status(400).json(createResponse(400, "OTP has already been verified.", {
         device_token: existing_device_token,
-        user_profile: userProfileStatus,
+        user_profile: String(userProfileStatus),
         user_id 
       }));
     } else {
