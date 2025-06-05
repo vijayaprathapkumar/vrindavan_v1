@@ -40,15 +40,16 @@ export const getAllFoods = async (
               ELSE CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name)
            END AS original_url,
            CASE 
-              WHEN f.track_inventory = 0 THEN 0
-              ELSE 
-                CASE 
-                  WHEN (SELECT COALESCE(SUM(amount), 0) FROM stock_mutations WHERE stockable_id = f.id) > 0 THEN 0
-                  ELSE 1
-                END
+              WHEN f.track_inventory = 0 THEN 1
+              WHEN f.track_inventory = 1 AND (
+                SELECT COALESCE(SUM(amount), 0) 
+                FROM stock_mutations 
+                WHERE stockable_id = f.id
+              ) > 0 THEN 1
+              ELSE 0
            END AS outOfStock
     FROM foods f
-    LEFT JOIN media m ON f.id = m.model_id AND (m.model_type = 'App\\\\Models\\\\Food')
+    LEFT JOIN media m ON f.id = m.model_id AND m.model_type = 'App\\\\Models\\\\Food'
   `;
 
   const conditions: string[] = [];
@@ -98,17 +99,20 @@ export const getAllFoods = async (
     weightage: "CAST(f.weightage AS UNSIGNED)",
   };
 
- query += ` ORDER BY 
+  query += ` ORDER BY 
   CASE
     WHEN f.track_inventory = 0 THEN 0
-    WHEN f.track_inventory = 1 AND (SELECT COALESCE(SUM(amount), 0) FROM stock_mutations WHERE stockable_id = f.id) > 0 THEN 1
+    WHEN f.track_inventory = 1 AND (
+      SELECT COALESCE(SUM(amount), 0) FROM stock_mutations WHERE stockable_id = f.id
+    ) > 0 THEN 1
     ELSE 2
   END,
   ${
     sortField && validSortFields[sortField]
       ? validSortFields[sortField]
       : "CAST(f.weightage AS UNSIGNED)"
-  } ${sortOrder === "desc" ? "DESC" : "ASC"} 
+  } ${sortOrder === "desc" ? "DESC" : "ASC"},
+  outOfStock ASC
 `;
 
 
@@ -159,7 +163,7 @@ export const getAllFoods = async (
       status: row.status,
       created_at: row.created_at,
       updated_at: row.updated_at,
-     outOfStock: String(row.outOfStock),
+      outOfStock: String(row.outOfStock),
       media: row.media_id
         ? [
             {
@@ -190,6 +194,7 @@ export const getAllFoods = async (
 
   return { foods, totalCount };
 };
+
 
 // Fetch a single food by ID
 export const getFoodById = async (
