@@ -1,17 +1,23 @@
 import { db } from "../../config/databaseConnection";
 import { RowDataPacket } from "mysql2";
 
-export const checkUserProfileStatus = async (mobile_number: string): Promise<{ user_id: number | null; status: number }> => {
+export const checkUserProfileStatus = async (
+  mobile_number: string
+): Promise<{ user_id: number | null; status: number }> => {
   const sql = `
     SELECT 
       u.id AS user_id,
-      u.name IS NOT NULL AS name_filled,
-      u.email IS NOT NULL AS email_filled,
-      u.phone IS NOT NULL AS phone_filled,
-      da.user_id IS NOT NULL AS user_id_filled,
-      da.locality_id IS NOT NULL AS locality_id_filled,
-      da.house_no IS NOT NULL AS house_no_filled,
-      da.complete_address IS NOT NULL AS complete_address_filled
+      CASE 
+        WHEN 
+          u.name IS NOT NULL AND
+          u.email IS NOT NULL AND
+          u.phone IS NOT NULL AND
+          da.user_id IS NOT NULL AND
+          da.locality_id IS NOT NULL AND
+          (da.house_no IS NOT NULL OR da.complete_address IS NOT NULL)
+        THEN 1
+        ELSE 0
+      END AS userProfileStatus
     FROM 
       users u
     LEFT JOIN 
@@ -21,18 +27,15 @@ export const checkUserProfileStatus = async (mobile_number: string): Promise<{ u
   `;
 
   const [rows]: [RowDataPacket[], any] = await db.promise().query(sql, [mobile_number]);
-  
+
   if (rows.length === 0) {
     return { user_id: null, status: 0 };
   }
 
   const row = rows[0];
-  const allFieldsFilled = row.name_filled && row.email_filled && row.phone_filled &&
-                          row.user_id_filled && row.locality_id_filled && 
-                          row.house_no_filled || row.complete_address_filled;
-
-  return { user_id: row.user_id, status: allFieldsFilled ? 1 : 0 };
+  return { user_id: row.user_id, status: row.userProfileStatus };
 };
+
 // Save or update OTP details in the database
 export const saveOTPDetails = async (
   mobile_number: string,
