@@ -99,22 +99,28 @@ export const getAllFoods = async (
     weightage: "CAST(f.weightage AS UNSIGNED)",
   };
 
+  const hasFilters =
+    filters.status !== undefined ||
+    filters.categoryId !== undefined ||
+    filters.subcategoryId !== undefined ||
+    (filters.searchTerm && filters.searchTerm.trim() !== "");
+
+  const outOfStockOrder = `CASE
+  WHEN f.track_inventory = 0 THEN 1
+  WHEN f.track_inventory = 1 AND (
+    SELECT COALESCE(SUM(amount), 0) FROM stock_mutations WHERE stockable_id = f.id
+  ) > 0 THEN 1
+  ELSE 0
+END DESC`; // ✅ DESC puts '1' at top
+
   query += ` ORDER BY 
-  CASE
-    WHEN f.track_inventory = 0 THEN 1
-    WHEN f.track_inventory = 1 AND (
-      SELECT COALESCE(SUM(amount), 0) FROM stock_mutations WHERE stockable_id = f.id
-    ) > 0 THEN 1
-    ELSE 0
-  END ASC, -- 0 will come last
+  ${outOfStockOrder},
   ${
     sortField && validSortFields[sortField]
       ? validSortFields[sortField]
       : "CAST(f.weightage AS UNSIGNED)"
   } ${sortOrder === "desc" ? "DESC" : "ASC"}
 `;
-
-
 
   const countQuery = `
     SELECT COUNT(*) as count 
@@ -194,7 +200,6 @@ export const getAllFoods = async (
 
   return { foods, totalCount };
 };
-
 
 // Fetch a single food by ID
 export const getFoodById = async (
