@@ -72,8 +72,8 @@ export const verifyOtp = async (req: Request, res: Response) => {
       const { user_id, status: userProfileStatus } =
         await checkUserProfileStatus(mobile_number);
 
-      return res.status(400).json(
-        createResponse(400, "OTP has already been verified.", {
+      return res.status(200).json(
+        createResponse(200, "OTP has already been verified.", {
           device_token: existing_device_token,
           user_profile: userProfileStatus,
           user_id,
