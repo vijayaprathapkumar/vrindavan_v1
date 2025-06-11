@@ -17,7 +17,10 @@ async function fetchSubscriptions(lastId = 0, batchSize: number) {
   return subscriptions;
 }
 
-const checkWalletBalance = async (userId: number, amount: number): Promise<boolean> => {
+const checkWalletBalance = async (
+  userId: number,
+  amount: number
+): Promise<boolean> => {
   const query = `
     SELECT balance 
     FROM wallet_balances 
@@ -28,11 +31,11 @@ const checkWalletBalance = async (userId: number, amount: number): Promise<boole
     const [walletRows]: [RowDataPacket[], FieldPacket[]] = await db
       .promise()
       .query(query, [userId]);
-    
+
     if (walletRows.length === 0) {
       return false; // No wallet found
     }
-    
+
     const walletBalance = parseFloat(walletRows[0].balance);
     return walletBalance >= amount;
   } catch (error) {
@@ -130,7 +133,11 @@ const withTimeout = (promise: Promise<any>, ms: number) => {
   return Promise.race([promise, timeout]);
 };
 
-export const createOrder = async (orderItem: any, quantityToOrder: number, currentDate: Date) => {
+export const createOrder = async (
+  orderItem: any,
+  quantityToOrder: number,
+  currentDate: Date
+) => {
   const { product_id, user_id } = orderItem || {};
 
   try {
@@ -215,7 +222,9 @@ const addOrdersEntry = async (userId: number, currentDate: Date) => {
   `;
 
   try {
-    const [addressRows]: [RowDataPacket[], FieldPacket[]] = await db.promise().query(addressSql, [userId]);
+    const [addressRows]: [RowDataPacket[], FieldPacket[]] = await db
+      .promise()
+      .query(addressSql, [userId]);
     const addressData = addressRows[0];
 
     if (!addressData || !addressData.locality_id || !addressData.hub_id) {
@@ -286,13 +295,14 @@ const addFoodOrderEntry = async (
 };
 
 export const subcribtionsJob = () => {
-  cron.schedule("15 23 * * *", async () => {
+  cron.schedule("40 20 * * *", async () => {
     console.log("Cron job running...");
     console.time("subProcessing");
 
     const currentDate = new Date();
     const nextDate = new Date(currentDate);
     nextDate.setDate(currentDate.getDate() + 1);
+    console.log("nextDate", nextDate);
 
     const jobStartTime = moment().format("YYYY-MM-DD HH:mm:ss");
     let jobEndTime = "";
@@ -308,15 +318,15 @@ export const subcribtionsJob = () => {
       ) as any;
 
       const logMessage = `Subscription orders placed for date ${
-        currentDate.toISOString().split("T")[0]
-      } and placed on ${currentDate.toLocaleString()}`;
+        nextDate.toISOString().split("T")[0]
+      } and placed on ${nextDate.toLocaleString()}`;
 
       const sqlQuery = `
         INSERT INTO cron_logs (log_date, cron_logs, created_at, updated_at)
         VALUES (?, ?, NOW(), NOW())
       `;
       const values = [
-        currentDate.toISOString().split("T")[0],
+        nextDate.toISOString().split("T")[0],
         `Job Start: ${jobStartTime}, Job End: ${jobEndTime}, Duration: ${jobDuration}s, Message: ${logMessage}`,
       ];
 
