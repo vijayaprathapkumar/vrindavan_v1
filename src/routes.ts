@@ -40,6 +40,7 @@ import routeOrderRoutes from "./routes/orderAdmin/routeOrderRoutes";
 import hubsOrderRoutes from "./routes/orderAdmin/hubsOrderRoutes";
 import localityOrderRoutes from "./routes/orderAdmin/localityOrderRoutes";
 import deliveryBoyOrdersRoutes from "./routes/orderAdmin/deliveryBoyOrdersRoutes";
+import guestRoutes from "./routes/guest/guestRoute";
 
 const router = express.Router();
 
@@ -130,4 +131,6 @@ router.use("/hubOrders", hubsOrderRoutes);
 router.use("/localityOrders", localityOrderRoutes);
 router.use("/deliveryOrder", deliveryBoyOrdersRoutes);
 
+// Guest Token
+router.use("/guestUser", guestRoutes);
 export default router;
