@@ -39,6 +39,15 @@ export const getAllFoods = async (
               THEN CONCAT('https://media-image-upload.s3.ap-south-1.amazonaws.com/foods/', m.file_name)
               ELSE CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name)
            END AS original_url,
+         CASE 
+  WHEN f.track_inventory = 1 THEN (
+    SELECT COALESCE(SUM(amount), 0) 
+    FROM stock_mutations 
+    WHERE stockable_id = f.id
+  )
+  ELSE NULL
+END AS stockCount,
+
            CASE 
               WHEN f.track_inventory = 0 THEN 1
               WHEN f.track_inventory = 1 AND (
@@ -163,6 +172,7 @@ END DESC`; // ✅ DESC puts '1' at top
       status: row.status,
       created_at: row.created_at,
       updated_at: row.updated_at,
+      stockCount: row.stockCount,
       outOfStock: String(row.outOfStock),
       media: row.media_id
         ? [
@@ -426,47 +436,18 @@ export const updateStock = async (
   description?: string
 ): Promise<void> => {
   try {
-    const [existing] = await db
-      .promise()
-      .execute("SELECT id FROM stock_mutations WHERE stockable_id = ?", [
-        foodId,
-      ]);
-
-    if ((existing as any[]).length === 0) {
-      const insertQuery = `
-        INSERT INTO stock_mutations (stockable_id, stockable_type, amount, description, created_at, updated_at)
-        VALUES (?, ?, ?, ?, NOW(), NOW())
-      `;
-      await db
-        .promise()
-        .execute(insertQuery, [
-          foodId,
-          stockableType,
-          amountChange,
-          description ?? null,
-        ]);
-    } else {
-      const updateQuery = `
-        UPDATE stock_mutations
-        SET amount = amount + ?, 
-            description = ?, 
-            updated_at = NOW()
-        WHERE stockable_id = ?
-      `;
-      const [result] = await db
-        .promise()
-        .execute<ResultSetHeader>(updateQuery, [
-          amountChange,
-          description ?? null,
-          foodId,
-        ]);
-
-      if (result.affectedRows === 0) {
-        throw new Error("No record found with the specified stockable_id");
-      }
-    }
+    const insertQuery = `
+      INSERT INTO stock_mutations (stockable_id, stockable_type, amount, description, created_at, updated_at)
+      VALUES (?, ?, ?, ?, NOW(), NOW())
+    `;
+    await db.promise().execute(insertQuery, [
+      foodId,
+      stockableType,
+      amountChange,
+      description ?? null,
+    ]);
   } catch (error) {
-    console.error("Error updating stock:", error);
+    console.error("Error inserting stock mutation:", error);
     throw new Error("Stock update failed");
   }
 };

@@ -110,6 +110,26 @@ export const addFoodOrderEntry = async (
       orderId,
     ]);
 
+    // Create stock mutation (negative amount to reduce inventory)
+    const stockMutationSql = `
+      INSERT INTO stock_mutations (
+        stockable_type, 
+        stockable_id, 
+        amount, 
+        description, 
+        created_at, 
+        updated_at
+      ) VALUES (
+        'App\\\\Models\\\\Food', 
+        ?, 
+        ?, 
+        'Stock reduced due to food order', 
+        NOW(), 
+        NOW()
+      );
+    `;
+    await connection.query(stockMutationSql, [productId, -quantity]);
+
     await connection.commit();
   } catch (error) {
     await connection.rollback();
