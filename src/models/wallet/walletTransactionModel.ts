@@ -2,9 +2,9 @@ import { OkPacket, RowDataPacket } from "mysql2";
 import { db } from "../../config/databaseConnection";
 
 export interface WalletTransaction {
-  transaction_id: string;
+  transaction_id: string | number;
   rp_payment_id: string;
-  rp_order_id: string;
+  rp_order_id: number;
   user_id: string;
   plan_id: string;
   extra_percentage: number;
@@ -44,7 +44,7 @@ export const insertWalletTransaction = (
       [
         transactionId,
         transaction.rp_payment_id,
-        transaction.rp_order_id,
+        transaction.rp_order_id || null,
         transaction.user_id,
         transaction.plan_id,
         transaction.extra_percentage,
@@ -125,7 +125,6 @@ export const getTransactionsByUserId = (
     });
   });
 };
-
 
 export const fetchAllTransactions = (
   page: number,
@@ -243,7 +242,6 @@ export const fetchAllTransactions = (
     });
   });
 };
-
 
 export const insertWalletLog = (log: any): Promise<void> => {
   const query = `

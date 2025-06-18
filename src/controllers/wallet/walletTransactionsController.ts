@@ -31,7 +31,7 @@ export const walletRecharges = async (req: Request, res: Response) => {
     await updateWalletBalance(user_id, transaction_amount);
 
     await insertWalletTransaction({
-      transaction_id,
+      transaction_id: Number(transaction_id),
       rp_payment_id,
       rp_order_id,
       user_id,
@@ -61,7 +61,7 @@ export const walletRecharges = async (req: Request, res: Response) => {
     )} Recharged for Wallet.`;
     await insertWalletLog({
       user_id,
-      order_id: transaction_id,
+      order_id: Number(transaction_id),
       order_date: new Date(),
       before_balance: newBalance - transaction_amount,
       amount: transaction_amount,
