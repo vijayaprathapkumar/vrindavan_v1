@@ -1,8 +1,8 @@
 import { everyDayPaymentProcessJob } from "./models/payments/paymentsModels";
-import { pauseSubscriptionsJobs, subcribtionsJob } from "./models/subscriptions/subcriptionCron";
+import { pauseSubscriptionsJobs, subscriptionsJob } from "./models/subscriptions/subcriptionCron";
 
 export const initializeCronJobs = () => {
-    subcribtionsJob();
+    subscriptionsJob();
     everyDayPaymentProcessJob();
     pauseSubscriptionsJobs();
   };

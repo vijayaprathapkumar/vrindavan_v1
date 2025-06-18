@@ -371,7 +371,7 @@ export const getCustomerById = async (id: number): Promise<any | null> => {
     LEFT JOIN 
       locality_delivery_boys lb ON lb.locality_id = da.locality_id
     LEFT JOIN 
-      delivery_boys db ON lb.delivery_boy_id = db.id
+      delivery_boys db ON lb.delivery_boy_id = db.user_id
     WHERE 
       u.id = ?;
   `;
