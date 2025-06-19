@@ -195,13 +195,28 @@ const addOrdersEntry = async (userId: number, tomorrow: Date) => {
     if (!address) {
       throw new Error(`No address found for user ${userId}`);
     }
+    let deliveryBoyId = null;
+    const localityDeliveryBoyQuery = `
+      SELECT delivery_boy_id 
+      FROM locality_delivery_boys 
+      WHERE locality_id = ?
+      LIMIT 1
+    `;
+
+    const [localityDeliveryBoys]: [RowDataPacket[], FieldPacket[]] = await db
+      .promise()
+      .query(localityDeliveryBoyQuery, [address.locality_id]);
+
+    if (localityDeliveryBoys.length > 0) {
+      deliveryBoyId = localityDeliveryBoys[0].delivery_boy_id;
+    }
 
     const insertQuery = `
       INSERT INTO orders (
-        user_id, order_type, order_date, route_id, hub_id, locality_id, 
+        user_id, order_type, order_date, route_id, hub_id, locality_id, delivery_boy_id,
         order_status_id, tax, delivery_fee, delivery_address_id, 
         is_wallet_deduct, created_at, updated_at
-      ) VALUES (?, 2, ?, ?, ?, ?, 3, 0.0, 0.0, ?, 0, NOW(), NOW());
+      ) VALUES (?, 2, ?, ?, ?, ?, ?, 3, 0.0, 0.0, ?, 0, NOW(), NOW());
     `;
 
     const [result]: [OkPacket, FieldPacket[]] = await db
@@ -212,6 +227,7 @@ const addOrdersEntry = async (userId: number, tomorrow: Date) => {
         address.route_id,
         address.hub_id,
         address.locality_id,
+        deliveryBoyId,
         address.delivery_address_id,
       ]);
 
@@ -246,7 +262,7 @@ export const createOrder = async (
   tomorrow: Date
 ) => {
   const { product_id, user_id } = subscription;
- 
+
   try {
     const product = await getProductById(product_id);
     if (!product) {
@@ -367,29 +383,48 @@ export async function handleNextDayOrders(testDate?: Date) {
               }
 
               let quantity = 0;
-              const lastOrderDate = moment(nextDate);
+              const lastOrderDate = new Date(sub.start_date);
+              console.log("lastOrderDate", lastOrderDate);
 
               switch (sub.subscription_type) {
                 case "everyday":
                   quantity = sub.effective_quantity;
                   break;
                 case "alternative_day":
-                  if (moment(nextDate).diff(lastOrderDate, "days") % 2 === 0) {
+                  const altDayDiff = moment(nextDate).diff(
+                    moment(sub.start_date),
+                    "days"
+                  );
+                  if (altDayDiff % 2 === 0) {
                     quantity = sub.effective_quantity;
                   }
                   break;
                 case "every_3_day":
-                  if (moment(nextDate).diff(lastOrderDate, "days") % 3 === 0) {
+                  const threeDayDiff = moment(nextDate).diff(
+                    moment(sub.start_date),
+                    "days"
+                  );
+                  if (threeDayDiff % 3 === 0) {
                     quantity = sub.effective_quantity;
                   }
                   break;
+
                 case "every_7_day":
-                  if (moment(nextDate).diff(lastOrderDate, "days") % 7 === 0) {
+                  const sevenDayDiff = moment(nextDate).diff(
+                    moment(sub.start_date),
+                    "days"
+                  );
+                  if (sevenDayDiff % 7 === 0) {
                     quantity = sub.effective_quantity;
                   }
                   break;
+
                 case "customize":
                   quantity = sub[`${nextDayName}_qty`] || 0;
+                  break;
+
+                default:
+                  quantity = 0;
                   break;
               }
 
@@ -506,3 +541,5 @@ export const pauseSubscriptionsJobs = async () => {
     }
   });
 };
+
+
