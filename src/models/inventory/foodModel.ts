@@ -212,30 +212,47 @@ export const getFoodById = async (
   const [rows] = await db.promise().execute<RowDataPacket[]>(
     `
       SELECT f.*, 
-             m.id AS media_id,
-             m.model_type,
-             m.model_id,
-             m.uuid,
-             m.collection_name,
-             m.name AS media_name,
-             m.file_name AS media_file_name,
-             m.mime_type AS media_mime_type,
-             m.disk,
-             m.conversions_disk,
-             m.size,
-             m.manipulations,
-             m.custom_properties,
-             m.generated_conversions,
-             m.responsive_images,
-             m.order_column,
-             m.created_at AS media_created_at,
-             m.updated_at AS media_updated_at,
-            CASE 
-        WHEN m.conversions_disk = 'public1' 
-        THEN CONCAT('https://media-image-upload.s3.ap-south-1.amazonaws.com/foods/', m.file_name)
-        ELSE CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name)
-      END AS original_url,
-             (SELECT SUM(amount) FROM stock_mutations  WHERE  stockable_id = f.id) AS outOfStock
+           m.id AS media_id,
+           m.model_type,
+           m.model_id,
+           m.uuid,
+           m.collection_name,
+           m.name AS media_name,
+           m.file_name AS media_file_name,
+           m.mime_type AS media_mime_type,
+           m.disk,
+           m.conversions_disk,
+           m.size,
+           m.manipulations,
+           m.custom_properties,
+           m.generated_conversions,
+           m.responsive_images,
+           m.order_column,
+           m.created_at AS media_created_at,
+           m.updated_at AS media_updated_at,
+           CASE 
+              WHEN m.conversions_disk = 'public1' 
+              THEN CONCAT('https://media-image-upload.s3.ap-south-1.amazonaws.com/foods/', m.file_name)
+              ELSE CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name)
+           END AS original_url,
+         CASE 
+  WHEN f.track_inventory = 1 THEN (
+    SELECT COALESCE(SUM(amount), 0) 
+    FROM stock_mutations 
+    WHERE stockable_id = f.id
+  )
+  ELSE NULL
+END AS stockCount,
+
+           CASE 
+              WHEN f.track_inventory = 0 THEN 1
+              WHEN f.track_inventory = 1 AND (
+                SELECT COALESCE(SUM(amount), 0) 
+                FROM stock_mutations 
+                WHERE stockable_id = f.id
+              ) > 0 THEN 1
+              ELSE 0
+           END AS outOfStock
       FROM foods f
       LEFT JOIN media m ON f.id = m.model_id AND (m.model_type = 'App\\\\Models\\\\Food')
       WHERE f.id = ?`,
