@@ -279,7 +279,7 @@ export const getFoodById = async (
     status: foodData.status,
     created_at: foodData.created_at,
     updated_at: foodData.updated_at,
-    outOfStock: foodData.outOfStock,
+    outOfStock: String(foodData.outOfStock),
     media: [],
   };
 
