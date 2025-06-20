@@ -14,7 +14,11 @@ export const checkUserProfileStatus = async (
           AND u.phone IS NOT NULL 
           AND da.user_id IS NOT NULL 
           AND da.locality_id IS NOT NULL 
-          AND (da.house_no IS NOT NULL OR da.complete_address IS NOT NULL)
+          AND (
+            (da.house_no IS NOT NULL AND da.house_no != '')
+            OR 
+            (da.complete_address IS NOT NULL AND da.complete_address != '')
+          )
         THEN 1 ELSE 0
       END AS userProfileStatus
     FROM users u
@@ -29,6 +33,7 @@ export const checkUserProfileStatus = async (
   const { user_id, userProfileStatus } = rows[0];
   return { user_id, status: userProfileStatus };
 };
+
 
 // ✅ Save or update OTP details
 export const saveOTPDetails = async (
