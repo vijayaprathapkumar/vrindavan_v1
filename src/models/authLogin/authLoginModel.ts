@@ -22,7 +22,7 @@ export const checkUserProfileStatus = async (
         THEN 1 ELSE 0
       END AS userProfileStatus
     FROM users u
-    LEFT JOIN delivery_addresses da ON u.id = da.user_id
+     INNER JOIN delivery_addresses da ON u.id = da.user_id
     WHERE u.phone = ?;
   `;
 
