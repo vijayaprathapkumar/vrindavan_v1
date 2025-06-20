@@ -81,8 +81,14 @@ export const getAllCustomers = async (
 
   // Apply filters to both queries
   if (searchTerm) {
-    const searchValue = `%${searchTerm}%`;
-    baseQuery += ` AND (u.name LIKE ? OR u.email LIKE ? OR u.phone LIKE ? OR u.id LIKE ? `;
+    let searchValue = `%${searchTerm}%`;
+
+    // Sanitize phone search
+    const normalizedPhone = searchTerm
+      .replace(/\+91\s?/, "") // remove +91 and optional space
+      .replace(/\s/g, ""); // remove all spaces
+
+    baseQuery += ` AND (u.name LIKE ? OR u.email LIKE ? OR REPLACE(REPLACE(u.phone, '+91', ''), ' ', '') LIKE ? OR u.id LIKE ? `;
 
     if (searchTerm.toLowerCase() === "active") {
       baseQuery += ` OR u.status = 1 `;
@@ -91,8 +97,14 @@ export const getAllCustomers = async (
     }
 
     baseQuery += `) `;
-    params.push(searchValue, searchValue, searchValue, searchValue);
-    countParams.push(...params.slice(-4)); // Add same params to count query
+
+    params.push(searchValue, searchValue, `%${normalizedPhone}%`, searchValue);
+    countParams.push(
+      searchValue,
+      searchValue,
+      `%${normalizedPhone}%`,
+      searchValue
+    );
   }
 
   if (locality && locality !== "All") {
@@ -108,7 +120,9 @@ export const getAllCustomers = async (
   }
 
   // Main data query
-  let dataQuery = baseQuery + `
+  let dataQuery =
+    baseQuery +
+    `
     )
     SELECT *
     FROM RankedUsers
@@ -137,10 +151,9 @@ export const getAllCustomers = async (
   }
 
   if (limit > 0) {
-  dataQuery += ` LIMIT ? OFFSET ?`;
-  params.push(limit, offset);
-}
- 
+    dataQuery += ` LIMIT ? OFFSET ?`;
+    params.push(limit, offset);
+  }
 
   // Execute main query
   const [rows] = await db.promise().query<RowDataPacket[]>(dataQuery, params);
@@ -152,11 +165,16 @@ export const getAllCustomers = async (
     LEFT JOIN delivery_addresses da ON u.id = da.user_id
     LEFT JOIN localities l ON da.locality_id = l.id
     WHERE 1=1
-    ${searchTerm ? 'AND (u.name LIKE ? OR u.email LIKE ? OR u.phone LIKE ? OR u.id LIKE ?' + 
-      (searchTerm.toLowerCase() === "active" ? ' OR u.status = 1' : '') +
-      (searchTerm.toLowerCase() === "inactive" ? ' OR u.status = 0' : '') + ')' : ''}
-    ${locality && locality !== "All" ? 'AND l.id = ?' : ''}
-    ${status && status !== "All" ? 'AND u.status = ?' : ''}
+    ${
+      searchTerm
+        ? "AND (u.name LIKE ? OR u.email LIKE ? OR u.phone LIKE ? OR u.id LIKE ?" +
+          (searchTerm.toLowerCase() === "active" ? " OR u.status = 1" : "") +
+          (searchTerm.toLowerCase() === "inactive" ? " OR u.status = 0" : "") +
+          ")"
+        : ""
+    }
+    ${locality && locality !== "All" ? "AND l.id = ?" : ""}
+    ${status && status !== "All" ? "AND u.status = ?" : ""}
   `;
 
   const [[totalCount]] = await db

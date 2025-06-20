@@ -15,6 +15,15 @@ export const updateWalletBalance = async (userId: string, amount: number) => {
   await db.promise().query(query, [amount, userId]);
 };
 
+export const createWalletBalance = async (userId: string) => {
+  const query = `
+    INSERT INTO wallet_balances 
+    (user_id, balance, created_at, updated_at)
+    VALUES (?, 0.00, NOW(), NOW())
+  `;
+  await db.promise().query(query, [userId]);
+};
+
 
 export const insertWalletLog = async (
   userId: string,
