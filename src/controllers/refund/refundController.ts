@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { createResponse } from "../../utils/responseHandler";
 import {
+  createWalletBalance,
   getWalletBalance,
   insertWalletLog,
   updateWalletBalance,
@@ -11,13 +12,17 @@ export const processRefund = async (req: Request, res: Response) => {
 
   try {
     // Fetch the current wallet balance
+      let currentBalance = 0;
     const balanceResult = await getWalletBalance(user_id);
 
     if (!balanceResult || balanceResult.length === 0) {
-      return res.status(400).json(createResponse(400, "User wallet not found"));
+      // Create new wallet balance record with 0 balance
+      await createWalletBalance(user_id);
+      currentBalance = 0;
+    } else {
+      currentBalance = Number(balanceResult[0].balance);
     }
 
-    const currentBalance = Number(balanceResult[0].balance);
 
 
     // Calculate after balance
