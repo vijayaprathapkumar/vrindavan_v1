@@ -1,5 +1,5 @@
 import { db } from "../../config/databaseConnection";
-import { RowDataPacket } from "mysql2";
+import { FieldPacket, RowDataPacket } from "mysql2";
 
 export const orderTypes = {
   all: "All",
@@ -51,13 +51,29 @@ export const addOrdersEntry = async (userId, orderDate) => {
 
     const { route_id, hub_id, locality_id, delivery_address_id } = addressData;
 
+    let deliveryBoyId = null;
+    const localityDeliveryBoyQuery = `
+      SELECT delivery_boy_id 
+      FROM locality_delivery_boys 
+      WHERE locality_id = ?
+      LIMIT 1
+    `;
+
+    const [localityDeliveryBoys]: [RowDataPacket[], FieldPacket[]] = await db
+      .promise()
+      .query(localityDeliveryBoyQuery, [addressData.locality_id]);
+
+    if (localityDeliveryBoys.length > 0) {
+      deliveryBoyId = localityDeliveryBoys[0].delivery_boy_id;
+    }
+
     const orderSql = `
         INSERT INTO orders (
-          user_id, order_type, order_date, route_id, hub_id, locality_id, 
+          user_id, order_type, order_date, route_id, hub_id, locality_id, delivery_boy_id,
           order_status_id, tax, delivery_fee, delivery_address_id, is_wallet_deduct, 
           created_at, updated_at
         ) 
-        VALUES (?, 1, ?, ?, ?, ?, 1, 0.0, 0.0, ?, 1, NOW(), NOW());
+        VALUES (?, 1, ?, ?, ?, ?, ?, 1, 0.0, 0.0, ?, 0, NOW(), NOW());
       `;
 
     const [orderResult]: any = await db
@@ -68,6 +84,7 @@ export const addOrdersEntry = async (userId, orderDate) => {
         route_id,
         hub_id,
         locality_id,
+        deliveryBoyId,
         delivery_address_id,
       ]);
 

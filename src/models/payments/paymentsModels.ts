@@ -193,6 +193,7 @@ export const getAllPlaceOrdersUsers = async (
     WHERE 
       DATE(o.order_date) = ?
       AND o.is_wallet_deduct = 0
+      ORDER BY o.id ASC
   `;
 
   const [rows]: [RowDataPacket[], any] = await db
@@ -269,53 +270,56 @@ export const processTodayOrderPayments = async (
  */
 export const everyDayPaymentProcessJob = (): void => {
   cron.schedule("30 15 * * *", async () => {
-    const jobStartTime = moment().format("YYYY-MM-DD HH:mm:ss");
+    const jobStart = moment();
+    const jobStartTime = jobStart.format("YYYY-MM-DD HH:mm:ss");
     console.log(`Payment processing cron job started at ${jobStartTime}...`);
 
+    let insertedLogId: number | null = null;
+
     try {
-      // Specific date to process (2025-06-13)
       const currentDate = new Date();
       const formattedDate = moment(currentDate).format("YYYY-MM-DD");
-      console.log('Processing orders for date:', formattedDate);
-      
+      console.log("Processing orders for date:", formattedDate);
+
+      // Insert "start" log entry
+      const insertSql = `
+        INSERT INTO cron_logs (log_date, cron_logs, created_at, updated_at)
+        VALUES (NOW(), ?, NOW(), NOW())
+      `;
+      const initialLogMessage = `Job Start: ${jobStartTime}, Status: Started`;
+      const [insertResult]: any = await db.promise().query(insertSql, [initialLogMessage]);
+      insertedLogId = insertResult.insertId;
+
+      // Execute job logic
       const result = await processTodayOrderPayments(formattedDate);
 
-      const jobEndTime = moment().format("YYYY-MM-DD HH:mm:ss");
-      const jobDuration = moment(jobEndTime).diff(
-        moment(jobStartTime),
-        "seconds"
-      );
+      // Compute end time and duration
+      const jobEnd = moment();
+      const jobEndTime = jobEnd.format("YYYY-MM-DD HH:mm:ss");
+      const jobDuration = jobEnd.diff(jobStart, "seconds");
+      const finalLogMessage = `Job Start: ${jobStartTime}, Job End: ${jobEndTime}, Duration: ${jobDuration}s, Message: Subscription orders bill placed on ${currentDate.toLocaleString()}`;
 
-      const logMessage = `Processed ${result.processed} orders for ${formattedDate}, skipped ${result.skipped}` +
-        (result.failedOrders ? `. Failed orders: ${result.failedOrders.join(", ")}` : "");
+      // Update the inserted log row
+      const updateSql = `
+        UPDATE cron_logs
+        SET cron_logs = ?, updated_at = NOW()
+        WHERE id = ?
+      `;
+      await db.promise().query(updateSql, [finalLogMessage, insertedLogId]);
 
-      const cronLogEntry = `Job Start: ${jobStartTime}, Job End: ${jobEndTime}, ` +
-        `Duration: ${jobDuration}s, ${logMessage}`;
-
-      await db.promise().query(
-        `INSERT INTO cron_logs (log_date, cron_logs, created_at, updated_at)
-         VALUES (?, ?, NOW(), NOW())`,
-        [formattedDate, cronLogEntry]
-      );
-
-      console.log(
-        `Payment processing for ${formattedDate} completed at ${jobEndTime}. Duration: ${jobDuration}s`
-      );
+      console.log("Today's payment processed successfully.");
     } catch (error) {
-      const errorTime = moment().format("YYYY-MM-DD HH:mm:ss");
-      console.error("Payment processing job failed:", error);
+      console.error("Error running processTodayOrderPayments:", error);
 
-      const errorLogEntry = `Job Start: ${jobStartTime}, Job End: ${errorTime}, ` +
-        `Duration: ${moment(errorTime).diff(moment(jobStartTime), "seconds")}s, ` +
-        `Message: Payment processing failed for 2025-06-13. Error: ${error instanceof Error ? error.message : String(error)}`;
-
-      await db.promise().query(
-        `INSERT INTO cron_logs (log_date, cron_logs, created_at, updated_at)
-         VALUES (NOW(), ?, NOW(), NOW())`,
-        [errorLogEntry]
-      );
+      if (insertedLogId) {
+        const failMessage = `Job Start: ${jobStartTime}, Status: Failed, Error: ${error.message}`;
+        const updateSql = `
+          UPDATE cron_logs
+          SET cron_logs = ?, updated_at = NOW()
+          WHERE id = ?
+        `;
+        await db.promise().query(updateSql, [failMessage, insertedLogId]);
+      }
     }
   });
-
-  console.log("Daily payment processing job scheduled to run at 17:14 every day");
 };

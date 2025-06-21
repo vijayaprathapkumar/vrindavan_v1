@@ -1298,7 +1298,7 @@ export const updateSubscriptionOrders = async (
 ): Promise<void> => {
   try {
     // Fetch subscription items from the database
-    const [subscriptionItems]: [RowDataPacket[], any] = await db
+    const [subscriptionItems]: [any[], any] = await db
       .promise()
       .query(
         `SELECT user_id, product_id, monday_qty, tuesday_qty, wednesday_qty, 
@@ -1313,59 +1313,76 @@ export const updateSubscriptionOrders = async (
       return;
     }
 
+    // Format the order date if provided
+    let formattedOrderDate = orderDate;
     if (orderDate) {
       const date = new Date(orderDate);
-      orderDate = date.toISOString().split("T")[0];
+      formattedOrderDate = date.toISOString().split("T")[0];
+    } else {
+      console.log("No order date provided.");
+      return;
     }
 
     const { user_id, product_id, ...dailyQuantities } = subscriptionItems[0];
 
-    // Update subscription quantity changes
-    const [updateResult]: [ResultSetHeader, any] = await db.promise().query(
-      `UPDATE subscription_quantity_changes 
-       SET quantity = ? 
-       WHERE user_subscription_id = ? AND order_date = ?`,
-      [quantity, subscriptionId, orderDate]
+    // First check if the record exists
+    const [existingRecords]: [any[], any] = await db.promise().query(
+      `SELECT id FROM subscription_quantity_changes 
+       WHERE user_subscription_id = ? 
+         AND order_date = ? 
+         AND order_type = ?
+         AND product_id = ?
+         AND user_id = ?`,
+      [subscriptionId, formattedOrderDate, 2, product_id, user_id]
     );
 
-    // If no rows were affected, insert the new data
-    if (updateResult.affectedRows === 0) {
+    if (existingRecords.length > 0) {
+      // Only update if record exists
       await db.promise().query(
-        `INSERT INTO subscription_quantity_changes (
-          user_subscription_id, order_type, user_id, product_id, quantity, order_date
-        ) VALUES (?, ?, ?, ?, ?, ?)`,
-        [subscriptionId, 2, user_id, product_id, quantity, orderDate]
+        `UPDATE subscription_quantity_changes 
+         SET quantity = ? 
+         WHERE user_subscription_id = ? 
+           AND order_date = ? 
+           AND order_type = ?
+           AND product_id = ?
+           AND user_id = ?`,
+        [quantity, subscriptionId, formattedOrderDate, 2, product_id, user_id]
       );
+      console.log("Updated existing subscription quantity record.");
+    } else {
+      console.log("No existing subscription quantity record found to update.");
+      return; // Exit if no record exists to update
     }
 
-    if (orderDate) {
-      const dateObj = new Date(orderDate);
-      const dayOfWeek = dateObj
-        .toLocaleString("en-us", { weekday: "long" })
-        .toLowerCase();
+    // Find related orders for this subscription on this date
+    const [orders]: [any[], any] = await db.promise().query(
+      `SELECT o.id 
+       FROM orders o
+       JOIN food_orders fo ON o.id = fo.order_id
+       WHERE o.user_id = ? 
+         AND o.order_date = ?
+         AND fo.food_id = ?`,
+      [user_id, formattedOrderDate, product_id]
+    );
 
-      const dayQuantityField = `${dayOfWeek}_qty`;
-
-      if (dailyQuantities[dayQuantityField]) {
+    // Update quantities in food_orders for all matching orders
+    if (orders.length > 0) {
+      for (const order of orders) {
         await db.promise().query(
-          `INSERT INTO subscription_quantity_changes (
-            user_subscription_id, order_type, user_id, product_id, quantity, order_date
-          ) VALUES (?, ?, ?, ?, ?, ?)
-          ON DUPLICATE KEY UPDATE quantity = ?`,
-          [
-            subscriptionId,
-            2,
-            user_id,
-            product_id,
-            dailyQuantities[dayQuantityField],
-            orderDate,
-            dailyQuantities[dayQuantityField], // Update quantity if exists
-          ]
+          `UPDATE food_orders 
+           SET quantity = ? 
+           WHERE order_id = ? AND food_id = ?`,
+          [quantity, order.id, product_id]
         );
       }
+      console.log(`Updated ${orders.length} food orders with new quantity.`);
+    } else {
+      console.log("No matching food orders found to update.");
     }
+
   } catch (error) {
     console.error("Error updating subscription quantities:", error);
+    throw error; // Re-throw the error for the caller to handle
   }
 };
 
@@ -1411,10 +1428,13 @@ export const cancelOrder = async (
       .toISOString()
       .split("T")[0];
 
+    // Get subscription details
     const [userRow]: any[] = await db
       .promise()
       .query(
-        `SELECT user_id, start_date, end_date FROM user_subscriptions WHERE id = ?`,
+        `SELECT user_id, product_id, start_date, end_date 
+         FROM user_subscriptions 
+         WHERE id = ?`,
         [subscriptionId]
       );
 
@@ -1423,36 +1443,42 @@ export const cancelOrder = async (
     }
 
     const userId = userRow[0].user_id;
+    const productId = userRow[0].product_id;
     const startDate = userRow[0].start_date;
     const endDate = userRow[0].end_date;
 
+    // First delete any existing quantity changes for this date
     await db.promise().query(
       `DELETE FROM subscription_quantity_changes 
        WHERE user_subscription_id = ? AND order_date = ?`,
       [subscriptionId, formattedCancelOrderDate]
     );
 
-    const [rows]: any[] = await db.promise().query(
+    // Check if we already have a cancel record for this date
+    const [existingCancelRecords]: any[] = await db.promise().query(
       `SELECT id FROM subscription_quantity_changes 
        WHERE user_subscription_id = ? AND cancel_order_date = ?`,
       [subscriptionId, formattedCancelOrderDate]
     );
 
-    if (rows.length > 0) {
+    // Update or insert the cancel record
+    if (existingCancelRecords.length > 0) {
       await db.promise().query(
         `UPDATE subscription_quantity_changes
          SET cancel_order = 1, reason = ?, other_reason = ?, user_id = ?
          WHERE id = ?`,
-        [reason, otherReason || null, userId, rows[0].id]
+        [reason, otherReason || null, userId, existingCancelRecords[0].id]
       );
     } else {
       await db.promise().query(
         `INSERT INTO subscription_quantity_changes (
-           user_subscription_id, user_id, cancel_order_date, cancel_order, reason, other_reason, start_date, end_date
-         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+           user_subscription_id, user_id, product_id, cancel_order_date, 
+           cancel_order, reason, other_reason, start_date, end_date
+         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           subscriptionId,
           userId,
+          productId,
           formattedCancelOrderDate,
           1,
           reason,
@@ -1462,6 +1488,38 @@ export const cancelOrder = async (
         ]
       );
     }
+
+    // Find and delete matching orders and food orders
+    const [orders]: any[] = await db.promise().query(
+      `SELECT o.id 
+       FROM orders o
+       JOIN food_orders fo ON o.id = fo.order_id
+       WHERE o.user_id = ? 
+         AND o.order_date = ?
+         AND fo.food_id = ?`,
+      [userId, formattedCancelOrderDate, productId]
+    );
+
+    if (orders.length > 0) {
+      // Delete food orders first (due to foreign key constraints)
+      await db.promise().query(
+        `DELETE FROM food_orders 
+         WHERE order_id IN (?)`,
+        [orders.map(o => o.id)]
+      );
+
+      // Then delete the orders
+      await db.promise().query(
+        `DELETE FROM orders 
+         WHERE id IN (?)`,
+        [orders.map(o => o.id)]
+      );
+
+      console.log(`Deleted ${orders.length} orders and their food orders.`);
+    } else {
+      console.log("No matching orders found to delete.");
+    }
+
   } catch (error) {
     throw new Error(`Error canceling the order: ${error.message}`);
   }

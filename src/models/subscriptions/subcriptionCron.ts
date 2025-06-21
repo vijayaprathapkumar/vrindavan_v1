@@ -33,7 +33,7 @@ async function fetchSubscriptions(
       AND us.start_date <= ? 
       AND (us.end_date >= ? OR us.end_date IS NULL)
       AND (sqc.id IS NULL OR sqc.quantity != 0)
-      AND sqc_cancel.id IS NULL 
+      AND sqc_cancel.id IS NULL
     ORDER BY us.id ASC
     LIMIT ?
   `;
@@ -470,39 +470,67 @@ export async function handleNextDayOrders(testDate?: Date) {
     // Optionally notify admin or queue for retry
   }
 }
-
 // CRON Job for subscriptions
 export const subscriptionsJob = () => {
   cron.schedule("30 21 * * *", async () => {
     console.log("Cron job running...");
     console.time("subscriptionsProcessing");
 
-    const jobStart = moment().format("YYYY-MM-DD HH:mm:ss");
-    try {
-      await handleNextDayOrders();
-      const jobEnd = moment().format("YYYY-MM-DD HH:mm:ss");
-      const duration = moment(jobEnd).diff(moment(jobStart), "seconds");
+    const cronLogcurrentDate = new Date();
+    const nextDate = new Date(cronLogcurrentDate);
 
-      const nextDate = moment().add(1, "days").toDate();
-      const logQuery = `
+    const jobStart = moment();
+    const jobStartTime = jobStart.format("YYYY-MM-DD HH:mm:ss");
+
+    let insertedLogId: number | null = null;
+
+    try {
+      // Insert initial log
+      const insertSql = `
         INSERT INTO cron_logs (log_date, cron_logs, created_at, updated_at)
         VALUES (?, ?, NOW(), NOW())
       `;
+      const initialLogMessage = `Job Start: ${jobStartTime}, Status: Started`;
+      const insertValues = [nextDate.toISOString().split("T")[0], initialLogMessage];
+      const [insertResult]: any = await db.promise().query(insertSql, insertValues);
+      insertedLogId = insertResult.insertId;
 
-      const logMsg = `Job Start: ${jobStart}, End: ${jobEnd}, Duration: ${duration}s, Orders for ${
-        nextDate.toISOString().split("T")[0]
-      }`;
+      // Process job logic
+      await handleNextDayOrders();
 
-      await db
-        .promise()
-        .query(logQuery, [nextDate.toISOString().split("T")[0], logMsg]);
+      const jobEnd = moment();
+      const jobEndTime = jobEnd.format("YYYY-MM-DD HH:mm:ss");
+      const jobDuration = jobEnd.diff(jobStart, "seconds");
+
+      const finalLogMessage = `Job Start: ${jobStartTime}, Job End: ${jobEndTime}, Duration: ${jobDuration}s, Message: Subscription orders placed for date ${nextDate.toISOString().split("T")[0]} and placed on ${cronLogcurrentDate.toLocaleString()}`;
+
+      // Update log with end time and full message
+      const updateSql = `
+        UPDATE cron_logs
+        SET cron_logs = ?, updated_at = NOW()
+        WHERE id = ?
+      `;
+      await db.promise().query(updateSql, [finalLogMessage, insertedLogId]);
 
       console.timeEnd("subscriptionsProcessing");
-      console.log("Subscription job completed successfully.");
+      console.log("Today's subscription processed successfully.");
     } catch (error) {
       console.error("Error running subscriptions job:", {
         error: error instanceof Error ? error.message : "Unknown error",
       });
+
+      if (insertedLogId) {
+        const failMessage = `Job Start: ${jobStartTime}, Status: Failed, Error: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`;
+
+        const updateSql = `
+          UPDATE cron_logs
+          SET cron_logs = ?, updated_at = NOW()
+          WHERE id = ?
+        `;
+        await db.promise().query(updateSql, [failMessage, insertedLogId]);
+      }
     }
   });
 };
@@ -541,5 +569,3 @@ export const pauseSubscriptionsJobs = async () => {
     }
   });
 };
-
-
