@@ -1,53 +1,85 @@
 import { RowDataPacket } from "mysql2";
 import { db } from "../../config/databaseConnection";
-
 export const getFeaturedCategories = async (
   limit?: number,
   offset?: number,
   searchTerm?: string
 ): Promise<{ totalItems: number; data: any[] }> => {
   let countQuery = `
-        SELECT COUNT(*) AS totalItems
-        FROM featured_categories AS fc
-        JOIN categories AS c ON fc.category_id = c.id
-        JOIN foods AS f 
-          ON fc.category_id = f.category_id 
-          AND (fc.sub_category_id = 11 OR fc.sub_category_id IS NULL OR fc.sub_category_id = f.subcategory_id)
-        LEFT JOIN media AS m ON f.id = m.model_id AND m.model_type = 'App\\\\Models\\\\Food'
-    `;
+    SELECT COUNT(*) AS totalItems
+    FROM featured_categories AS fc
+    JOIN categories AS c ON fc.category_id = c.id
+    JOIN foods AS f 
+      ON fc.category_id = f.category_id 
+      AND (fc.sub_category_id = 11 OR fc.sub_category_id IS NULL OR fc.sub_category_id = f.subcategory_id)
+    LEFT JOIN media AS m ON f.id = m.model_id AND m.model_type = 'App\\\\Models\\\\Food'
+    WHERE (
+      f.track_inventory = 0 
+      OR (
+        f.track_inventory = 1 
+        AND (
+          SELECT COALESCE(SUM(amount), 0) 
+          FROM stock_mutations 
+          WHERE stockable_id = f.id
+        ) > 0
+      )
+    )
+  `;
 
   if (searchTerm) {
     countQuery += `
-            WHERE c.name LIKE ? OR f.name LIKE ? OR f.description LIKE ?
-        `;
+      AND (c.name LIKE ? OR f.name LIKE ? OR f.description LIKE ?)
+    `;
   }
 
   let query = `
-        SELECT fc.*, c.name AS category_name, c.description AS category_description, 
-               f.*,
-                CASE 
-                WHEN m.conversions_disk = 'public1' 
-                THEN CONCAT('https://media-image-upload.s3.ap-south-1.amazonaws.com/foods/', m.file_name)
-                ELSE CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name)
-              END AS original_url
-        FROM featured_categories AS fc
-        JOIN categories AS c ON fc.category_id = c.id
-        JOIN foods AS f 
-          ON fc.category_id = f.category_id 
-          AND (fc.sub_category_id = 11 OR fc.sub_category_id IS NULL OR fc.sub_category_id = f.subcategory_id)
-        LEFT JOIN media AS m ON f.id = m.model_id AND m.model_type = 'App\\\\Models\\\\Food'
-    `;
+    SELECT 
+      fc.*, 
+      c.name AS category_name, 
+      c.description AS category_description, 
+      f.*,
+      CASE 
+        WHEN m.conversions_disk = 'public1' 
+        THEN CONCAT('https://media-image-upload.s3.ap-south-1.amazonaws.com/foods/', m.file_name)
+        ELSE CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name)
+      END AS original_url,
+      CASE 
+        WHEN f.track_inventory = 1 THEN (
+          SELECT COALESCE(SUM(amount), 0) 
+          FROM stock_mutations 
+          WHERE stockable_id = f.id
+        )
+        ELSE NULL
+      END AS stockCount
+    FROM featured_categories AS fc
+    JOIN categories AS c ON fc.category_id = c.id
+    JOIN foods AS f 
+      ON fc.category_id = f.category_id 
+      AND (fc.sub_category_id = 11 OR fc.sub_category_id IS NULL OR fc.sub_category_id = f.subcategory_id)
+    LEFT JOIN media AS m ON f.id = m.model_id AND m.model_type = 'App\\\\Models\\\\Food'
+    WHERE (
+      f.track_inventory = 0 
+      OR (
+        f.track_inventory = 1 
+        AND (
+          SELECT COALESCE(SUM(amount), 0) 
+          FROM stock_mutations 
+          WHERE stockable_id = f.id
+        ) > 0
+      )
+    )
+  `;
 
   if (searchTerm) {
     query += `
-            WHERE c.name LIKE ? OR f.name LIKE ? OR f.description LIKE ?
-        `;
+      AND (c.name LIKE ? OR f.name LIKE ? OR f.description LIKE ?)
+    `;
   }
 
   query += `
-        ORDER BY fc.created_at DESC
-        LIMIT ? OFFSET ?;
-    `;
+    ORDER BY fc.created_at DESC
+    LIMIT ? OFFSET ?;
+  `;
 
   const params: any[] = [];
   if (searchTerm) {
@@ -58,7 +90,7 @@ export const getFeaturedCategories = async (
 
   const [countRows]: [RowDataPacket[], any] = await db
     .promise()
-    .query(countQuery, params.slice(0, 3));
+    .query(countQuery, params.slice(0, searchTerm ? 3 : 0));
   const totalItems = countRows[0]?.totalItems || 0;
 
   const [rows]: [RowDataPacket[], any] = await db

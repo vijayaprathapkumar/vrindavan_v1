@@ -33,6 +33,7 @@ export const getDiscontinuedCustomers = async (
       us.is_pause_subscription,
       wb.balance AS wallet_balance, 
       wb.created_at AS wallet_created_at,
+      l.name AS locality_name,
       da.id AS address_id,
       da.description,
       da.address,
@@ -56,6 +57,8 @@ export const getDiscontinuedCustomers = async (
       delivery_addresses da ON u.id = da.user_id
     LEFT JOIN 
       orders o ON u.id = o.user_id
+    LEFT JOIN 
+      localities l ON da.locality_id = l.id
     WHERE 
       (
         (us.is_pause_subscription = 1 AND us.updated_at >= CURDATE() - INTERVAL 7 DAY)
@@ -127,6 +130,7 @@ export const getDiscontinuedCustomers = async (
       is_approve: row.is_approve,
       is_default: row.is_default,
       locality_id: row.da_locality_id,
+      locality_name: row.locality_name,
       created_at: row.address_created_at,
       updated_at: row.address_updated_at,
     },
