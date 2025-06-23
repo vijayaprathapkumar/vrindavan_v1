@@ -72,14 +72,34 @@ export const getAllDeals = async (
         WHEN m.conversions_disk = 'public1' 
         THEN CONCAT('https://media-image-upload.s3.ap-south-1.amazonaws.com/foods/', m.file_name)
         ELSE CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name)
-      END AS original_url
+      END AS original_url,
+      CASE 
+        WHEN f.track_inventory = 1 THEN (
+          SELECT COALESCE(SUM(amount), 0) 
+          FROM stock_mutations 
+          WHERE stockable_id = f.id
+        )
+        ELSE NULL
+      END AS stockCount
     FROM 
       deal_of_the_days d
     JOIN 
       foods f ON d.food_id = f.id 
     LEFT JOIN media m ON f.id = m.model_id AND m.model_type = 'App\\\\Models\\\\Food'
     WHERE 
-      d.id IS NOT NULL AND d.quantity > 0
+      d.id IS NOT NULL 
+      AND d.quantity > 0
+      AND (
+        f.track_inventory = 0 
+        OR (
+          f.track_inventory = 1 
+          AND (
+            SELECT COALESCE(SUM(amount), 0) 
+            FROM stock_mutations 
+            WHERE stockable_id = f.id
+          ) > 0
+        )
+      )
   `;
 
   const params: any[] = [];
@@ -122,6 +142,17 @@ export const getAllDeals = async (
     JOIN foods f ON d.food_id = f.id
     LEFT JOIN media m ON f.id = m.model_id AND m.model_type = 'App\\\\Models\\\\Food'
     WHERE d.quantity > 0
+      AND (
+        f.track_inventory = 0 
+        OR (
+          f.track_inventory = 1 
+          AND (
+            SELECT COALESCE(SUM(amount), 0) 
+            FROM stock_mutations 
+            WHERE stockable_id = f.id
+          ) > 0
+        )
+      )
   `;
 
   const countParams: any[] = [];
@@ -187,6 +218,7 @@ export const getAllDeals = async (
         updated_at: row.media_updated_at,
         original_url: row.original_url,
       },
+      stockCount: row.stockCount,
     })),
     total: totalCount,
   };

@@ -38,7 +38,6 @@ export const getWalletBalanceByUserId = (
     });
   });
 };
-
 export const getWalletBalanceByWithOutUserId = async (
   page: number,
   limit: number,
@@ -59,6 +58,11 @@ export const getWalletBalanceByWithOutUserId = async (
       delivery_addresses da ON da.user_id = u.id
     LEFT JOIN 
       localities l ON da.locality_id = l.id
+    INNER JOIN (
+      SELECT DISTINCT user_id
+      FROM orders
+      WHERE order_date BETWEEN CURDATE() - INTERVAL 4 DAY AND CURDATE()
+    ) active_users ON active_users.user_id = wb.user_id
     WHERE 1=1
     AND wb.balance < 200
   `;
@@ -149,7 +153,6 @@ export const getWalletBalanceByWithOutUserId = async (
     throw new Error("Failed to retrieve wallet balance");
   }
 };
-
 
 export interface WalletLog {
   id: number;
