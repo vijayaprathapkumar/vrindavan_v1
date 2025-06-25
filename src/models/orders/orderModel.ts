@@ -303,10 +303,10 @@ export const getAllOrdersWithOutUserId = async (
     "l.name",
   ];
 
-  const sortColumn = validSortFields.includes(sortField)
-    ? sortField
-    : "o.created_at";
-  const sortOrderClause = sortOrder === "asc" ? "asc" : "desc";
+const sortColumn = validSortFields.includes(sortField) 
+  ? sortField 
+  : "o.id"; 
+const sortOrderClause = sortOrder === "asc" ? "asc" : "desc";
 
   const countQuery = `
     SELECT COUNT(DISTINCT o.id) AS total
@@ -2028,6 +2028,7 @@ export const getCalendarOneTimeOrdersModel = (
         o.order_status_id,
         o.tax,
         o.delivery_fee,
+        o.is_wallet_deduct,
         fo.price AS item_price,
         fo.quantity,
         f.name AS food_name,
