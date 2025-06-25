@@ -112,7 +112,7 @@ export const fetchAllOrdersWithOutUserID = async (
     ? (req.query.walletOption as string)
     : null;
   const sortField = (req.query.sortField as string) || "";
-  const sortOrder = (req.query.sortOrder as string) || "asc";
+  const sortOrder = (req.query.sortOrder as string) || "DESC";
 
   // Input validation
   if (isNaN(page) || page < 1) {

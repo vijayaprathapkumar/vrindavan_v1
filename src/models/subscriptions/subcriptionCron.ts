@@ -271,34 +271,42 @@ export const createOrder = async (
 
     const trackInventory = Number(product.track_inventory);
     const currentStock = Number(product.current_stock);
+    const productAmount = product.discount_price || product.price;
 
+    // Check inventory first
     if (trackInventory === 1) {
-      console.log(`Checking stock for product ${product_id}`, {
-        currentStock,
-        quantityToOrder,
-        trackInventory,
-      });
-
       if (currentStock <= 0) {
-        console.error(`Out of stock for product ${product_id}`);
         return { success: false, reason: "out_of_stock" };
       }
-      if (currentStock < quantityToOrder) {
-        console.error(
-          `Insufficient stock for product ${product_id} (has ${currentStock}, needs ${quantityToOrder})`
-        );
+      
+      // Adjust quantity based on available stock
+      quantityToOrder = Math.min(quantityToOrder, currentStock);
+      if (quantityToOrder <= 0) {
         return { success: false, reason: "insufficient_stock" };
       }
     }
 
-    const productAmount = product.discount_price || product.price;
-    const totalAmount = productAmount * quantityToOrder;
-
-    const hasBalance = await checkWalletBalance(user_id, totalAmount);
-    if (!hasBalance) {
+    // Check wallet balance and adjust quantity if needed
+    const walletBalanceQuery = `SELECT balance FROM wallet_balances WHERE user_id = ?`;
+    const [walletRows]: [RowDataPacket[], FieldPacket[]] = await db
+      .promise()
+      .query(walletBalanceQuery, [user_id]);
+    
+    if (walletRows.length === 0) {
       return { success: false, reason: "insufficient_balance" };
     }
 
+    const walletBalance = parseFloat(walletRows[0].balance);
+    const maxAffordableQuantity = Math.floor(walletBalance / productAmount);
+
+    if (maxAffordableQuantity <= 0) {
+      return { success: false, reason: "insufficient_balance" };
+    }
+
+    // Adjust quantity to what can be afforded
+    quantityToOrder = Math.min(quantityToOrder, maxAffordableQuantity);
+
+    // Proceed with the order (either full or partial)
     const order = await addOrdersEntry(user_id, tomorrow);
     if (!order?.orderId) {
       return { success: false, reason: "order_creation_failed" };
@@ -315,14 +323,16 @@ export const createOrder = async (
       await updateInventory(product_id, -quantityToOrder);
     }
 
-    return { success: true };
+    return { 
+      success: true,
+      partialOrder: quantityToOrder < subscription.effective_quantity,
+      orderedQuantity: quantityToOrder,
+      requestedQuantity: subscription.effective_quantity
+    };
   } catch (error) {
-    console.error(
-      `Error processing product ${product_id} for user ${user_id}:`,
-      {
-        error: error instanceof Error ? error.message : "Unknown error",
-      }
-    );
+    console.error(`Error processing product ${product_id} for user ${user_id}:`, {
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
     return {
       success: false,
       reason: "error",
@@ -345,6 +355,7 @@ export async function handleNextDayOrders(testDate?: Date) {
   let lastId = 0;
   const batchSize = 100;
   const failedSubscriptions: number[] = [];
+   const partialSubscriptions: {id: number, ordered: number, requested: number}[] = [];
   const limit = pLimit(10); // Limit concurrent operations to 10
 
   while (true) {
@@ -428,20 +439,29 @@ export async function handleNextDayOrders(testDate?: Date) {
                   break;
               }
 
-              if (quantity > 0) {
+             if (quantity > 0) {
                 const result = await createOrder(sub, quantity, nextDate);
+                
                 if (!result.success) {
                   failedSubscriptions.push(sub.id);
-                  console.warn(
-                    `Order failed for subscription ${sub.id} - Reason: ${result.reason}`,
-                    { error: result.error }
-                  );
+                  console.warn(`Order failed for subscription ${sub.id} - Reason: ${result.reason}`, {
+                    error: result.error
+                  });
+                } else if (result.partialOrder) {
+                  partialSubscriptions.push({
+                    id: sub.id,
+                    ordered: result.orderedQuantity,
+                    requested: result.requestedQuantity
+                  });
+                  console.log(`Partial order created for subscription ${sub.id}: Ordered ${result.orderedQuantity}/${result.requestedQuantity}`);
+                } else {
+                  console.log(`Full order created for subscription ${sub.id}: ${quantity} items`);
                 }
               }
             } catch (err) {
               failedSubscriptions.push(sub.id);
               console.error(`Error processing subscription ${sub.id}:`, {
-                error: err instanceof Error ? err.message : "Unknown error",
+                error: err instanceof Error ? err.message : 'Unknown error',
               });
             }
           })
@@ -450,13 +470,13 @@ export async function handleNextDayOrders(testDate?: Date) {
 
       lastId = subscriptions[subscriptions.length - 1].id;
     } catch (error) {
-      console.error("Error fetching subscription batch:", {
+      console.error('Error fetching subscription batch:', {
         lastId,
         batchSize,
-        error: error instanceof Error ? error.message : "Unknown error",
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
       // Optional: Add retry logic for failed batches
-      await new Promise((resolve) => setTimeout(resolve, 1000)); // Delay before next batch
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Delay before next batch
     }
   }
 
@@ -467,7 +487,6 @@ export async function handleNextDayOrders(testDate?: Date) {
         failedSubscriptions,
       }
     );
-    // Optionally notify admin or queue for retry
   }
 }
 // CRON Job for subscriptions
