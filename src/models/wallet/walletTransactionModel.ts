@@ -166,9 +166,10 @@ export const fetchAllTransactions = (
     } else {
       whereClauses.push(`
         (u.name LIKE ? OR u.email LIKE ? OR u.phone LIKE ? 
-        OR wt.transaction_id LIKE ? OR wt.transaction_amount LIKE ? OR wt.transaction_date LIKE ?)
+        OR wt.transaction_id LIKE ? OR wt.transaction_amount LIKE ? OR wt.transaction_date LIKE ? OR wt.rp_payment_id LIKE ?)
       `);
       queryParams.push(
+        formattedSearchTerm,
         formattedSearchTerm,
         formattedSearchTerm,
         formattedSearchTerm,

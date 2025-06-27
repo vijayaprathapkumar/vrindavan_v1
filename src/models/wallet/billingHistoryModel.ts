@@ -286,11 +286,11 @@ export const getOrdersBillingForMobile = async (
 
     // Build the conditions only if the parameters are provided
     if (startDate) {
-      dateCondition += " AND wl.order_date >= ?";
+      dateCondition += " AND DATE(wl.order_date) >= DATE(?)";
       queryParams.push(startDate);
     }
     if (endDate) {
-      dateCondition += " AND wl.order_date <= ?";
+      dateCondition += " AND DATE(wl.order_date) <= DATE(?)";
       queryParams.push(endDate);
     }
     if (searchTerm) {
@@ -345,7 +345,7 @@ export const getOrdersBillingForMobile = async (
       WHERE wl.user_id = ? 
       ${dateCondition} 
       ${searchCondition} 
-   ORDER BY wl.id DESC
+      ORDER BY wl.order_date DESC, wl.id DESC
       LIMIT ? OFFSET ?;
     `;
 
@@ -371,58 +371,43 @@ export const getOrdersBillingForMobile = async (
 
     const totalRecords = countRows[0]?.totalRecords || 0;
 
-    // Group wallet logs and food details
+    // Modified grouping logic to keep separate wallet logs
     const groupedLogs = walletLogsRows.reduce((acc, log) => {
-      let existingLog = acc.find((item) => item.orderId === log.order_id);
-    
-      if (!existingLog) {
-        existingLog = {
-          logId: log.log_id,
-          orderId: log.order_id,
-          orderDate: log.wallet_log_order_date,
-          beforeBalance: log.before_balance,
-          amount: log.amount,
-          afterBalance: log.after_balance,
-          walletType: log.wallet_type,
-          description: log.description,
-          createdAt: log.log_created_at,
-          foods: [],
-          totalQuantity: 0,
-          totalPrice: 0,
-        };
-        acc.push(existingLog);
-      }
-    
-      const foodPrice = log.discount_price !== null ? log.discount_price : log.food_price;
-    
+      // Create a new entry for each wallet log (group by log_id instead of order_id)
+      const newLog = {
+        logId: log.log_id,
+        orderId: log.order_id,
+        orderDate: log.wallet_log_order_date,
+        beforeBalance: log.before_balance,
+        amount: log.amount,
+        afterBalance: log.after_balance,
+        walletType: log.wallet_type,
+        description: log.description,
+        createdAt: log.log_created_at,
+        foods: [] as any[],
+        totalQuantity: 0,
+        totalPrice: 0,
+      };
+
+      // Add food items if they exist
       if (log.food_id) {
-        let existingFood = existingLog.foods.find((food) => food.foodId === log.food_id);
-    
-        if (existingFood) {
-          // Update existing food entry by adding quantity and recalculating price
-          existingFood.foodQuantity += log.food_quantity;
-          existingFood.foodOriginalPrice += foodPrice * log.food_quantity;
-        } else {
-          // Add new food entry if not already present
-          existingLog.foods.push({
-            foodId: log.food_id,
-            foodName: log.food_name,
-            foodPrice: log.food_price,
-            discountPrice: log.discount_price,
-            foodQuantity: log.food_quantity,
-            foodOriginalPrice: foodPrice * log.food_quantity,
-            orderId: log.order_id,
-          });
-        }
-    
-        // Update total quantity and total price for the order log
-        existingLog.totalQuantity += log.food_quantity;
-        existingLog.totalPrice += foodPrice * log.food_quantity;
+        const foodPrice = log.discount_price !== null ? log.discount_price : log.food_price;
+        newLog.foods.push({
+          foodId: log.food_id,
+          foodName: log.food_name,
+          foodPrice: log.food_price,
+          discountPrice: log.discount_price,
+          foodQuantity: log.food_quantity,
+          foodOriginalPrice: foodPrice * log.food_quantity,
+          orderId: log.order_id,
+        });
+        newLog.totalQuantity = log.food_quantity;
+        newLog.totalPrice = foodPrice * log.food_quantity;
       }
-    
+
+      acc.push(newLog);
       return acc;
     }, []);
-    
 
     const billingInfo = {
       currentBalance,
