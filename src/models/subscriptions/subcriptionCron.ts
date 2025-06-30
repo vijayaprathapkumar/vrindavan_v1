@@ -3,6 +3,8 @@ import cron from "node-cron";
 import { db } from "../../config/databaseConnection";
 import { RowDataPacket, FieldPacket, OkPacket } from "mysql2";
 import pLimit from "p-limit";
+import path from "path";
+import fs from "fs";
 
 // Fetch subscriptions in batches with optimized query
 async function fetchSubscriptions(
@@ -278,7 +280,7 @@ export const createOrder = async (
       if (currentStock <= 0) {
         return { success: false, reason: "out_of_stock" };
       }
-      
+
       // Adjust quantity based on available stock
       quantityToOrder = Math.min(quantityToOrder, currentStock);
       if (quantityToOrder <= 0) {
@@ -291,7 +293,7 @@ export const createOrder = async (
     const [walletRows]: [RowDataPacket[], FieldPacket[]] = await db
       .promise()
       .query(walletBalanceQuery, [user_id]);
-    
+
     if (walletRows.length === 0) {
       return { success: false, reason: "insufficient_balance" };
     }
@@ -323,16 +325,19 @@ export const createOrder = async (
       await updateInventory(product_id, -quantityToOrder);
     }
 
-    return { 
+    return {
       success: true,
       partialOrder: quantityToOrder < subscription.effective_quantity,
       orderedQuantity: quantityToOrder,
-      requestedQuantity: subscription.effective_quantity
+      requestedQuantity: subscription.effective_quantity,
     };
   } catch (error) {
-    console.error(`Error processing product ${product_id} for user ${user_id}:`, {
-      error: error instanceof Error ? error.message : "Unknown error",
-    });
+    console.error(
+      `Error processing product ${product_id} for user ${user_id}:`,
+      {
+        error: error instanceof Error ? error.message : "Unknown error",
+      }
+    );
     return {
       success: false,
       reason: "error",
@@ -355,7 +360,11 @@ export async function handleNextDayOrders(testDate?: Date) {
   let lastId = 0;
   const batchSize = 100;
   const failedSubscriptions: number[] = [];
-   const partialSubscriptions: {id: number, ordered: number, requested: number}[] = [];
+  const partialSubscriptions: {
+    id: number;
+    ordered: number;
+    requested: number;
+  }[] = [];
   const limit = pLimit(10); // Limit concurrent operations to 10
 
   while (true) {
@@ -439,29 +448,36 @@ export async function handleNextDayOrders(testDate?: Date) {
                   break;
               }
 
-             if (quantity > 0) {
+              if (quantity > 0) {
                 const result = await createOrder(sub, quantity, nextDate);
-                
+
                 if (!result.success) {
                   failedSubscriptions.push(sub.id);
-                  console.warn(`Order failed for subscription ${sub.id} - Reason: ${result.reason}`, {
-                    error: result.error
-                  });
+                  console.warn(
+                    `Order failed for subscription ${sub.id} - Reason: ${result.reason}`,
+                    {
+                      error: result.error,
+                    }
+                  );
                 } else if (result.partialOrder) {
                   partialSubscriptions.push({
                     id: sub.id,
                     ordered: result.orderedQuantity,
-                    requested: result.requestedQuantity
+                    requested: result.requestedQuantity,
                   });
-                  console.log(`Partial order created for subscription ${sub.id}: Ordered ${result.orderedQuantity}/${result.requestedQuantity}`);
+                  console.log(
+                    `Partial order created for subscription ${sub.id}: Ordered ${result.orderedQuantity}/${result.requestedQuantity}`
+                  );
                 } else {
-                  console.log(`Full order created for subscription ${sub.id}: ${quantity} items`);
+                  console.log(
+                    `Full order created for subscription ${sub.id}: ${quantity} items`
+                  );
                 }
               }
             } catch (err) {
               failedSubscriptions.push(sub.id);
               console.error(`Error processing subscription ${sub.id}:`, {
-                error: err instanceof Error ? err.message : 'Unknown error',
+                error: err instanceof Error ? err.message : "Unknown error",
               });
             }
           })
@@ -470,13 +486,13 @@ export async function handleNextDayOrders(testDate?: Date) {
 
       lastId = subscriptions[subscriptions.length - 1].id;
     } catch (error) {
-      console.error('Error fetching subscription batch:', {
+      console.error("Error fetching subscription batch:", {
         lastId,
         batchSize,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
       });
       // Optional: Add retry logic for failed batches
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Delay before next batch
+      await new Promise((resolve) => setTimeout(resolve, 1000)); // Delay before next batch
     }
   }
 
@@ -510,8 +526,13 @@ export const subscriptionsJob = () => {
         VALUES (?, ?, NOW(), NOW())
       `;
       const initialLogMessage = `Job Start: ${jobStartTime}, Status: Started`;
-      const insertValues = [nextDate.toISOString().split("T")[0], initialLogMessage];
-      const [insertResult]: any = await db.promise().query(insertSql, insertValues);
+      const insertValues = [
+        nextDate.toISOString().split("T")[0],
+        initialLogMessage,
+      ];
+      const [insertResult]: any = await db
+        .promise()
+        .query(insertSql, insertValues);
       insertedLogId = insertResult.insertId;
 
       // Process job logic
@@ -521,7 +542,9 @@ export const subscriptionsJob = () => {
       const jobEndTime = jobEnd.format("YYYY-MM-DD HH:mm:ss");
       const jobDuration = jobEnd.diff(jobStart, "seconds");
 
-      const finalLogMessage = `Job Start: ${jobStartTime}, Job End: ${jobEndTime}, Duration: ${jobDuration}s, Message: Subscription orders placed for date ${nextDate.toISOString().split("T")[0]} and placed on ${cronLogcurrentDate.toLocaleString()}`;
+      const finalLogMessage = `Job Start: ${jobStartTime}, Job End: ${jobEndTime}, Duration: ${jobDuration}s, Message: Subscription orders placed for date ${
+        nextDate.toISOString().split("T")[0]
+      } and placed on ${cronLogcurrentDate.toLocaleString()}`;
 
       // Update log with end time and full message
       const updateSql = `
@@ -554,37 +577,66 @@ export const subscriptionsJob = () => {
   });
 };
 
-// CRON Job for pausing subscriptions
-export const pauseSubscriptionsJobs = async () => {
-  cron.schedule("0 0 * * *", async () => {
-    const currentDate = new Date().toISOString().slice(0, 19).replace("T", " ");
+// Resolve project root (2 levels up from current file)
+const rootDir = path.resolve(__dirname, "../../../../"); // adjust levels if needed
+const logDir = path.join(rootDir, "vrindavan_v1");
+const logFilePath = path.join(logDir, "pause-subscriptions.log");
 
-    const sql = `
-      UPDATE user_subscriptions
-      SET
-        is_pause_subscription = 0,
-        pause_until_i_come_back = 0,
-        pause_specific_period_startDate = NULL,
-        pause_specific_period_endDate = NULL
-      WHERE
-        (is_pause_subscription = 1 OR 
-         pause_until_i_come_back = 1 OR 
-         pause_specific_period_startDate IS NOT NULL OR 
-         pause_specific_period_endDate IS NOT NULL) AND 
-        (pause_specific_period_endDate <= ?);
-    `;
 
-    try {
-      const [result]: [OkPacket, FieldPacket[]] = await db
-        .promise()
-        .query(sql, [currentDate]);
-      console.log(
-        `Updated ${result.affectedRows} subscriptions that reached their end date`
-      );
-    } catch (error) {
-      console.error("Error updating subscriptions:", {
-        error: error instanceof Error ? error.message : "Unknown error",
-      });
+const writeLog = (message: string) => {
+  const timestamp = new Date().toISOString();
+  const logEntry = `[${timestamp}] ${message}\n`;
+  fs.appendFile(logFilePath, logEntry, (err) => {
+    if (err) {
+      console.error("❌ Failed to write to log file:", err.message);
     }
   });
 };
+
+// ✅ Reusable function
+export const resetPausedSubscriptions = async (date: Date, userId?: number) => {
+  const sql = `
+    UPDATE user_subscriptions
+    SET
+      is_pause_subscription = 0,
+      pause_specific_period_startDate = NULL,
+      pause_specific_period_endDate = NULL
+    WHERE
+      is_pause_subscription = 1
+      AND pause_specific_period_startDate IS NOT NULL
+      AND pause_specific_period_endDate IS NOT NULL
+      AND pause_specific_period_endDate <= ?
+      ${userId ? "AND user_id = ?" : ""}
+  `;
+
+  try {
+    const values = userId ? [date, userId] : [date];
+    const [result]: [OkPacket, FieldPacket[]] = await db
+      .promise()
+      .query(sql, values);
+
+    const message = `✅ Reset ${result.affectedRows} paused subscription(s) as of ${date.toISOString()} ${userId ? `(user_id = ${userId})` : ""}`;
+    console.log(message);
+    writeLog(message);
+  } catch (error) {
+    const errorMsg = `❌ Error resetting subscriptions: ${error instanceof Error ? error.message : "Unknown error"}`;
+    console.error(errorMsg);
+    writeLog(errorMsg);
+  }
+};
+
+// ✅ CRON Job for daily reset
+export const pauseSubscriptionsJobs = () => {
+  cron.schedule("0 0 * * *", async () => {
+    const today = new Date();
+    await resetPausedSubscriptions(today);
+  });
+};
+
+// // ✅ Manual call for testing
+// export async function testWithSpecificDate() {
+//   const testDate = new Date("2025-06-30T00:00:00");
+//   console.log(`🧪 Testing with date: ${testDate}`);
+//   writeLog(`🧪 Manual test started for date: ${testDate.toISOString()}`);
+//   await resetPausedSubscriptions(testDate, 12956); // manually for user_id = 12956
+// }

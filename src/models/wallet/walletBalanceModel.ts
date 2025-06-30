@@ -706,3 +706,112 @@ export const getWalletBalanceUserIdAdmin = async (
     throw new Error("Failed to retrieve wallet balance by user ID");
   }
 };
+
+export const getRefundDeductionLogsWithUserDetails = async (
+  startDate: string,
+  endDate: string,
+  page: number,
+  limit: number,
+  searchTerm?: string,
+): Promise<{ data: any[]; totalCount: number }> => {
+  try {
+    const offset = (page - 1) * limit;
+    const searchCondition = searchTerm
+      ? `AND (u.name LIKE ? OR u.phone LIKE ? OR wl.wallet_type LIKE ?)`
+      : '';
+
+    // 1. Get total count of wallet logs for the date range and wallet types
+    const countQuery = `
+      SELECT COUNT(*) AS totalCount
+      FROM wallet_logs wl
+      LEFT JOIN users u ON wl.user_id = u.id
+      WHERE wl.wallet_type IN ('Refund', 'deductions from client')
+      AND wl.order_date BETWEEN ? AND ?
+      ${searchCondition};
+    `;
+
+    const countParams = searchTerm
+      ? [startDate, endDate, `%${searchTerm}%`, `%${searchTerm}%`, `%${searchTerm}%`]
+      : [startDate, endDate];
+
+    const [countRows]: [RowDataPacket[], any] = await db
+      .promise()
+      .query(countQuery, countParams);
+
+    const totalCount = countRows[0]?.totalCount || 0;
+
+    // 2. Get paginated wallet logs with user details
+    const walletLogsQuery = `
+      SELECT 
+        wl.id AS wallet_log_id,
+        wl.user_id,
+        wl.order_id,
+        wl.order_date,
+        wl.amount,
+        wl.wallet_type,
+        wl.description,
+        wl.created_at,
+        wl.updated_at,
+        u.name AS user_name,
+        u.phone AS user_phone
+      FROM wallet_logs wl
+      LEFT JOIN users u ON wl.user_id = u.id
+      WHERE wl.wallet_type IN ('Refund', 'deductions from client')
+      AND wl.order_date BETWEEN ? AND ?
+      ${searchCondition}
+      ORDER BY wl.order_date DESC, wl.updated_at DESC
+      LIMIT ? OFFSET ?;
+    `;
+
+    const queryParams = searchTerm
+      ? [startDate, endDate, `%${searchTerm}%`, `%${searchTerm}%`, `%${searchTerm}%`, limit, offset]
+      : [startDate, endDate, limit, offset];
+
+    const [walletLogsRows]: [RowDataPacket[], any] = await db
+      .promise()
+      .query(walletLogsQuery, queryParams);
+
+    if (walletLogsRows.length === 0) {
+      return { data: [], totalCount };
+    }
+
+    // 3. Format the data
+    const data = walletLogsRows.map((row) => {
+      const date = new Date(row.order_date);
+      const istDate = new Date(
+        date.toLocaleString("en-US", { timeZone: "Asia/Kolkata" })
+      );
+      const day = String(istDate.getDate()).padStart(2, "0");
+      const month = String(istDate.getMonth() + 1).padStart(2, "0");
+      const year = istDate.getFullYear();
+      const istDateOnly = `${day}-${month}-${year}`;
+
+      // Normalize wallet_type to standardize "deductions from client" to "Deduction"
+      const walletType = row.wallet_type === 'deductions from client' 
+        ? 'Deduction' 
+        : row.wallet_type;
+
+      return {
+        wallet_log_id: row.wallet_log_id,
+        user_id: row.user_id,
+        user_name: row.user_name,
+        user_phone: row.user_phone,
+        order_id: row.order_id,
+        order_date: istDateOnly,
+        amount: parseFloat(row.amount),
+        wallet_type: walletType,
+        description: row.description,
+        created_at: row.created_at,
+        updated_at: row.updated_at,
+      };
+    });
+
+    return { data, totalCount };
+  } catch (error) {
+    console.error(
+      "Error fetching refund/deduction logs with user details:",
+      error.message
+    );
+    throw new Error("Failed to fetch refund/deduction logs with user details");
+  }
+};

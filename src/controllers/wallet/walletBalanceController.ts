@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import {
+  getRefundDeductionLogsWithUserDetails,
   getWalletBalanceByUserId,
   getWalletBalanceByWithOutUserId,
   getWalletBalanceUserIdAdmin,
@@ -233,5 +234,43 @@ export const getWalletBalanceByUserIdAdmin = async (
       .json(
         createResponse(500, "Error retrieving wallet balance", error.message)
       );
+  }
+};
+
+
+export const getRefundDeductionLogsAdmin = async (req: Request, res: Response) => {
+  const { startDate, endDate } = req.query;
+  const page = parseInt(req.query.page as string) || 1;
+  const limit = parseInt(req.query.limit as string) || 10;
+  const searchTerm = req.query.searchTerm as string | undefined;
+  try {
+    // Validate date inputs
+    if (!startDate || !endDate) {
+      return res.status(400).json(createResponse(400, "Start date and end date are required"));
+    }
+
+    const { data: walletLogs, totalCount } = 
+      await getRefundDeductionLogsWithUserDetails(startDate as string, endDate as string, page, limit, searchTerm);
+
+    if (!walletLogs || walletLogs.length === 0) {
+      return res.status(404).json(createResponse(404, "No wallet logs found for the selected period"));
+    }
+
+    const totalPages = Math.ceil(totalCount / limit);
+
+    return res.status(200).json(
+      createResponse(200, "Refund/Deduction logs retrieved successfully", {
+        walletLogs,
+        currentPage: page,
+        limit,
+        totalCount,
+        totalPages,
+      })
+    );
+  } catch (error) {
+    console.error("Error fetching refund/deduction logs:", error.message);
+    return res
+      .status(500)
+      .json(createResponse(500, "Internal Server Error", error.message));
   }
 };
