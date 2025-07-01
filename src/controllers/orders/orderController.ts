@@ -196,12 +196,9 @@ export const updateOrderQty = async (
 ): Promise<Response> => {
   const { orderId, quantity, orderDate, orderType, subscriptionId } = req.body;
 
-  if (orderType === 2 && !subscriptionId) {
-    return res.status(400).json({ message: "Subscription ID is required." });
-  }
 
   try {
-    if (orderType === 1) {
+    if (orderType === 1 || orderId) {
       await updateOneTimeOrders(orderId, quantity);
     } else if (orderType === 2) {
       await updateSubscriptionOrders(subscriptionId, quantity, orderDate);
