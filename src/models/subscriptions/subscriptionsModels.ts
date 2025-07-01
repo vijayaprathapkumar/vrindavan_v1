@@ -359,7 +359,8 @@ export const resumeSubscriptionModel = (id: number): Promise<OkPacket> => {
          is_pause_subscription = 0,
          pause_until_i_come_back = 0,
          pause_specific_period_startDate = NULL,
-         pause_specific_period_endDate = NULL
+         pause_specific_period_endDate = NULL,
+         updated_at = NOW() 
        WHERE id = ? AND is_pause_subscription = 1 OR pause_until_i_come_back = 1`,
       [id],
       (error, results) => {
@@ -509,7 +510,8 @@ export const updateSubscriptionPauseInfo = async (
       is_pause_subscription = ?,
       pause_until_i_come_back = ?, 
       pause_specific_period_startDate = ?, 
-      pause_specific_period_endDate = ? 
+      pause_specific_period_endDate = ? ,
+      updated_at = NOW()
     WHERE id = ?;
   `;
 

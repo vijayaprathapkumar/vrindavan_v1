@@ -28,8 +28,21 @@ export const walletRecharges = async (req: Request, res: Response) => {
   } = req.body;
 
   try {
+    const checkDuplicate = `SELECT id FROM wallet_transactions WHERE rp_payment_id = ? LIMIT 1`;
+    const [existing]: any = await db
+      .promise()
+      .query(checkDuplicate, [rp_payment_id]);
+
+    if (existing.length > 0) {
+      return res
+        .status(200)
+        .json(createResponse(200, "Transaction already processed"));
+    }
+
+    // Step 1: Update wallet balance
     await updateWalletBalance(user_id, transaction_amount);
 
+    // Step 2: Insert transaction
     await insertWalletTransaction({
       transaction_id: Number(transaction_id),
       rp_payment_id,
@@ -45,6 +58,7 @@ export const walletRecharges = async (req: Request, res: Response) => {
       description,
     });
 
+    // Step 3: Get updated balance
     const balanceQuery = `SELECT balance FROM wallet_balances WHERE user_id = ?`;
     const [balanceResult]: any = await db
       .promise()
@@ -56,6 +70,7 @@ export const walletRecharges = async (req: Request, res: Response) => {
 
     const newBalance = Number(balanceResult[0].balance);
 
+    // Step 4: Log the recharge
     const logDescription = `₹${transaction_amount.toFixed(
       2
     )} Recharged for Wallet.`;

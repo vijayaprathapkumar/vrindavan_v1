@@ -260,11 +260,14 @@ export const insertWalletLog = (log: any): Promise<void> => {
         ? `Deducted ₹${log.amount} for ${log.description} | Wallet balance: ₹${log.after_balance}`
         : "";
 
+    // Ensure order_id is a valid number or NULL
+    const orderId = log.order_id && !isNaN(log.order_id) ? log.order_id : null;
+
     db.query(
       query,
       [
         log.user_id,
-        log.order_id ?? null,
+        orderId, // Use the validated order_id here
         formattedOrderDate,
         log.before_balance,
         log.amount,
