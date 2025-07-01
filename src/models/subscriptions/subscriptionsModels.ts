@@ -355,13 +355,13 @@ export const resumeSubscriptionModel = (id: number): Promise<OkPacket> => {
   return new Promise((resolve, reject) => {
     db.query<OkPacket>(
       `UPDATE user_subscriptions
-       SET 
-         is_pause_subscription = 0,
-         pause_until_i_come_back = 0,
-         pause_specific_period_startDate = NULL,
-         pause_specific_period_endDate = NULL,
-         updated_at = NOW() 
-       WHERE id = ? AND is_pause_subscription = 1 OR pause_until_i_come_back = 1`,
+   SET 
+     is_pause_subscription = 0,
+     pause_until_i_come_back = 0,
+     pause_specific_period_startDate = NULL,
+     pause_specific_period_endDate = NULL,
+     updated_at = NOW() 
+   WHERE id = ? AND (is_pause_subscription = 1 OR pause_until_i_come_back = 1)`,
       [id],
       (error, results) => {
         if (error) {
@@ -522,6 +522,7 @@ export const updateSubscriptionPauseInfo = async (
     endDate || null,
     id,
   ];
+  console.log("id :", id, "and userId :", userId);
 
   try {
     const [result]: [OkPacket, any] = await db.promise().query(sql, values);
