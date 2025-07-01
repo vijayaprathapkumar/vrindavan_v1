@@ -184,9 +184,7 @@ export const deductWalletBalance = async (req: Request, res: Response) => {
     const currentBalance = currentBalanceResult[0]?.balance || 0;
     const newBalance = currentBalance - deductionAmount;
 
-    if (newBalance < 0) {
-      return res.status(400).json(createResponse(400, "Insufficient balance"));
-    }
+    
 
     await updateWalletBalanceDections(userId, -deductionAmount);
 
