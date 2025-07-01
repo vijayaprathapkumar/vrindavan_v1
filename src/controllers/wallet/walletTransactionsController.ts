@@ -184,8 +184,6 @@ export const deductWalletBalance = async (req: Request, res: Response) => {
     const currentBalance = currentBalanceResult[0]?.balance || 0;
     const newBalance = currentBalance - deductionAmount;
 
-    
-
     await updateWalletBalanceDections(userId, -deductionAmount);
 
     await insertWalletLog({
