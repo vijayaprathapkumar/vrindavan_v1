@@ -111,7 +111,6 @@ export const getDeliveryBoy = async (
 };
 
 // Update delivery boy by ID
-// Update delivery boy by ID
 export const updateDeliveryBoy = async (
   req: Request,
   res: Response
@@ -138,7 +137,7 @@ export const updateDeliveryBoy = async (
   try {
     await connection.beginTransaction();
 
-    // Update the delivery boy details
+    // Step 1: Update delivery boy details
     await updateDeliveryBoyById(
       parseInt(id),
       userId,
@@ -155,26 +154,40 @@ export const updateDeliveryBoy = async (
       longitudePickup
     );
 
-    if (localityIds && localityIds.length > 0) {
-      // **Step 1: Remove locality assignments of this delivery boy**
+    // Step 2: Compare current and new localityIds
+    const [currentRows] = await connection.query(
+      `SELECT locality_id FROM locality_delivery_boys WHERE delivery_boy_id = ?`,
+      [userId]
+    );
+
+    const currentLocalityIds = (currentRows as any[]).map((row) => row.locality_id).sort();
+    const newLocalityIds = [...(localityIds || [])].sort();
+
+    const isSame =
+      currentLocalityIds.length === newLocalityIds.length &&
+      currentLocalityIds.every((val, index) => val === newLocalityIds[index]);
+
+    if (!isSame && newLocalityIds.length > 0) {
+      // Step 3.1: Remove existing locality assignments for this delivery boy
       await connection.query(
         `DELETE FROM locality_delivery_boys WHERE delivery_boy_id = ?`,
-        [id]
+        [userId]
       );
 
-      // **Step 2: Ensure that localityIds are not assigned to another delivery boy**
+      // Step 3.2: Remove these localityIds from any other delivery boy
       await connection.query(
-        `DELETE FROM locality_delivery_boys WHERE locality_id IN (?)`,
-        [localityIds]
+        `DELETE FROM locality_delivery_boys WHERE locality_id IN (?) AND delivery_boy_id != ?`,
+        [newLocalityIds, userId]
       );
 
-      // **Step 3: Insert new assignments**
-      const values = localityIds.map((localityId) => [
-        id,
+      // Step 3.3: Assign new localities to this delivery boy
+      const values = newLocalityIds.map((localityId) => [
+        userId,
         localityId,
         new Date(),
         new Date(),
       ]);
+
       await connection.query(
         `INSERT INTO locality_delivery_boys (delivery_boy_id, locality_id, created_at, updated_at) 
          VALUES ?`,
@@ -183,9 +196,7 @@ export const updateDeliveryBoy = async (
     }
 
     await connection.commit();
-    res
-      .status(200)
-      .json(createResponse(200, "Delivery boy updated successfully"));
+    res.status(200).json(createResponse(200, "Delivery boy updated successfully"));
   } catch (error) {
     await connection.rollback();
     res
@@ -201,6 +212,7 @@ export const updateDeliveryBoy = async (
     connection.release();
   }
 };
+
 
 // Delete delivery boy by ID
 export const deleteDeliveryBoy = async (
