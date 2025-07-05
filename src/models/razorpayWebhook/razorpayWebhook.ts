@@ -8,6 +8,7 @@ export const razorpayWebhookHandler = async (req: Request, res: Response) => {
   const signature = req.headers["x-razorpay-signature"] as string;
 
   const bodyBuffer = req.body; // raw buffer
+  console.log(Buffer.isBuffer(bodyBuffer));
   const expectedSignature = crypto
     .createHmac("sha256", webhookSecret)
     .update(bodyBuffer)

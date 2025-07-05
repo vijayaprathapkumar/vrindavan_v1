@@ -1,9 +1,16 @@
+// src/routes/webhooks.ts
 import express from "express";
+import crypto from "crypto";
+import bodyParser from "body-parser";
 import { razorpayWebhookHandler } from "../../models/razorpayWebhook/razorpayWebhook";
 
 const router = express.Router();
 
-// Important: Use raw body parser middleware
-router.post("/razorpay", express.raw({ type: "application/json" }), razorpayWebhookHandler);
+// Apply raw parser only for this webhook
+router.post(
+  "/razorpay/webhook",
+  bodyParser.raw({ type: "application/json" }), // <- Required
+  razorpayWebhookHandler
+);
 
 export default router;
