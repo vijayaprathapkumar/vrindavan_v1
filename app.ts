@@ -3,7 +3,6 @@ import dotenv from "dotenv";
 import cors from "cors";
 import routes from "./src/routes";
 import { initializeCronJobs } from "./src/cron-jobs";
-import { razorpayWebhookHandler } from "./src/controllers/razorpayWebhook/razorpayWebhook";
 import webhooks from "./src/routes/webhooks/webhooks";
 
 dotenv.config();

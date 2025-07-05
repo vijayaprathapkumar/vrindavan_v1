@@ -35,30 +35,19 @@ interface RazorpayWebhookPayload {
   };
 }
 
-export const rawBodyMiddleware = (
+export const razorpayWebhookHandler = async (
   req: Request & { rawBody?: string },
   res: Response,
   next: Function
-) => {
-  let data = "";
-  req.setEncoding("utf8");
-  req.on("data", (chunk: string) => {
-    data += chunk;
-  });
-  req.on("end", () => {
-    req.rawBody = data;
-    next();
-  });
-};
-
-export const razorpayWebhookHandler = async (
-  req: Request & { rawBody?: string },
-  res: Response
-) => {
+)  => {
   try {
-    const signature = req.headers["x-razorpay-signature"] as string;
+    console.log("Raw headers:", req.headers); // Debug headers
+    console.log("Raw body:", req.rawBody); // Debug raw body
 
+    const signature = req.headers["x-razorpay-signature"] as string;
+    
     if (!req.rawBody) {
+      console.error("Missing raw body");
       return res.status(400).json({ message: "Missing request body" });
     }
 
@@ -70,16 +59,25 @@ export const razorpayWebhookHandler = async (
 
     if (signature !== expectedSignature) {
       console.warn("❌ Invalid Razorpay webhook signature");
+      console.warn("Expected:", expectedSignature);
+      console.warn("Received:", signature);
       return res.status(400).json({ message: "Invalid signature" });
     }
 
-    // Parse the body after signature is verified
-    const payload: RazorpayWebhookPayload = JSON.parse(req.rawBody);
-    const payment = payload.payload?.payment?.entity;
-    console.log("payment", payment);
-    console.log("payload", payload);
+    // Parse the body
+    let payload: RazorpayWebhookPayload;
+    try {
+      payload = JSON.parse(req.rawBody);
+      console.log("Parsed payload:", payload); // Debug parsed payload
+    } catch (parseError) {
+      console.error("Payload parse error:", parseError);
+      return res.status(400).json({ message: "Invalid JSON payload" });
+    }
 
+    // Extract payment data with more defensive checks
+    const payment = payload?.payload?.payment?.entity;
     if (!payment) {
+      console.error("Missing payment data in payload:", payload);
       return res.status(400).json({ message: "Missing payment data" });
     }
 
