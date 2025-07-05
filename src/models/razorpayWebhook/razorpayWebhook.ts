@@ -5,28 +5,28 @@ import { db } from "../../config/databaseConnection";
 const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET!;
 
 export const razorpayWebhookHandler = async (req: Request, res: Response) => {
-  const signature = req.headers["x-razorpay-signature"] as string;
-
-  const bodyBuffer = req.body; // raw buffer
-  console.log(Buffer.isBuffer(bodyBuffer));
-  const expectedSignature = crypto
-    .createHmac("sha256", webhookSecret)
-    .update(bodyBuffer)
-    .digest("hex");
-
-  if (signature !== expectedSignature) {
-    return res.status(400).json({ status: "error", message: "Invalid signature" });
-  }
-
-  const parsedBody = JSON.parse(bodyBuffer.toString());
-  const event = parsedBody.event;
-  const payment = parsedBody.payload.payment?.entity;
-
-  if (!payment) {
-    return res.status(400).json({ message: "Missing payment data" });
-  }
-
   try {
+    const payload = req.body; // raw buffer
+    const signature = req.headers["x-razorpay-signature"] as string;
+
+    const expectedSignature = crypto
+      .createHmac("sha256", webhookSecret)
+      .update(payload) // ✅ now it's still a Buffer
+      .digest("hex");
+
+    if (signature !== expectedSignature) {
+      return res.status(400).json({ status: "error", message: "Invalid signature" });
+    }
+
+    const parsed = JSON.parse(payload.toString("utf8")); // ✅ parse after verifying signature
+
+    const event = parsed.event;
+    const payment = parsed.payload.payment?.entity;
+
+    if (!payment) {
+      return res.status(400).json({ message: "Missing payment data" });
+    }
+
     const {
       id: payment_id,
       order_id,
@@ -81,11 +81,12 @@ export const razorpayWebhookHandler = async (req: Request, res: Response) => {
       wallet || null,
       vpa || null,
       new Date(created_at * 1000), // Convert UNIX timestamp
-      JSON.stringify(parsedBody),
+      JSON.stringify(parsed),
     ]);
-console.log("👉 Webhook received");
-console.log("Headers:", req.headers);
-console.log("Body:", JSON.stringify(req.body));
+
+    console.log("👉 Webhook received");
+    console.log("Headers:", req.headers);
+    console.log("Body:", payload.toString("utf8"));
 
     return res.status(200).json({ status: "ok" });
   } catch (error: any) {
