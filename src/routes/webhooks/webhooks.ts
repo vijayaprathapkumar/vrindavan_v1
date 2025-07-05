@@ -2,7 +2,7 @@
 import express from "express";
 import crypto from "crypto";
 import bodyParser from "body-parser";
-import { razorpayWebhookHandler } from "../../models/razorpayWebhook/razorpayWebhook";
+import { razorpayWebhookHandler } from "../../controllers/razorpayWebhook/razorpayWebhook";
 
 const router = express.Router();
 

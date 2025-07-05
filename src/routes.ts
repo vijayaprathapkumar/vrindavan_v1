@@ -42,7 +42,7 @@ import localityOrderRoutes from "./routes/orderAdmin/localityOrderRoutes";
 import deliveryBoyOrdersRoutes from "./routes/orderAdmin/deliveryBoyOrdersRoutes";
 import guestRoutes from "./routes/guest/guestRoute";
 import webhooks from "./routes/webhooks/webhooks";
-import { razorpayWebhookHandler } from "./models/razorpayWebhook/razorpayWebhook";
+import { razorpayWebhookHandler } from "./controllers/razorpayWebhook/razorpayWebhook";
 
 const router = express.Router();
 
