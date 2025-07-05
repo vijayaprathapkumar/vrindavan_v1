@@ -4,29 +4,80 @@ import { db } from "../../config/databaseConnection";
 
 const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET!;
 
-export const razorpayWebhookHandler = async (req: Request, res: Response) => {
+interface RazorpayWebhookPayload {
+  event: string;
+  payload: {
+    payment: {
+      entity: {
+        id: string;
+        order_id: string;
+        card_id?: string;
+        amount: number;
+        currency: string;
+        status: string;
+        method: string;
+        amount_refunded?: number;
+        refund_status?: string;
+        captured: boolean;
+        description?: string;
+        email?: string;
+        contact?: string;
+        international: boolean;
+        bank?: string;
+        wallet?: string;
+        vpa?: string;
+        notes?: {
+          user_id?: string;
+        };
+        created_at: number;
+      };
+    };
+  };
+}
+
+export const rawBodyMiddleware = (
+  req: Request & { rawBody?: string },
+  res: Response,
+  next: Function
+) => {
+  let data = "";
+  req.setEncoding("utf8");
+  req.on("data", (chunk: string) => {
+    data += chunk;
+  });
+  req.on("end", () => {
+    req.rawBody = data;
+    next();
+  });
+};
+
+export const razorpayWebhookHandler = async (
+  req: Request & { rawBody?: string },
+  res: Response
+) => {
   try {
-    const payload = req.body; // raw buffer
     const signature = req.headers["x-razorpay-signature"] as string;
 
+    if (!req.rawBody) {
+      return res.status(400).json({ message: "Missing request body" });
+    }
+
+    // Validate signature
     const expectedSignature = crypto
       .createHmac("sha256", webhookSecret)
-      .update(payload) // ✅ now it's still a Buffer
+      .update(req.rawBody)
       .digest("hex");
 
     if (signature !== expectedSignature) {
-      return res
-        .status(400)
-        .json({ status: "error", message: "Invalid signature" });
+      console.warn("❌ Invalid Razorpay webhook signature");
+      return res.status(400).json({ message: "Invalid signature" });
     }
 
-    const parsed = JSON.parse(payload.toString("utf8")); // ✅ parse after verifying signature
-
-    const event = parsed.event;
-    const payment = parsed.payload.payment?.entity;
-
+    // Parse the body after signature is verified
+    const payload: RazorpayWebhookPayload = JSON.parse(req.rawBody);
+    const payment = payload.payload?.payment?.entity;
     console.log("payment", payment);
-    console.log("parsed", parsed);
+    console.log("payload", payload);
 
     if (!payment) {
       return res.status(400).json({ message: "Missing payment data" });
@@ -66,36 +117,35 @@ export const razorpayWebhookHandler = async (req: Request, res: Response) => {
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
-    await db.promise().query(insertQuery, [
-      payment_id,
-      order_id,
-      card_id,
-      user_id,
-      amount,
-      currency,
-      status,
-      method,
-      amount_refunded || 0,
-      refund_status || null,
-      captured ? 1 : 0,
-      description || null,
-      email || null,
-      contact || null,
-      international ? 1 : 0,
-      bank || null,
-      wallet || null,
-      vpa || null,
-      new Date(created_at * 1000), // Convert UNIX timestamp
-      JSON.stringify(parsed),
-    ]);
+    await db
+      .promise()
+      .query(insertQuery, [
+        payment_id,
+        order_id || null,
+        card_id || null,
+        user_id,
+        amount,
+        currency,
+        status,
+        method,
+        amount_refunded || 0,
+        refund_status || null,
+        captured ? 1 : 0,
+        description || null,
+        email || null,
+        contact || null,
+        international ? 1 : 0,
+        bank || null,
+        wallet || null,
+        vpa || null,
+        new Date(created_at * 1000),
+        req.rawBody,
+      ]);
 
-    console.log("👉 Webhook received");
-    console.log("Headers:", req.headers);
-    console.log("Body:", payload.toString("utf8"));
-
+    console.log("✅ Webhook verified and data inserted");
     return res.status(200).json({ status: "ok" });
   } catch (error: any) {
-    console.error("Webhook DB Insert Error:", error);
+    console.error("Webhook processing error:", error);
     return res.status(500).json({ status: "error", message: error.message });
   }
 };

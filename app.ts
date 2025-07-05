@@ -11,6 +11,7 @@ dotenv.config();
 const app = express();
 
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 const corsOptions = {
   origin: '*',
@@ -26,8 +27,9 @@ app.get("/", (req, res) => {
   res.send("Welcome to our vrindavan application");
 });
 
+app.use("/api/razorpay", webhooks);
 app.use("/api", routes);
-app.use('/api', webhooks);
+
 
 const hostname = '0.0.0.0'; // Listen on all IP addresses
 const port = 3000; 
