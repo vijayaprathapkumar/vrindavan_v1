@@ -41,6 +41,8 @@ import hubsOrderRoutes from "./routes/orderAdmin/hubsOrderRoutes";
 import localityOrderRoutes from "./routes/orderAdmin/localityOrderRoutes";
 import deliveryBoyOrdersRoutes from "./routes/orderAdmin/deliveryBoyOrdersRoutes";
 import guestRoutes from "./routes/guest/guestRoute";
+import webhooks from "./routes/webhooks/webhooks";
+import { razorpayWebhookHandler } from "./models/razorpayWebhook/razorpayWebhook";
 
 const router = express.Router();
 
@@ -130,6 +132,8 @@ router.use("/routeOrders", routeOrderRoutes);
 router.use("/hubOrders", hubsOrderRoutes);
 router.use("/localityOrders", localityOrderRoutes);
 router.use("/deliveryOrder", deliveryBoyOrdersRoutes);
+
+router.post("/razorpay/webhook", express.raw({ type: "application/json" }), razorpayWebhookHandler);
 
 // Guest Token
 router.use("/guestUser", guestRoutes);
