@@ -9,7 +9,11 @@ import {
   updateWalletBalanceDections,
   insertWalletLog,
 } from "../../models/wallet/walletTransactionModel";
+import axios from "axios";
 import { db } from "../../config/databaseConnection";
+
+const razorpayKeyId = process.env.RAZORPAY_KEY_ID!;
+const razorpayKeySecret = process.env.RAZORPAY_KEY_SECRET!;
 
 export const walletRecharges = async (req: Request, res: Response) => {
   const {
@@ -23,26 +27,94 @@ export const walletRecharges = async (req: Request, res: Response) => {
     extra_amount,
     transaction_amount,
     transaction_type,
-    status,
     description,
   } = req.body;
 
   try {
-    const checkDuplicate = `SELECT id FROM wallet_transactions WHERE rp_payment_id = ? LIMIT 1`;
-    const [existing]: any = await db
-      .promise()
-      .query(checkDuplicate, [rp_payment_id]);
+    // Step 1: Check for duplicate payment
+    const checkQuery = `SELECT id FROM wallet_transactions WHERE rp_payment_id = ? LIMIT 1`;
+    const [existing]: any = await db.promise().query(checkQuery, [rp_payment_id]);
 
     if (existing.length > 0) {
-      return res
-        .status(200)
-        .json(createResponse(200, "Transaction already processed"));
+      return res.status(200).json(
+        createResponse(200, "Transaction already processed", {
+          transaction_id,
+          user_id,
+          plan_amount,
+          extra_percentage,
+          transaction_amount,
+          status: "success",
+        })
+      );
     }
 
-    // Step 1: Update wallet balance
+    // Step 2: Verify Razorpay payment details
+    const paymentCheck = await axios.get(
+      `https://api.razorpay.com/v1/payments/${rp_payment_id}`,
+      {
+        auth: {
+          username: razorpayKeyId,
+          password: razorpayKeySecret,
+        },
+      }
+    );
+
+    const paymentInfo = paymentCheck.data;
+
+    if (!paymentInfo || paymentInfo.status === "failed") {
+      return res.status(400).json(
+        createResponse(400, "Invalid or failed payment ID", {
+          status: "failed",
+        })
+      );
+    }
+
+    // Step 3: Handle payment status
+    let captureData: any = null;
+
+    if (paymentInfo.status === "captured") {
+      // Already captured, proceed
+    } else if (paymentInfo.status === "authorized") {
+      const captureResponse = await axios.post(
+        `https://api.razorpay.com/v1/payments/${rp_payment_id}/capture`,
+        new URLSearchParams({
+          amount: (transaction_amount * 100).toString(),
+        }),
+        {
+          auth: {
+            username: razorpayKeyId,
+            password: razorpayKeySecret,
+          },
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+        }
+      );
+
+      captureData = captureResponse.data;
+
+      if (captureData.status !== "captured") {
+        return res.status(400).json(
+          createResponse(400, "Payment capture failed", {
+            status: "failed",
+          })
+        );
+      }
+    } else {
+      return res.status(400).json(
+        createResponse(400, `Cannot process payment in '${paymentInfo.status}' status`, {
+          status: "failed",
+        })
+      );
+    }
+
+    // Step 4: Update wallet balance
     await updateWalletBalance(user_id, transaction_amount);
 
-    // Step 2: Insert transaction
+    // Step 5: Insert wallet transaction record
+    const isPaymentSuccessful =
+      paymentInfo.status === "captured" || captureData?.status === "captured";
+
     await insertWalletTransaction({
       transaction_id: Number(transaction_id),
       rp_payment_id,
@@ -54,26 +126,20 @@ export const walletRecharges = async (req: Request, res: Response) => {
       extra_amount,
       transaction_amount,
       transaction_type,
-      status,
+      status: isPaymentSuccessful ? "success" : "failed",
       description,
     });
 
-    // Step 3: Get updated balance
-    const balanceQuery = `SELECT balance FROM wallet_balances WHERE user_id = ?`;
+    // Step 6: Get updated balance
     const [balanceResult]: any = await db
       .promise()
-      .query(balanceQuery, [user_id]);
+      .query(`SELECT balance FROM wallet_balances WHERE user_id = ?`, [user_id]);
 
-    if (balanceResult.length === 0) {
-      throw new Error("Balance not found after update");
-    }
+    const newBalance = Number(balanceResult?.[0]?.balance || 0);
 
-    const newBalance = Number(balanceResult[0].balance);
+    // Step 7: Insert wallet log
+    const logDescription = `₹${transaction_amount.toFixed(2)} Recharged for Wallet.`;
 
-    // Step 4: Log the recharge
-    const logDescription = `₹${transaction_amount.toFixed(
-      2
-    )} Recharged for Wallet.`;
     await insertWalletLog({
       user_id,
       order_id: Number(transaction_id),
@@ -92,14 +158,22 @@ export const walletRecharges = async (req: Request, res: Response) => {
         plan_amount,
         extra_percentage,
         transaction_amount,
-        status,
+        status: "success",
       })
     );
-  } catch (error) {
-    console.error("Error processing wallet recharge:", error);
-    return res
-      .status(500)
-      .json(createResponse(500, "Error processing wallet recharge"));
+  } catch (error: any) {
+    console.error("Recharge error:", error?.response?.data || error.message);
+    return res.status(500).json(
+      createResponse(500, "Recharge failed", {
+        transaction_id,
+        user_id,
+        plan_amount,
+        extra_percentage,
+        transaction_amount,
+        status: "failed",
+        error: error?.response?.data || error.message,
+      })
+    );
   }
 };
 
