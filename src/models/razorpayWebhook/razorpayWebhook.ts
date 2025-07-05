@@ -15,13 +15,18 @@ export const razorpayWebhookHandler = async (req: Request, res: Response) => {
       .digest("hex");
 
     if (signature !== expectedSignature) {
-      return res.status(400).json({ status: "error", message: "Invalid signature" });
+      return res
+        .status(400)
+        .json({ status: "error", message: "Invalid signature" });
     }
 
     const parsed = JSON.parse(payload.toString("utf8")); // ✅ parse after verifying signature
 
     const event = parsed.event;
     const payment = parsed.payload.payment?.entity;
+
+    console.log("payment", payment);
+    console.log("parsed", parsed);
 
     if (!payment) {
       return res.status(400).json({ message: "Missing payment data" });
