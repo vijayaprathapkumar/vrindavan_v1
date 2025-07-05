@@ -27,7 +27,10 @@ app.get("/", (req, res) => {
   res.send("Welcome to our vrindavan application");
 });
 
-app.use("/api/razorpay", webhooks);
+app.use("/api/razorpay", (req, res, next) => {
+  console.log(`Incoming webhook request to: ${req.path}`);
+  next();
+}, webhooks);
 app.use("/api", routes);
 
 
