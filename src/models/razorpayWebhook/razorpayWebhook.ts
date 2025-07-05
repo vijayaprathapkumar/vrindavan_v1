@@ -82,6 +82,9 @@ export const razorpayWebhookHandler = async (req: Request, res: Response) => {
       new Date(created_at * 1000), // Convert UNIX timestamp
       JSON.stringify(parsedBody),
     ]);
+console.log("👉 Webhook received");
+console.log("Headers:", req.headers);
+console.log("Body:", JSON.stringify(req.body));
 
     return res.status(200).json({ status: "ok" });
   } catch (error: any) {
