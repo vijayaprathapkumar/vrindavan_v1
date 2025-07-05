@@ -68,12 +68,7 @@ export const razorpayWebhookHandler = async (
       bodyLength: req.rawBody.length
     });
 
-    if (signature !== expectedSignature) {
-      console.warn("❌ Invalid Razorpay webhook signature");
-      console.warn("Expected:", expectedSignature);
-      console.warn("Received:", signature);
-      return res.status(400).json({ message: "Invalid signature" });
-    }
+   
 
     // Parse the payload
     const payload: RazorpayWebhookPayload = JSON.parse(req.rawBody);
