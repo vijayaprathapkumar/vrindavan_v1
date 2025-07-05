@@ -133,8 +133,6 @@ router.use("/hubOrders", hubsOrderRoutes);
 router.use("/localityOrders", localityOrderRoutes);
 router.use("/deliveryOrder", deliveryBoyOrdersRoutes);
 
-router.post("/razorpay/webhook", express.raw({ type: "application/json" }), razorpayWebhookHandler);
-
 // Guest Token
 router.use("/guestUser", guestRoutes);
 export default router;

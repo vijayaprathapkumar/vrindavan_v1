@@ -4,6 +4,7 @@ import cors from "cors";
 import routes from "./src/routes";
 import { initializeCronJobs } from "./src/cron-jobs";
 import { razorpayWebhookHandler } from "./src/models/razorpayWebhook/razorpayWebhook";
+import webhooks from "./src/routes/webhooks/webhooks";
 
 dotenv.config();
 
@@ -26,17 +27,10 @@ app.get("/", (req, res) => {
 });
 
 app.use("/api", routes);
-
+app.use('/api', webhooks);
 
 const hostname = '0.0.0.0'; // Listen on all IP addresses
 const port = 3000; 
-
-app.post(
-  "/api/razorpay/webhook",
-  express.raw({ type: "application/json" }),
-  razorpayWebhookHandler
-);
-
 
 app.listen(port, hostname, () => {
   console.log(`Server is running on http://${hostname}:${port}`);
