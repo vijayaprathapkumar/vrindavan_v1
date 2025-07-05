@@ -2,13 +2,14 @@ import express from "express";
 import { Request, Response } from "express";
 import { razorpayWebhookHandler } from "../../controllers/razorpayWebhook/razorpayWebhook";
 
-const router = express.Router();
 
-// In your router file (webhooks.ts)
+
+// Update your router configuration
+const router = express.Router();
 
 router.post(
   "/webhook",
-  express.raw({ type: "application/json" }), // This preserves raw body
+  express.raw({ type: "application/json" }),
   (req: Request, res: Response, next: Function) => {
     try {
       // Store raw body for verification

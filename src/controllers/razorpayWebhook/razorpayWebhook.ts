@@ -37,12 +37,11 @@ interface RazorpayWebhookPayload {
 
 export const razorpayWebhookHandler = async (
   req: Request & { rawBody?: string },
-  res: Response,
-  next: Function
-)  => {
+  res: Response
+) => {
   try {
-    console.log("Raw headers:", req.headers); // Debug headers
-    console.log("Raw body:", req.rawBody); // Debug raw body
+    console.log("Raw headers:", req.headers);
+    console.log("Raw body content:", req.rawBody);
 
     const signature = req.headers["x-razorpay-signature"] as string;
     
@@ -51,11 +50,23 @@ export const razorpayWebhookHandler = async (
       return res.status(400).json({ message: "Missing request body" });
     }
 
-    // Validate signature
+    // Verify the webhook secret is loaded
+    if (!webhookSecret) {
+      console.error("RAZORPAY_WEBHOOK_SECRET is not configured");
+      return res.status(500).json({ message: "Server configuration error" });
+    }
+
+    // Calculate expected signature
     const expectedSignature = crypto
       .createHmac("sha256", webhookSecret)
       .update(req.rawBody)
       .digest("hex");
+
+    console.log("Signature verification:", {
+      received: signature,
+      expected: expectedSignature,
+      bodyLength: req.rawBody.length
+    });
 
     if (signature !== expectedSignature) {
       console.warn("❌ Invalid Razorpay webhook signature");
@@ -64,22 +75,18 @@ export const razorpayWebhookHandler = async (
       return res.status(400).json({ message: "Invalid signature" });
     }
 
-    // Parse the body
-    let payload: RazorpayWebhookPayload;
-    try {
-      payload = JSON.parse(req.rawBody);
-      console.log("Parsed payload:", payload); // Debug parsed payload
-    } catch (parseError) {
-      console.error("Payload parse error:", parseError);
-      return res.status(400).json({ message: "Invalid JSON payload" });
+    // Parse the payload
+    const payload: RazorpayWebhookPayload = JSON.parse(req.rawBody);
+    console.log("Parsed payload:", payload);
+
+    // Extract payment data with proper error handling
+    if (!payload.payload?.payment?.entity) {
+      console.error("Invalid payload structure - missing payment entity");
+      return res.status(400).json({ message: "Invalid payload structure" });
     }
 
-    // Extract payment data with more defensive checks
-    const payment = payload?.payload?.payment?.entity;
-    if (!payment) {
-      console.error("Missing payment data in payload:", payload);
-      return res.status(400).json({ message: "Missing payment data" });
-    }
+    const payment = payload.payload.payment.entity;
+    console.log("Payment data:", payment);
 
     const {
       id: payment_id,
@@ -144,6 +151,10 @@ export const razorpayWebhookHandler = async (
     return res.status(200).json({ status: "ok" });
   } catch (error: any) {
     console.error("Webhook processing error:", error);
-    return res.status(500).json({ status: "error", message: error.message });
+    return res.status(500).json({ 
+      status: "error", 
+      message: error.message,
+      stack: process.env.NODE_ENV === "development" ? error.stack : undefined
+    });
   }
 };
