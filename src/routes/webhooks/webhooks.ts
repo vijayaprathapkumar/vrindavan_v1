@@ -1,24 +1,19 @@
 import express from "express";
-import { Request, Response } from "express";
 import { razorpayWebhookHandler } from "../../controllers/razorpayWebhook/razorpayWebhook";
 
-
-
-// Update your router configuration
 const router = express.Router();
 
+// Middleware to attach rawBody
 router.post(
-  "/webhook",
-  express.raw({ type: "application/json" }),
-  (req: Request, res: Response, next: Function) => {
-    try {
-      // Store raw body for verification
-      (req as any).rawBody = req.body.toString();
+  "/",
+  (req, res, next) => {
+    express.raw({ type: "application/json" })(req, res, (err) => {
+      if (err) return next(err);
+      (req as any).rawBody = req.body; // raw buffer
       next();
-    } catch (error) {
-      next(error);
-    }
+    });
   },
   razorpayWebhookHandler
 );
+
 export default router;

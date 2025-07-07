@@ -1,111 +1,89 @@
-import { Request, Response } from "express";
-import crypto from "crypto";
-import { db } from "../../config/databaseConnection";
+import { Request, Response } from 'express';
+import crypto from 'crypto';
+import { db } from '../../config/databaseConnection';
 
-const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET!;
+// Validate environment variable at startup
+const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
+if (!webhookSecret) {
+  throw new Error('RAZORPAY_WEBHOOK_SECRET is not configured');
+}
+
+interface PaymentEntity {
+  id: string;
+  order_id: string;
+  amount: number;
+  currency: string;
+  status: string;
+  method: string;
+  captured: boolean;
+  international: boolean;
+  created_at: number;
+  card_id?: string;
+  amount_refunded?: number;
+  refund_status?: string;
+  description?: string;
+  email?: string;
+  contact?: string;
+  bank?: string;
+  wallet?: string;
+  vpa?: string;
+  notes?: {
+    user_id?: string;
+  };
+}
 
 interface RazorpayWebhookPayload {
   event: string;
   payload: {
     payment: {
-      entity: {
-        id: string;
-        order_id: string;
-        card_id?: string;
-        amount: number;
-        currency: string;
-        status: string;
-        method: string;
-        amount_refunded?: number;
-        refund_status?: string;
-        captured: boolean;
-        description?: string;
-        email?: string;
-        contact?: string;
-        international: boolean;
-        bank?: string;
-        wallet?: string;
-        vpa?: string;
-        notes?: {
-          user_id?: string;
-        };
-        created_at: number;
-      };
+      entity: PaymentEntity;
     };
   };
 }
 
 export const razorpayWebhookHandler = async (
-  req: Request & { rawBody?: string },
+  req: Request & { rawBody?: Buffer },
   res: Response
 ) => {
   try {
-    console.log("Raw headers:", req.headers);
-    console.log("Raw body content:", req.rawBody);
-
     const signature = req.headers["x-razorpay-signature"] as string;
-    
-    if (!req.rawBody) {
+    if (!signature) {
+      console.error("Missing Razorpay signature header");
+      return res.status(401).json({ error: "Missing signature header" });
+    }
+
+    const rawBody = req.rawBody;
+    if (!rawBody) {
       console.error("Missing raw body");
-      return res.status(400).json({ message: "Missing request body" });
+      return res.status(400).json({ error: "Missing raw body" });
     }
 
-    // Verify the webhook secret is loaded
-    if (!webhookSecret) {
-      console.error("RAZORPAY_WEBHOOK_SECRET is not configured");
-      return res.status(500).json({ message: "Server configuration error" });
-    }
-
-    // Calculate expected signature
+    const rawBodyString = rawBody.toString("utf8");
     const expectedSignature = crypto
-      .createHmac("sha256", webhookSecret)
-      .update(req.rawBody)
+      .createHmac("sha256", webhookSecret!)
+      .update(rawBodyString)
       .digest("hex");
 
-    console.log("Signature verification:", {
-      received: signature,
-      expected: expectedSignature,
-      bodyLength: req.rawBody.length
-    });
+    if (
+      !crypto.timingSafeEqual(
+        Buffer.from(signature),
+        Buffer.from(expectedSignature)
+      )
+    ) {
+      console.error("Invalid signature");
+      return res.status(401).json({ error: "Invalid signature" });
+    }
 
-   
-
-    // Parse the payload
-    const payload: RazorpayWebhookPayload = JSON.parse(req.rawBody);
-    console.log("Parsed payload:", payload);
-
-    // Extract payment data with proper error handling
-    if (!payload.payload?.payment?.entity) {
-      console.error("Invalid payload structure - missing payment entity");
-      return res.status(400).json({ message: "Invalid payload structure" });
+    // Safe to parse now
+    let payload: RazorpayWebhookPayload;
+    try {
+      payload = JSON.parse(rawBodyString);
+    } catch (err) {
+      console.error("Invalid JSON payload", err);
+      return res.status(400).json({ error: "Invalid JSON payload" });
     }
 
     const payment = payload.payload.payment.entity;
-    console.log("Payment data:", payment);
-
-    const {
-      id: payment_id,
-      order_id,
-      card_id,
-      amount,
-      currency,
-      status,
-      method,
-      amount_refunded,
-      refund_status,
-      captured,
-      description,
-      email,
-      contact,
-      international,
-      bank,
-      wallet,
-      vpa,
-      notes,
-      created_at,
-    } = payment;
-
-    const user_id = notes?.user_id || null;
 
     const insertQuery = `
       INSERT INTO razorpay_webhook_event (
@@ -113,43 +91,41 @@ export const razorpayWebhookHandler = async (
         amount, currency, status, method, amount_refunded,
         refund_status, captured, description, email, contact,
         international, bank, wallet, vpa, created_at, raw_payload
-      )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
-    await db
-      .promise()
-      .query(insertQuery, [
-        payment_id,
-        order_id || null,
-        card_id || null,
-        user_id,
-        amount,
-        currency,
-        status,
-        method,
-        amount_refunded || 0,
-        refund_status || null,
-        captured ? 1 : 0,
-        description || null,
-        email || null,
-        contact || null,
-        international ? 1 : 0,
-        bank || null,
-        wallet || null,
-        vpa || null,
-        new Date(created_at * 1000),
-        req.rawBody,
-      ]);
+    const params = [
+      payment.id,
+      payment.order_id || null,
+      payment.card_id || null,
+      payment.notes?.user_id || null,
+      payment.amount,
+      payment.currency,
+      payment.status,
+      payment.method,
+      payment.amount_refunded || 0,
+      payment.refund_status || null,
+      payment.captured ? 1 : 0,
+      payment.description || null,
+      payment.email || null,
+      payment.contact || null,
+      payment.international ? 1 : 0,
+      payment.bank || null,
+      payment.wallet || null,
+      payment.vpa || null,
+      new Date(payment.created_at * 1000),
+      rawBodyString
+    ];
 
-    console.log("✅ Webhook verified and data inserted");
-    return res.status(200).json({ status: "ok" });
-  } catch (error: any) {
-    console.error("Webhook processing error:", error);
-    return res.status(500).json({ 
-      status: "error", 
-      message: error.message,
-      stack: process.env.NODE_ENV === "development" ? error.stack : undefined
+    await db.promise().query(insertQuery, params);
+    console.log("✅ Webhook processed for payment:", payment.id);
+    return res.status(200).json({ status: "success" });
+
+  } catch (error) {
+    console.error("Unexpected error:", error);
+    return res.status(500).json({
+      error: "Internal server error",
+      details: error instanceof Error ? error.message : "Unknown error",
     });
   }
 };

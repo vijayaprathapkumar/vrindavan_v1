@@ -9,8 +9,14 @@ dotenv.config();
 
 const app = express();
 
+app.use(
+  "/api/razorpay/webhook",
+  webhooks 
+);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cors());
 
 const corsOptions = {
   origin: '*',
@@ -26,10 +32,6 @@ app.get("/", (req, res) => {
   res.send("Welcome to our vrindavan application");
 });
 
-app.use("/api/razorpay", (req, res, next) => {
-  console.log(`Incoming webhook request to: ${req.path}`);
-  next();
-}, webhooks);
 app.use("/api", routes);
 
 
