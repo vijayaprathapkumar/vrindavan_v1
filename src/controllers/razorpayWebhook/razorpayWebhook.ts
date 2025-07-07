@@ -81,10 +81,10 @@ export const razorpayWebhookHandler = async (
     const insertQuery = `
       INSERT INTO razorpay_webhook_event (
         payment_id, order_id, card_id, user_id,
-        amount, currency, status, method, amount_refunded,
+        amount,amount_in_rupees, currency, status, method, amount_refunded,
         refund_status, captured, description, email, contact,
         international, bank, wallet, vpa, created_at, raw_payload
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
     const params = [
@@ -93,6 +93,7 @@ export const razorpayWebhookHandler = async (
       payment.card_id || null,
       userId,
       payment.amount,
+      amountInRupees,
       payment.currency,
       payment.status,
       payment.method,
