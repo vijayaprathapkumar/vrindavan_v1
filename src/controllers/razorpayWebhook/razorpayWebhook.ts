@@ -1,42 +1,17 @@
-import { Request, Response } from 'express';
-import crypto from 'crypto';
-import { db } from '../../config/databaseConnection';
+import { Request, Response } from "express";
+import crypto from "crypto";
+import { db } from "../../config/databaseConnection";
 
-// Validate environment variable at startup
 const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
 if (!webhookSecret) {
-  throw new Error('RAZORPAY_WEBHOOK_SECRET is not configured');
-}
-
-interface PaymentEntity {
-  id: string;
-  order_id: string;
-  amount: number;
-  currency: string;
-  status: string;
-  method: string;
-  captured: boolean;
-  international: boolean;
-  created_at: number;
-  card_id?: string;
-  amount_refunded?: number;
-  refund_status?: string;
-  description?: string;
-  email?: string;
-  contact?: string;
-  bank?: string;
-  wallet?: string;
-  vpa?: string;
-  notes?: {
-    user_id?: string;
-  };
+  throw new Error("RAZORPAY_WEBHOOK_SECRET is not configured");
 }
 
 interface RazorpayWebhookPayload {
   event: string;
   payload: {
     payment: {
-      entity: PaymentEntity;
+      entity: any;
     };
   };
 }
@@ -48,13 +23,11 @@ export const razorpayWebhookHandler = async (
   try {
     const signature = req.headers["x-razorpay-signature"] as string;
     if (!signature) {
-      console.error("Missing Razorpay signature header");
       return res.status(401).json({ error: "Missing signature header" });
     }
 
     const rawBody = req.rawBody;
     if (!rawBody) {
-      console.error("Missing raw body");
       return res.status(400).json({ error: "Missing raw body" });
     }
 
@@ -70,21 +43,41 @@ export const razorpayWebhookHandler = async (
         Buffer.from(expectedSignature)
       )
     ) {
-      console.error("Invalid signature");
       return res.status(401).json({ error: "Invalid signature" });
     }
 
-    // Safe to parse now
+    // Parse payload safely
     let payload: RazorpayWebhookPayload;
     try {
       payload = JSON.parse(rawBodyString);
     } catch (err) {
-      console.error("Invalid JSON payload", err);
       return res.status(400).json({ error: "Invalid JSON payload" });
     }
 
     const payment = payload.payload.payment.entity;
 
+    // 👇 Extract phone from contact (remove +91)
+    const contactRaw = payment.contact || "";
+    const contact = contactRaw.startsWith("+91")
+      ? contactRaw.slice(3)
+      : contactRaw;
+
+    // 👇 Find user by phone number
+    let userId: number | null = null;
+    if (contact) {
+      const [rows]: any = await db
+        .promise()
+        .query("SELECT id FROM users WHERE phone = ?", [contact]);
+
+      if (Array.isArray(rows) && rows.length > 0) {
+        userId = rows[0].id;
+      }
+    }
+
+    // 👇 Convert amount to rupees for storage/display if needed
+    const amountInRupees = payment.amount / 100;
+
+    // 👇 Insert into webhook table
     const insertQuery = `
       INSERT INTO razorpay_webhook_event (
         payment_id, order_id, card_id, user_id,
@@ -98,7 +91,7 @@ export const razorpayWebhookHandler = async (
       payment.id,
       payment.order_id || null,
       payment.card_id || null,
-      payment.notes?.user_id || null,
+      userId,
       payment.amount,
       payment.currency,
       payment.status,
@@ -108,19 +101,19 @@ export const razorpayWebhookHandler = async (
       payment.captured ? 1 : 0,
       payment.description || null,
       payment.email || null,
-      payment.contact || null,
+      contact,
       payment.international ? 1 : 0,
       payment.bank || null,
       payment.wallet || null,
       payment.vpa || null,
       new Date(payment.created_at * 1000),
-      rawBodyString
+      rawBodyString,
     ];
 
     await db.promise().query(insertQuery, params);
+
     console.log("✅ Webhook processed for payment:", payment.id);
     return res.status(200).json({ status: "success" });
-
   } catch (error) {
     console.error("Unexpected error:", error);
     return res.status(500).json({
