@@ -31,24 +31,7 @@ export const walletRecharges = async (req: Request, res: Response) => {
   } = req.body;
 
   try {
-    // Step 1: Check for duplicate payment
-    const checkQuery = `SELECT id FROM wallet_transactions WHERE rp_payment_id = ? LIMIT 1`;
-    const [existing]: any = await db.promise().query(checkQuery, [rp_payment_id]);
-
-    if (existing.length > 0) {
-      return res.status(200).json(
-        createResponse(200, "Transaction already processed", {
-          transaction_id,
-          user_id,
-          plan_amount,
-          extra_percentage,
-          transaction_amount,
-          status: "success",
-        })
-      );
-    }
-
-    // Step 2: Verify Razorpay payment details
+    // Step 1: Verify Razorpay payment details
     const paymentCheck = await axios.get(
       `https://api.razorpay.com/v1/payments/${rp_payment_id}`,
       {
@@ -69,16 +52,14 @@ export const walletRecharges = async (req: Request, res: Response) => {
       );
     }
 
-    // Step 3: Handle payment status
+    // Step 2: Capture payment if authorized
     let captureData: any = null;
 
-    if (paymentInfo.status === "captured") {
-      // Already captured, proceed
-    } else if (paymentInfo.status === "authorized") {
+    if (paymentInfo.status === "authorized") {
       const captureResponse = await axios.post(
         `https://api.razorpay.com/v1/payments/${rp_payment_id}/capture`,
         new URLSearchParams({
-          amount: (transaction_amount * 100).toString(),
+          amount: (transaction_amount * 100).toString(), // Razorpay expects paise
         }),
         {
           auth: {
@@ -100,10 +81,28 @@ export const walletRecharges = async (req: Request, res: Response) => {
           })
         );
       }
-    } else {
+    } else if (paymentInfo.status !== "captured") {
       return res.status(400).json(
         createResponse(400, `Cannot process payment in '${paymentInfo.status}' status`, {
           status: "failed",
+        })
+      );
+    }
+
+    // Step 3: Check for duplicate AFTER capture
+    const [existing]: any = await db
+      .promise()
+      .query(`SELECT id FROM wallet_transactions WHERE rp_payment_id = ? LIMIT 1`, [rp_payment_id]);
+
+    if (existing.length > 0) {
+      return res.status(200).json(
+        createResponse(200, "Transaction already processed", {
+          transaction_id,
+          user_id,
+          plan_amount,
+          extra_percentage,
+          transaction_amount,
+          status: "success",
         })
       );
     }
@@ -151,6 +150,7 @@ export const walletRecharges = async (req: Request, res: Response) => {
       description: logDescription,
     });
 
+    // Final success response
     return res.status(200).json(
       createResponse(200, "Transaction stored successfully", {
         transaction_id,
@@ -176,6 +176,7 @@ export const walletRecharges = async (req: Request, res: Response) => {
     );
   }
 };
+
 
 export const getTransactionsByUserId = async (req: Request, res: Response) => {
   const userId = req.params.userId;
