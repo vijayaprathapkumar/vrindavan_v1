@@ -34,7 +34,10 @@ export const walletRecharges = async (req: Request, res: Response) => {
     // ✅ Step 1: Check if rp_payment_id already exists
     const [existing]: any = await db
       .promise()
-      .query(`SELECT id FROM wallet_transactions WHERE rp_payment_id = ? LIMIT 1`, [rp_payment_id]);
+      .query(
+        `SELECT id FROM wallet_transactions WHERE rp_payment_id = ? LIMIT 1`,
+        [rp_payment_id]
+      );
 
     if (existing.length > 0) {
       return res.status(200).json(
@@ -62,10 +65,14 @@ export const walletRecharges = async (req: Request, res: Response) => {
 
     const paymentInfo = paymentCheck.data;
 
-    if (!paymentInfo || paymentInfo.status === "failed") {
+    if (
+      !paymentInfo ||
+      paymentInfo.status === "failed" ||
+      paymentInfo.status === "created"
+    ) {
       return res.status(400).json(
-        createResponse(400, "Invalid or failed payment ID", {
-          status: "failed",
+        createResponse(400, "Payment is not authorized or failed", {
+          status: paymentInfo?.status || "invalid",
         })
       );
     }
@@ -101,9 +108,13 @@ export const walletRecharges = async (req: Request, res: Response) => {
       }
     } else if (paymentInfo.status !== "captured") {
       return res.status(400).json(
-        createResponse(400, `Cannot process payment in '${paymentInfo.status}' status`, {
-          status: "failed",
-        })
+        createResponse(
+          400,
+          `Cannot process payment in '${paymentInfo.status}' status`,
+          {
+            status: "failed",
+          }
+        )
       );
     }
 
@@ -132,12 +143,16 @@ export const walletRecharges = async (req: Request, res: Response) => {
     // ✅ Step 6: Get updated balance
     const [balanceResult]: any = await db
       .promise()
-      .query(`SELECT balance FROM wallet_balances WHERE user_id = ?`, [user_id]);
+      .query(`SELECT balance FROM wallet_balances WHERE user_id = ?`, [
+        user_id,
+      ]);
 
     const newBalance = Number(balanceResult?.[0]?.balance || 0);
 
     // ✅ Step 7: Log the transaction
-    const logDescription = `₹${transaction_amount.toFixed(2)} Recharged for Wallet.`;
+    const logDescription = `₹${transaction_amount.toFixed(
+      2
+    )} Recharged for Wallet.`;
 
     await insertWalletLog({
       user_id,
@@ -175,8 +190,6 @@ export const walletRecharges = async (req: Request, res: Response) => {
     );
   }
 };
-
-
 
 export const getTransactionsByUserId = async (req: Request, res: Response) => {
   const userId = req.params.userId;
