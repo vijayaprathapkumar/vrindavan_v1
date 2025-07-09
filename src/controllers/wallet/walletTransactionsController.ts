@@ -65,14 +65,10 @@ export const walletRecharges = async (req: Request, res: Response) => {
 
     const paymentInfo = paymentCheck.data;
 
-    if (
-      !paymentInfo ||
-      paymentInfo.status === "failed" ||
-      paymentInfo.status === "created"
-    ) {
+    if (!paymentInfo || paymentInfo.status === "failed") {
       return res.status(400).json(
-        createResponse(400, "Payment is not authorized or failed", {
-          status: paymentInfo?.status || "invalid",
+        createResponse(400, "Invalid or failed payment ID", {
+          status: "failed",
         })
       );
     }
