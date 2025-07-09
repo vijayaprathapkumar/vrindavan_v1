@@ -31,28 +31,7 @@ export const walletRecharges = async (req: Request, res: Response) => {
   } = req.body;
 
   try {
-    // ✅ Step 1: Check if rp_payment_id already exists
-    const [existing]: any = await db
-      .promise()
-      .query(
-        `SELECT id FROM wallet_transactions WHERE rp_payment_id = ? LIMIT 1`,
-        [rp_payment_id]
-      );
-
-    if (existing.length > 0) {
-      return res.status(200).json(
-        createResponse(200, "Transaction already processed", {
-          transaction_id,
-          user_id,
-          plan_amount,
-          extra_percentage,
-          transaction_amount,
-          status: "success",
-        })
-      );
-    }
-
-    // ✅ Step 2: Verify Razorpay payment details
+    // Step 1: Verify Razorpay payment details
     const paymentCheck = await axios.get(
       `https://api.razorpay.com/v1/payments/${rp_payment_id}`,
       {
@@ -73,14 +52,14 @@ export const walletRecharges = async (req: Request, res: Response) => {
       );
     }
 
-    // ✅ Step 3: Capture payment if authorized
+    // Step 2: Capture payment if authorized
     let captureData: any = null;
 
     if (paymentInfo.status === "authorized") {
       const captureResponse = await axios.post(
         `https://api.razorpay.com/v1/payments/${rp_payment_id}/capture`,
         new URLSearchParams({
-          amount: (transaction_amount * 100).toString(),
+          amount: (transaction_amount * 100).toString(), // Razorpay expects paise
         }),
         {
           auth: {
@@ -104,20 +83,34 @@ export const walletRecharges = async (req: Request, res: Response) => {
       }
     } else if (paymentInfo.status !== "captured") {
       return res.status(400).json(
-        createResponse(
-          400,
-          `Cannot process payment in '${paymentInfo.status}' status`,
-          {
-            status: "failed",
-          }
-        )
+        createResponse(400, `Cannot process payment in '${paymentInfo.status}' status`, {
+          status: "failed",
+        })
       );
     }
 
-    // ✅ Step 4: Update wallet balance
+    // Step 3: Check for duplicate AFTER capture
+    const [existing]: any = await db
+      .promise()
+      .query(`SELECT id FROM wallet_transactions WHERE rp_payment_id = ? LIMIT 1`, [rp_payment_id]);
+
+    if (existing.length > 0) {
+      return res.status(200).json(
+        createResponse(200, "Transaction already processed", {
+          transaction_id,
+          user_id,
+          plan_amount,
+          extra_percentage,
+          transaction_amount,
+          status: "success",
+        })
+      );
+    }
+
+    // Step 4: Update wallet balance
     await updateWalletBalance(user_id, transaction_amount);
 
-    // ✅ Step 5: Insert wallet transaction
+    // Step 5: Insert wallet transaction record
     const isPaymentSuccessful =
       paymentInfo.status === "captured" || captureData?.status === "captured";
 
@@ -136,19 +129,15 @@ export const walletRecharges = async (req: Request, res: Response) => {
       description,
     });
 
-    // ✅ Step 6: Get updated balance
+    // Step 6: Get updated balance
     const [balanceResult]: any = await db
       .promise()
-      .query(`SELECT balance FROM wallet_balances WHERE user_id = ?`, [
-        user_id,
-      ]);
+      .query(`SELECT balance FROM wallet_balances WHERE user_id = ?`, [user_id]);
 
     const newBalance = Number(balanceResult?.[0]?.balance || 0);
 
-    // ✅ Step 7: Log the transaction
-    const logDescription = `₹${transaction_amount.toFixed(
-      2
-    )} Recharged for Wallet.`;
+    // Step 7: Insert wallet log
+    const logDescription = `₹${transaction_amount.toFixed(2)} Recharged for Wallet.`;
 
     await insertWalletLog({
       user_id,
@@ -161,6 +150,7 @@ export const walletRecharges = async (req: Request, res: Response) => {
       description: logDescription,
     });
 
+    // Final success response
     return res.status(200).json(
       createResponse(200, "Transaction stored successfully", {
         transaction_id,
@@ -186,6 +176,7 @@ export const walletRecharges = async (req: Request, res: Response) => {
     );
   }
 };
+
 
 export const getTransactionsByUserId = async (req: Request, res: Response) => {
   const userId = req.params.userId;
