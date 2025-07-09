@@ -120,7 +120,7 @@ export const razorpayWebhookHandler = async (
         extra_amount: extraAmount,
         transaction_amount: amountInRupees,
         transaction_type: payment.method || "unknown",
-        description: payment.description || `Payment via ${payment.method}`
+        description: `Payment via ${payment.method}`
       }
     } as Request;
 
