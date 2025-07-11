@@ -68,23 +68,41 @@ export const razorpayWebhookHandler = async (
       return res.status(400).json({ error: "Missing payment entity" });
     }
 
-    // 3. Check for duplicate payment before any processing
-    const [rows]: any = await db
-      .promise()
-      .query(
-        "SELECT id FROM wallet_transactions WHERE rp_payment_id = ? LIMIT 1",
-        [payment.id]
-      );
+    // 3. Check if payment was already processed via API
+    const [apiProcessed]: any = await db.promise().query(
+      `SELECT id FROM wallet_transactions 
+         WHERE rp_payment_id = ? AND description NOT LIKE 'Webhook payment%' 
+         LIMIT 1 FOR UPDATE`,
+      [payment.id]
+    );
 
-    if (rows.length > 0) {
-      console.log(`⚠️ Payment ${payment.id} already processed, skipping`);
+    if (apiProcessed.length > 0) {
+      console.log(
+        `ℹ️ Payment ${payment.id} already processed via API, skipping webhook`
+      );
       return res.status(200).json({
         status: "ignored",
-        reason: "Duplicate payment ID",
+        reason: "Already processed via API",
       });
     }
 
-    // 4. Process only authorized and captured payments
+    // 4. Check for any existing webhook processing
+    const [existingWebhook]: any = await db.promise().query(
+      `SELECT id FROM wallet_transactions 
+         WHERE rp_payment_id = ? AND description LIKE 'Webhook payment%' 
+         LIMIT 1 FOR UPDATE`,
+      [payment.id]
+    );
+
+    if (existingWebhook.length > 0) {
+      console.log(`ℹ️ Payment ${payment.id} already processed via webhook`);
+      return res.status(200).json({
+        status: "ignored",
+        reason: "Duplicate webhook processing",
+      });
+    }
+
+    // 5. Process only authorized and captured payments
     if (event !== "payment.authorized" && event !== "payment.captured") {
       console.log(`ℹ️ Ignoring event: ${event}`);
       return res.status(200).json({
@@ -93,7 +111,7 @@ export const razorpayWebhookHandler = async (
       });
     }
 
-    // 5. Process user info
+    // 6. Process user info
     const contactRaw = payment.contact || "";
     const contact = contactRaw.startsWith("+91")
       ? contactRaw.slice(3)
@@ -102,14 +120,14 @@ export const razorpayWebhookHandler = async (
 
     let userId: number | null = null;
     if (contact || email) {
-      const [userRows]: any = await db
+      const [rows]: any = await db
         .promise()
         .query("SELECT id FROM users WHERE phone = ? OR email = ?", [
           contact,
           email,
         ]);
-      if (userRows.length > 0) {
-        userId = userRows[0].id;
+      if (rows.length > 0) {
+        userId = rows[0].id;
       }
     }
 
@@ -117,7 +135,7 @@ export const razorpayWebhookHandler = async (
       return res.status(400).json({ error: "User not found" });
     }
 
-    // 6. Prepare transaction data for walletRecharges
+    // 7. Prepare transaction data for walletRecharges
     const amountInRupees = payment.amount / 100;
     const transactionId = `pay_${userId}_${Date.now()}`;
 
