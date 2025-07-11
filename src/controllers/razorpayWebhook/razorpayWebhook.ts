@@ -66,7 +66,20 @@ export const razorpayWebhookHandler = async (
       return res.status(400).json({ error: "Missing payment entity" });
     }
 
-    // 3. Process both authorized and captured payments
+    // 3. Check for duplicate payment BEFORE any processing
+    const [existing]: any = await db
+      .promise()
+      .query(`SELECT id FROM wallet_transactions WHERE rp_payment_id = ? LIMIT 1`, [payment.id]);
+
+    if (existing.length > 0) {
+      console.log(`ℹ️ Payment ${payment.id} already processed, skipping`);
+      return res.status(200).json({ 
+        status: "skipped", 
+        reason: "Payment already processed" 
+      });
+    }
+
+    // 4. Process both authorized and captured payments
     if (event !== "payment.authorized" && event !== "payment.captured") {
       console.log(`ℹ️ Ignoring event: ${event}`);
       return res.status(200).json({ 
@@ -75,7 +88,7 @@ export const razorpayWebhookHandler = async (
       });
     }
 
-    // 4. Process user info
+    // 5. Process user info
     const contactRaw = payment.contact || "";
     const contact = contactRaw.startsWith("+91") ? contactRaw.slice(3) : contactRaw;
     const email = payment.email || null;
@@ -94,9 +107,10 @@ export const razorpayWebhookHandler = async (
       return res.status(400).json({ error: "User not found" });
     }
 
-    // 5. Prepare transaction data for walletRecharges
+    // 6. Prepare transaction data for walletRecharges
     const amountInRupees = payment.amount / 100;
-    const transactionId = `pay_${userId}_${Date.now()}`;
+    // Use payment.id as part of transaction_id to ensure uniqueness for same payment
+    const transactionId = `pay_${userId}_${payment.id.replace('pay_', '')}`;
     
     // Get additional data from payment notes
     const paymentNotes = payment.notes || {};
