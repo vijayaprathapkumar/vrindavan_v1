@@ -11,7 +11,7 @@ if (!webhookSecret) {
 
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID!,
-  key_secret: process.env.RAZORPAY_KEY_SECRET!
+  key_secret: process.env.RAZORPAY_KEY_SECRET!,
 });
 
 interface RazorpayWebhookPayload {
@@ -45,10 +45,12 @@ export const razorpayWebhookHandler = async (
       .update(rawBodyString)
       .digest("hex");
 
-    if (!crypto.timingSafeEqual(
-      Buffer.from(signature, 'utf8'),
-      Buffer.from(expectedSignature, 'utf8')
-    )) {
+    if (
+      !crypto.timingSafeEqual(
+        Buffer.from(signature, "utf8"),
+        Buffer.from(expectedSignature, "utf8")
+      )
+    ) {
       return res.status(401).json({ error: "Invalid signature" });
     }
 
@@ -69,35 +71,43 @@ export const razorpayWebhookHandler = async (
     // 3. Check for duplicate payment before any processing
     const [existingPayment]: any = await db
       .promise()
-      .query("SELECT id FROM wallet_transactions WHERE rp_payment_id = ? LIMIT 1", [payment.id]);
+      .query(
+        "SELECT id FROM wallet_transactions WHERE rp_payment_id = ? LIMIT 1",
+        [payment.id]
+      );
 
     if (existingPayment.length > 0) {
       console.log(`⚠️ Payment ${payment.id} already processed, skipping`);
-      return res.status(200).json({ 
-        status: "ignored", 
-        reason: "Duplicate payment ID" 
+      return res.status(200).json({
+        status: "ignored",
+        reason: "Duplicate payment ID",
       });
     }
 
     // 4. Process only authorized and captured payments
     if (event !== "payment.authorized" && event !== "payment.captured") {
       console.log(`ℹ️ Ignoring event: ${event}`);
-      return res.status(200).json({ 
-        status: "ignored", 
-        reason: "Unsupported event type" 
+      return res.status(200).json({
+        status: "ignored",
+        reason: "Unsupported event type",
       });
     }
 
     // 5. Process user info
     const contactRaw = payment.contact || "";
-    const contact = contactRaw.startsWith("+91") ? contactRaw.slice(3) : contactRaw;
+    const contact = contactRaw.startsWith("+91")
+      ? contactRaw.slice(3)
+      : contactRaw;
     const email = payment.email || null;
 
     let userId: number | null = null;
     if (contact || email) {
       const [rows]: any = await db
         .promise()
-        .query("SELECT id FROM users WHERE phone = ? OR email = ?", [contact, email]);
+        .query("SELECT id FROM users WHERE phone = ? OR email = ?", [
+          contact,
+          email,
+        ]);
       if (rows.length > 0) {
         userId = rows[0].id;
       }
@@ -110,16 +120,18 @@ export const razorpayWebhookHandler = async (
     // 6. Prepare transaction data for walletRecharges
     const amountInRupees = payment.amount / 100;
     const transactionId = `pay_${userId}_${Date.now()}`;
-    
+
     // Get additional data from payment notes
     const paymentNotes = payment.notes || {};
     const planId = paymentNotes.plan_id || null;
-    const extraPercentage = paymentNotes.extra_percentage ? 
-      parseFloat(paymentNotes.extra_percentage) : 0;
-    const planAmount = paymentNotes.plan_amount ? 
-      parseFloat(paymentNotes.plan_amount) : amountInRupees;
+    const extraPercentage = paymentNotes.extra_percentage
+      ? parseFloat(paymentNotes.extra_percentage)
+      : 0;
+    const planAmount = paymentNotes.plan_amount
+      ? parseFloat(paymentNotes.plan_amount)
+      : amountInRupees;
     const extraAmount = planAmount * (extraPercentage / 100);
-    
+
     // Create mock request object
     const mockRequest = {
       body: {
@@ -133,13 +145,12 @@ export const razorpayWebhookHandler = async (
         extra_amount: extraAmount,
         transaction_amount: amountInRupees,
         transaction_type: payment.method || "unknown",
-        description: payment.description || `Webhook payment via ${payment.method}`
-      }
+        description: `Webhook payment via ${payment.method}`,
+      },
     } as Request;
 
     // Process the payment
     await walletRecharges(mockRequest, res);
-
   } catch (error) {
     console.error("❗ Webhook processing failed:", error);
     return res.status(500).json({
