@@ -8,6 +8,7 @@ export const getAllFoods = async (
     categoryId?: number;
     subcategoryId?: number;
     searchTerm?: string;
+    stockFilter?: "all-stock" | "in-stock" | "low-stock" | "out-of-stock";
   },
   limit: number,
   offset: number,
@@ -67,6 +68,42 @@ END AS stockCount,
   if (filters.status !== undefined && filters.status !== null) {
     conditions.push("f.status = ?");
     values.push(filters.status);
+  }
+  if (filters.stockFilter && filters.stockFilter !== "all-stock") {
+    if (filters.stockFilter === "in-stock") {
+      conditions.push(`
+      (
+        f.track_inventory = 0 OR 
+        (
+          f.track_inventory = 1 AND (
+            SELECT COALESCE(SUM(amount), 0) 
+            FROM stock_mutations 
+            WHERE stockable_id = f.id
+          ) > 5
+        )
+      )
+    `);
+    } else if (filters.stockFilter === "low-stock") {
+      conditions.push(`
+      (
+        f.track_inventory = 1 AND (
+          SELECT COALESCE(SUM(amount), 0) 
+          FROM stock_mutations 
+          WHERE stockable_id = f.id
+        ) BETWEEN 1 AND 5
+      )
+    `);
+    } else if (filters.stockFilter === "out-of-stock") {
+      conditions.push(`
+      (
+        f.track_inventory = 1 AND (
+          SELECT COALESCE(SUM(amount), 0) 
+          FROM stock_mutations 
+          WHERE stockable_id = f.id
+        ) <= 0
+      )
+    `);
+    }
   }
 
   if (filters.categoryId) {
@@ -457,12 +494,14 @@ export const updateStock = async (
       INSERT INTO stock_mutations (stockable_id, stockable_type, amount, description, created_at, updated_at)
       VALUES (?, ?, ?, ?, NOW(), NOW())
     `;
-    await db.promise().execute(insertQuery, [
-      foodId,
-      stockableType,
-      amountChange,
-      description ?? null,
-    ]);
+    await db
+      .promise()
+      .execute(insertQuery, [
+        foodId,
+        stockableType,
+        amountChange,
+        description ?? null,
+      ]);
   } catch (error) {
     console.error("Error inserting stock mutation:", error);
     throw new Error("Stock update failed");

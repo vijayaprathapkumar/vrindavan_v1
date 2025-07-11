@@ -120,6 +120,7 @@ export const walletRecharges = async (req: Request, res: Response) => {
         )
       );
     }
+    
 
     // 4. Update wallet balance
     await updateWalletBalance(connection, user_id, transaction_amount);

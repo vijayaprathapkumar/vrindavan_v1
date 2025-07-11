@@ -25,6 +25,7 @@ export const fetchAllFoods = async (
       searchTerm,
       sortField,
       sortOrder,
+      stockFilter
     } = req.query;
 
     const limit = parseInt(req.query.limit as string) || 10;
@@ -36,6 +37,7 @@ export const fetchAllFoods = async (
       categoryId,
       subcategoryId,
       searchTerm: searchTerm ? searchTerm.toString() : null,
+      stockFilter: stockFilter ? stockFilter.toString() : null,
     };
 
     const { foods, totalCount } = await getAllFoods(
