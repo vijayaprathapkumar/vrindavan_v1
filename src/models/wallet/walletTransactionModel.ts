@@ -1,4 +1,4 @@
-import { OkPacket, RowDataPacket } from "mysql2";
+import { OkPacket, PoolConnection, RowDataPacket } from "mysql2";
 import { db } from "../../config/databaseConnection";
 
 export interface WalletTransaction {
@@ -21,71 +21,55 @@ export interface TransactionsResponse {
   total: number;
 }
 
-export const insertWalletTransaction = (
+export const insertWalletTransaction = async (
+  connection: any,
   transaction: WalletTransaction
 ): Promise<void> => {
-  const generateTransactionId = (): string => {
-    const prefix = "pay_";
-    const userId = transaction.user_id;
-    return `${prefix}${userId}`;
-  };
-
   const query = `
-        INSERT INTO wallet_transactions 
-        (transaction_id, rp_payment_id, rp_order_id, user_id, plan_id, transaction_date, extra_percentage, plan_amount, extra_amount, transaction_amount, transaction_type, status, description, created_at, updated_at) 
-        VALUES (?, ?, ?, ?, ?, NOW(), ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
-    `;
+    INSERT INTO wallet_transactions 
+    (transaction_id, rp_payment_id, rp_order_id, user_id, plan_id, transaction_date, 
+     extra_percentage, plan_amount, extra_amount, transaction_amount, 
+     transaction_type, status, description, created_at, updated_at) 
+    VALUES (?, ?, ?, ?, ?, NOW(), ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+  `;
 
-  const transactionId = generateTransactionId();
-
-  return new Promise((resolve, reject) => {
-    db.query(
-      query,
-      [
-        transactionId,
-        transaction.rp_payment_id,
-        transaction.rp_order_id || null,
-        transaction.user_id,
-        transaction.plan_id,
-        transaction.extra_percentage,
-        transaction.plan_amount,
-        transaction.extra_amount,
-        transaction.transaction_amount,
-        transaction.transaction_type,
-        transaction.status,
-        transaction.description,
-      ],
-      (err) => {
-        if (err) {
-          return reject(err);
-        }
-        resolve();
-      }
-    );
-  });
+  await connection.query(query, [
+    transaction.transaction_id,
+    transaction.rp_payment_id,
+    transaction.rp_order_id || null,
+    transaction.user_id,
+    transaction.plan_id,
+    transaction.extra_percentage,
+    transaction.plan_amount,
+    transaction.extra_amount,
+    transaction.transaction_amount,
+    transaction.transaction_type,
+    transaction.status,
+    transaction.description,
+  ]);
 };
 
 export const updateWalletBalance = async (
-  userId: string,
+  connection: any,
+  userId: string | number,
   amount: number
 ): Promise<void> => {
   const checkQuery = `SELECT * FROM wallet_balances WHERE user_id = ?`;
-
-  const [results]: any = await db.promise().query(checkQuery, [userId]);
+  const [results]: any = await connection.query(checkQuery, [userId]);
 
   if (results.length > 0) {
     const updateQuery = `
-            UPDATE wallet_balances
-            SET balance = balance + ?, updated_at = NOW()
-            WHERE user_id = ?
-        `;
-    await db.promise().query(updateQuery, [amount, userId]);
+      UPDATE wallet_balances
+      SET balance = balance + ?, updated_at = NOW()
+      WHERE user_id = ?
+    `;
+    await connection.query(updateQuery, [amount, userId]);
   } else {
     const insertQuery = `
-            INSERT INTO wallet_balances (user_id, balance, created_at, updated_at)
-            VALUES (?, ?, NOW(), NOW())
-        `;
-    await db.promise().query(insertQuery, [userId, amount]);
+      INSERT INTO wallet_balances (user_id, balance, created_at, updated_at)
+      VALUES (?, ?, NOW(), NOW())
+    `;
+    await connection.query(insertQuery, [userId, amount]);
   }
 };
 
@@ -244,45 +228,34 @@ export const fetchAllTransactions = (
   });
 };
 
-export const insertWalletLog = (log: any): Promise<void> => {
+export const insertWalletLog = async (
+  connection?: any,
+  log?: any
+): Promise<void> => {
   const query = `
-      INSERT INTO wallet_logs
-      (user_id, order_id, order_date, before_balance, amount, after_balance, wallet_type, description, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
-    `;
+    INSERT INTO wallet_logs
+    (user_id, order_id, order_date, before_balance, amount, after_balance, 
+     wallet_type, description, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+  `;
 
-  return new Promise((resolve, reject) => {
-    const formattedOrderDate = log.order_date ? log.order_date : new Date();
-    const descriptionCondition =
-      log.wallet_type === "recharge"
-        ? `${log.description} | Wallet balance: ₹${log.after_balance}`
-        : log.wallet_type === "deductions from client"
-        ? `Deducted ₹${log.amount} for ${log.description} | Wallet balance: ₹${log.after_balance}`
-        : "";
+  const description =
+    log.wallet_type === "recharge"
+      ? `${log.description} | Wallet balance: ₹${log.after_balance}`
+      : log.wallet_type === "deductions from client"
+      ? `Deducted ₹${log.amount} for ${log.description} | Wallet balance: ₹${log.after_balance}`
+      : log.description;
 
-    // Ensure order_id is a valid number or NULL
-    const orderId = log.order_id && !isNaN(log.order_id) ? log.order_id : null;
-
-    db.query(
-      query,
-      [
-        log.user_id,
-        orderId, // Use the validated order_id here
-        formattedOrderDate,
-        log.before_balance,
-        log.amount,
-        log.after_balance,
-        log.wallet_type,
-        descriptionCondition,
-      ],
-      (err) => {
-        if (err) {
-          return reject(err);
-        }
-        resolve();
-      }
-    );
-  });
+  await connection.query(query, [
+    log.user_id,
+    log.order_id && !isNaN(Number(log.order_id)) ? log.order_id : null,
+    log.order_date || new Date(),
+    log.before_balance,
+    log.amount,
+    log.after_balance,
+    log.wallet_type,
+    description,
+  ]);
 };
 
 export const updateWalletBalanceDections = async (

@@ -66,20 +66,20 @@ export const razorpayWebhookHandler = async (
       return res.status(400).json({ error: "Missing payment entity" });
     }
 
-    // 3. Check for duplicate payment BEFORE any processing
-    const [existing]: any = await db
+    // 3. Check for duplicate payment before any processing
+    const [existingPayment]: any = await db
       .promise()
-      .query(`SELECT id FROM wallet_transactions WHERE rp_payment_id = ? LIMIT 1`, [payment.id]);
+      .query("SELECT id FROM wallet_transactions WHERE rp_payment_id = ? LIMIT 1", [payment.id]);
 
-    if (existing.length > 0) {
-      console.log(`ℹ️ Payment ${payment.id} already processed, skipping`);
+    if (existingPayment.length > 0) {
+      console.log(`⚠️ Payment ${payment.id} already processed, skipping`);
       return res.status(200).json({ 
-        status: "skipped", 
-        reason: "Payment already processed" 
+        status: "ignored", 
+        reason: "Duplicate payment ID" 
       });
     }
 
-    // 4. Process both authorized and captured payments
+    // 4. Process only authorized and captured payments
     if (event !== "payment.authorized" && event !== "payment.captured") {
       console.log(`ℹ️ Ignoring event: ${event}`);
       return res.status(200).json({ 
@@ -109,8 +109,7 @@ export const razorpayWebhookHandler = async (
 
     // 6. Prepare transaction data for walletRecharges
     const amountInRupees = payment.amount / 100;
-    // Use payment.id as part of transaction_id to ensure uniqueness for same payment
-    const transactionId = `pay_${userId}_${payment.id.replace('pay_', '')}`;
+    const transactionId = `pay_${userId}_${Date.now()}`;
     
     // Get additional data from payment notes
     const paymentNotes = payment.notes || {};
@@ -121,7 +120,7 @@ export const razorpayWebhookHandler = async (
       parseFloat(paymentNotes.plan_amount) : amountInRupees;
     const extraAmount = planAmount * (extraPercentage / 100);
     
-    // Create a proper mock request object
+    // Create mock request object
     const mockRequest = {
       body: {
         transaction_id: transactionId,
@@ -138,7 +137,7 @@ export const razorpayWebhookHandler = async (
       }
     } as Request;
 
-    // Call walletRecharges with the prepared data
+    // Process the payment
     await walletRecharges(mockRequest, res);
 
   } catch (error) {
