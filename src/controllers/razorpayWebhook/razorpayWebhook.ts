@@ -69,14 +69,14 @@ export const razorpayWebhookHandler = async (
     }
 
     // 3. Check for duplicate payment before any processing
-    const [existingPayment]: any = await db
+    const [rows]: any = await db
       .promise()
       .query(
         "SELECT id FROM wallet_transactions WHERE rp_payment_id = ? LIMIT 1",
         [payment.id]
       );
 
-    if (existingPayment.length > 0) {
+    if (rows.length > 0) {
       console.log(`⚠️ Payment ${payment.id} already processed, skipping`);
       return res.status(200).json({
         status: "ignored",
@@ -102,14 +102,14 @@ export const razorpayWebhookHandler = async (
 
     let userId: number | null = null;
     if (contact || email) {
-      const [rows]: any = await db
+      const [userRows]: any = await db
         .promise()
         .query("SELECT id FROM users WHERE phone = ? OR email = ?", [
           contact,
           email,
         ]);
-      if (rows.length > 0) {
-        userId = rows[0].id;
+      if (userRows.length > 0) {
+        userId = userRows[0].id;
       }
     }
 
