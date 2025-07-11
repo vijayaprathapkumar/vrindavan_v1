@@ -25,6 +25,11 @@ export const insertWalletTransaction = async (
   connection: any,
   transaction: WalletTransaction
 ): Promise<void> => {
+  const generateTransactionId = (): string => {
+    const prefix = "pay_";
+    const userId = transaction.user_id;
+    return `${prefix}${userId}`;
+  };
   const query = `
     INSERT INTO wallet_transactions 
     (transaction_id, rp_payment_id, rp_order_id, user_id, plan_id, transaction_date, 
@@ -32,9 +37,10 @@ export const insertWalletTransaction = async (
      transaction_type, status, description, created_at, updated_at) 
     VALUES (?, ?, ?, ?, ?, NOW(), ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
   `;
+ const transactionId = generateTransactionId();
 
   await connection.query(query, [
-    transaction.transaction_id,
+    transactionId,
     transaction.rp_payment_id,
     transaction.rp_order_id || null,
     transaction.user_id,
