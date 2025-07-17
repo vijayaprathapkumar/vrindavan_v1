@@ -56,6 +56,10 @@ export const placeOneTimeOrder = async (
 
 const placeOrder = async (productData, user_id, orderDate) => {
   const { price, food_id, quantity, discount_price } = productData;
+  if (quantity <= 0) {
+    console.log(`Skipping food ID ${food_id} due to zero quantity.`);
+    return;
+  }
 
   // Start with discount_price if available
   let productAmount = discount_price ?? null;
@@ -135,6 +139,11 @@ export const oneTimeOrdersInCustomer = async (req: any, res: any) => {
 
     const { discount_price, price, food_id, quantity } = productData;
     const productAmount = discount_price > 0 ? discount_price : price;
+
+    if (quantity <= 0) {
+      console.log(`Skipping food ID ${food_id} due to zero quantity.`);
+      return;
+    }
 
     if (productAmount <= 0) {
       return res.status(400).json({ message: "Invalid product amount" });
