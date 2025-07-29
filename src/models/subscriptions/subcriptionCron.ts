@@ -29,13 +29,33 @@ async function fetchSubscriptions(
       AND sqc_cancel.order_date = ?
       AND sqc_cancel.cancel_order = 1
     WHERE us.active = 1 
-      AND us.is_pause_subscription = 0 
       AND us.cancel_subscription = 0
       AND us.id > ? 
       AND us.start_date <= ? 
       AND (us.end_date >= ? OR us.end_date IS NULL)
       AND (sqc.id IS NULL OR sqc.quantity != 0)
       AND sqc_cancel.id IS NULL
+      AND (
+        -- Either not a paused subscription
+        us.is_pause_subscription = 0
+        OR
+        -- Or if paused, check the specific pause period
+        (
+          us.is_pause_subscription = 1 
+          AND (
+            -- No specific pause period dates set
+            (us.pause_specific_period_startDate IS NULL AND us.pause_specific_period_endDate IS NULL)
+            OR
+            -- Current date is outside the specific pause period
+            ? NOT BETWEEN us.pause_specific_period_startDate AND us.pause_specific_period_endDate
+            OR
+            -- One of the dates is null (invalid range)
+            us.pause_specific_period_startDate IS NULL 
+            OR 
+            us.pause_specific_period_endDate IS NULL
+          )
+        )
+      )
     ORDER BY us.id ASC
     LIMIT ?
   `;
@@ -49,6 +69,7 @@ async function fetchSubscriptions(
         lastId,
         nextDateFormatted,
         nextDateFormatted,
+        nextDateFormatted, // For the pause date check
         batchSize,
       ]);
     return rows;
@@ -635,8 +656,8 @@ export const pauseSubscriptionsJobs = () => {
 
 // // ✅ Manual call for testing
 // export async function testWithSpecificDate() {
-//   const testDate = new Date("2025-06-30T00:00:00");
+//   const testDate = new Date("2025-08-10T00:00:00");
 //   console.log(`🧪 Testing with date: ${testDate}`);
 //   writeLog(`🧪 Manual test started for date: ${testDate.toISOString()}`);
-//   await resetPausedSubscriptions(testDate, 12956); // manually for user_id = 12956
+//   await resetPausedSubscriptions(testDate,12956); // manually for user_id = 12956
 // }
