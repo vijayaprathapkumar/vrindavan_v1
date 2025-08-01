@@ -35,6 +35,7 @@ async function fetchSubscriptions(
       AND (us.end_date >= ? OR us.end_date IS NULL)
       AND (sqc.id IS NULL OR sqc.quantity != 0)
       AND sqc_cancel.id IS NULL
+      AND us.pause_until_i_come_back = 0
       AND (
         -- Either not a paused subscription
         us.is_pause_subscription = 0
@@ -656,8 +657,8 @@ export const pauseSubscriptionsJobs = () => {
 
 // // ✅ Manual call for testing
 // export async function testWithSpecificDate() {
-//   const testDate = new Date("2025-08-10T00:00:00");
+//   const testDate = new Date("2025-08-05T00:00:00");
 //   console.log(`🧪 Testing with date: ${testDate}`);
 //   writeLog(`🧪 Manual test started for date: ${testDate.toISOString()}`);
-//   await resetPausedSubscriptions(testDate,12956); // manually for user_id = 12956
+//   await handleNextDayOrders(testDate); // manually for user_id = 12956
 // }
