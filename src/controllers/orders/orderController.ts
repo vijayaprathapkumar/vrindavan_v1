@@ -10,9 +10,12 @@ import {
   getCalendarWiseOrdersModel,
   getPlaceOrderById,
   getUpcomingOrdersModel,
+  logWalletOneCancelTimeOrder,
   updateOneTimeOrders,
   updateSubscriptionOrders,
 } from "../../models/orders/orderModel";
+import { logWalletOneTimeOrder } from "../../models/placeOrder/placeOrderModels";
+import { db } from "../../config/databaseConnection";
 
 export const fetchAllOrders = async (
   req: Request,
@@ -194,12 +197,12 @@ export const updateOrderQty = async (
   req: Request,
   res: Response
 ): Promise<Response> => {
-  const { orderId, quantity, orderDate, orderType, subscriptionId } = req.body;
-
+  const { orderId, quantity, orderDate, orderType, subscriptionId, userId } =
+    req.body;
 
   try {
     if (orderType === 1 || orderId) {
-      await updateOneTimeOrders(orderId, quantity);
+      await updateOneTimeOrders(orderId, quantity, userId);
     } else if (orderType === 2) {
       await updateSubscriptionOrders(subscriptionId, quantity, orderDate);
     } else {
@@ -314,7 +317,6 @@ export const getUpcomingOrders = async (req: Request, res: Response) => {
   }
 };
 
-// cancel one time order
 export const cancelOneTimeOrder = async (req: Request, res: Response) => {
   const { orderId } = req.params;
 
@@ -336,20 +338,164 @@ export const cancelOneTimeOrder = async (req: Request, res: Response) => {
         );
     }
 
-    const result = await cancelOneTimeOrderModel(parseInt(orderId));
+    // Get connection from pool
+    const connection = await db.promise().getConnection();
+    await connection.beginTransaction();
 
-    if (result.success) {
-      res.status(200).json(createResponse(200, "Order canceled successfully."));
-    } else {
+    try {
+      // First, get order details including user_id
+      const [orderRows]: any = await connection.query(
+        "SELECT * FROM orders WHERE id = ?",
+        [orderId]
+      );
+
+      if (orderRows.length === 0) {
+        await connection.rollback();
+        connection.release();
+        return res.status(404).json(createResponse(404, "Order not found."));
+      }
+
+      const order = orderRows[0];
+      const userId = order.user_id;
+      console.log("order", order);
+
+      // Get all food items for this order with food names from foods table
+      const [foodOrderRows]: any = await connection.query(
+        `SELECT fo.*, f.name as food_name 
+         FROM food_orders fo
+         JOIN foods f ON fo.food_id = f.id
+         WHERE fo.order_id = ?`,
+        [order.id]
+      );
+      console.log("foodOrderRows", foodOrderRows);
+
+      if (foodOrderRows.length === 0) {
+        await connection.rollback();
+        connection.release();
+        return res
+          .status(404)
+          .json(createResponse(404, "No food items found for this order."));
+      }
+
+      // Calculate total amount from food items (price * quantity)
+      const amount = foodOrderRows.reduce(
+        (total: number, item: any) => total + item.price * item.quantity,
+        0
+      );
+
+      // Validate amount
+      if (isNaN(amount)) {
+        await connection.rollback();
+        connection.release();
+        return res
+          .status(400)
+          .json(createResponse(400, "Invalid order amount."));
+      }
+
+      // Get current wallet balance
+      const [walletRows]: any = await connection.query(
+        "SELECT balance FROM wallet_balances WHERE user_id = ?",
+        [userId]
+      );
+
+      if (walletRows.length === 0) {
+        await connection.rollback();
+        connection.release();
+        return res
+          .status(404)
+          .json(createResponse(404, "Wallet not found for this user."));
+      }
+
+      const currentBalance = parseFloat(walletRows[0].balance);
+      const newBalance = currentBalance + amount;
+
+      // Update wallet balance - ensure values are properly formatted
+      await connection.query(
+        "UPDATE wallet_balances SET balance = ?, updated_at = NOW() WHERE user_id = ?",
+        [newBalance.toFixed(2), userId]
+      );
+
+      // Cancel the order (delete food orders and then the order itself)
+      await connection.query("DELETE FROM food_orders WHERE order_id = ?", [
+        orderId,
+      ]);
+
+      const [result]: any = await connection.query(
+        "DELETE FROM orders WHERE id = ?",
+        [orderId]
+      );
+
+      if (result.affectedRows === 0) {
+        await connection.rollback();
+        connection.release();
+        return res
+          .status(404)
+          .json(createResponse(404, "Order not found or already canceled."));
+      }
+
+      // Log the wallet transaction
+      const today = new Date();
+      const formattedDate = `${today.getFullYear()}-${(today.getMonth() + 1)
+        .toString()
+        .padStart(2, "0")}-${today.getDate().toString().padStart(2, "0")}`;
+
+      const formattedDescDate = `${today
+        .getDate()
+        .toString()
+        .padStart(2, "0")}-${(today.getMonth() + 1)
+        .toString()
+        .padStart(2, "0")}-${today.getFullYear()}`;
+      // Prepare description with food items
+      const foodNames = foodOrderRows
+        .map((item: any) => `${item.food_name} x ${item.quantity}`)
+        .join(", ");
+
+      const description = `₹${amount.toFixed(
+        2
+      )} Refunded for canceled order - ${foodNames} (Ordered On: ${formattedDescDate}). Balance ₹${currentBalance.toFixed(
+        2
+      )} → ₹${newBalance.toFixed(2)}`;
+
+      await logWalletOneCancelTimeOrder({
+        userId,
+        orderId: parseInt(orderId),
+        beforeBalance: currentBalance,
+        amount,
+        orderDate: formattedDate,
+        afterBalance: newBalance,
+        description,
+        foodName: foodOrderRows[0].food_name,
+        quantity: foodOrderRows[0].quantity,
+      });
+
+      await connection.commit();
+      connection.release();
+
       res
-        .status(404)
-        .json(createResponse(404, "Order not found or already canceled."));
+        .status(200)
+        .json(
+          createResponse(
+            200,
+            "Order canceled successfully and amount refunded to wallet."
+          )
+        );
+    } catch (error) {
+      await connection.rollback();
+      connection.release();
+      console.error("Transaction error:", error);
+      throw error;
     }
   } catch (error) {
     console.error("Error canceling order:", error);
     res
       .status(500)
-      .json(createResponse(500, "Failed to cancel order.", error.message));
+      .json(
+        createResponse(
+          500,
+          "Failed to cancel order.",
+          error instanceof Error ? error.message : "Unknown error"
+        )
+      );
   }
 };
 

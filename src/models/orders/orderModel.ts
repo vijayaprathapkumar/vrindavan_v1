@@ -303,10 +303,8 @@ export const getAllOrdersWithOutUserId = async (
     "l.name",
   ];
 
-const sortColumn = validSortFields.includes(sortField) 
-  ? sortField 
-  : "o.id"; 
-const sortOrderClause = sortOrder === "asc" ? "asc" : "desc";
+  const sortColumn = validSortFields.includes(sortField) ? sortField : "o.id";
+  const sortOrderClause = sortOrder === "asc" ? "asc" : "desc";
 
   const countQuery = `
     SELECT COUNT(DISTINCT o.id) AS total
@@ -1258,27 +1256,131 @@ export const getPlaceOrderById = async (
 // Update Order
 export const updateOneTimeOrders = async (
   orderId: number,
-  newQuantity?: number
+  newQuantity?: number,
+  userId?: number
 ): Promise<void> => {
   const connection = await db.promise().getConnection();
   try {
     await connection.beginTransaction();
 
-    const getOrderSql = `SELECT quantity FROM food_orders WHERE order_id = ?`;
+    // Get current order details
+    const getOrderSql = `
+      SELECT fo.quantity, fo.price, o.payment_id, o.user_id, o.order_date, f.name as foodName 
+      FROM food_orders fo
+      JOIN orders o ON fo.order_id = o.id
+      JOIN foods f ON fo.food_id = f.id
+      WHERE fo.order_id = ?
+    `;
     const [orderRows]: any = await connection.query(getOrderSql, [orderId]);
 
     if (orderRows.length === 0) {
       throw new Error(`Order ID ${orderId} not found.`);
     }
 
-    const { quantity: currentQuantity } = orderRows[0];
+    const {
+      quantity: currentQuantity,
+      price,
+      payment_id,
+      user_id,
+      order_date,
+      foodName,
+    } = orderRows[0];
 
-    // ✅ Only update if quantity has changed
-    if (newQuantity !== undefined && newQuantity !== currentQuantity) {
-      const updateOrderSql = `UPDATE food_orders SET quantity = ?, updated_at = NOW() WHERE order_id = ?`;
-      await connection.query(updateOrderSql, [newQuantity, orderId]);
-    } else {
+    // If no quantity change or no new quantity provided, skip update
+    if (newQuantity === undefined || newQuantity === currentQuantity) {
       console.log(`No quantity change for order ${orderId}, skipping update.`);
+      await connection.commit();
+      return;
+    }
+
+    // Calculate price difference
+    const oldTotal = price * currentQuantity;
+    const newTotal = price * newQuantity;
+    const amountDifference = newTotal - oldTotal;
+
+    // Update food order quantity
+    const updateOrderSql = `UPDATE food_orders SET quantity = ?, updated_at = NOW() WHERE order_id = ?`;
+    await connection.query(updateOrderSql, [newQuantity, orderId]);
+
+    // If there's a payment record and the amount changed
+    if (payment_id && amountDifference !== 0) {
+      // Get current wallet balance
+      const [walletRows]: any = await connection.query(
+        "SELECT balance FROM wallet_balances WHERE user_id = ? FOR UPDATE",
+        [user_id || userId]
+      );
+
+      if (walletRows.length === 0) {
+        throw new Error(`Wallet not found for user ${user_id || userId}`);
+      }
+
+      const currentBalance = parseFloat(walletRows[0].balance);
+
+      // Check if user has sufficient balance for deduction
+      if (amountDifference > 0 && currentBalance < amountDifference) {
+        throw new Error(`Insufficient balance for user ${user_id || userId}`);
+      }
+
+      // Update payment record
+      await connection.query(
+        `UPDATE payments SET price = ?, updated_at = NOW() WHERE id = ?`,
+        [newTotal, payment_id]
+      );
+
+      // Update wallet balance
+      await connection.query(
+        `UPDATE wallet_balances 
+         SET balance = balance + ?, 
+             updated_at = NOW() 
+         WHERE user_id = ?`,
+        [-amountDifference, user_id || userId] // Subtract for positive difference, add for negative
+      );
+
+      // Get new balance after update
+      const [updatedWalletRows]: any = await connection.query(
+        "SELECT balance FROM wallet_balances WHERE user_id = ?",
+        [user_id || userId]
+      );
+      const newBalance = parseFloat(updatedWalletRows[0].balance);
+
+      // Format today's date for description
+      const todayDate = new Date();
+      const formattedTodayDate = `${todayDate
+        .getDate()
+        .toString()
+        .padStart(2, "0")}-${(todayDate.getMonth() + 1)
+        .toString()
+        .padStart(2, "0")}-${todayDate.getFullYear()}`;
+
+      // Create wallet log entry
+      const formattedDescription = `₹${Math.abs(
+        amountDifference
+      )} deducted for ${foodName} x ${newQuantity} to previous order (Ordered On: ${formattedTodayDate}). Balance ₹${currentBalance} → ₹${newBalance}`;
+
+      await connection.query(
+        `INSERT INTO wallet_logs (
+          user_id, 
+          order_id, 
+          order_date, 
+          before_balance, 
+          amount, 
+          after_balance, 
+          wallet_type, 
+          description, 
+          created_at, 
+          updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+        [
+          user_id || userId,
+          orderId,
+          order_date,
+          currentBalance,
+          amountDifference,
+          newBalance,
+          "deduction",
+          formattedDescription,
+        ]
+      );
     }
 
     await connection.commit();
@@ -2076,4 +2178,57 @@ export const getCalendarOneTimeOrdersModel = (
       }
     );
   });
+};
+
+export const logWalletOneCancelTimeOrder = async (data: {
+  userId: number;
+  orderId: number;
+  beforeBalance: number;
+  amount: number;
+  orderDate: string;
+  afterBalance: number;
+  description?: string;
+  foodName?: string;
+  quantity?: number;
+}): Promise<void> => {
+  const todayDate = new Date();
+  const formattedTodayDate = `${todayDate
+    .getDate()
+    .toString()
+    .padStart(2, "0")}-${(todayDate.getMonth() + 1)
+    .toString()
+    .padStart(2, "0")}-${todayDate.getFullYear()}`;
+
+  const walletLogSql = `
+    INSERT INTO wallet_logs (
+      user_id, 
+      order_id, 
+      order_date, 
+      before_balance, 
+      amount, 
+      after_balance, 
+      wallet_type, 
+      description, 
+      created_at, 
+      updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW());
+  `;
+
+  try {
+    await db
+      .promise()
+      .query(walletLogSql, [
+        data.userId,
+        data.orderId,
+        data.orderDate,
+        data.beforeBalance,
+        data.amount,
+        data.afterBalance,
+        "Refund",
+        data?.description,
+      ]);
+  } catch (error) {
+    console.error("Error logging wallet transaction:", error);
+    throw error;
+  }
 };
