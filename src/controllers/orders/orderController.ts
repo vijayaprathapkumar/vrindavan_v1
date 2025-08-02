@@ -415,23 +415,29 @@ export const cancelOneTimeOrder = async (req: Request, res: Response) => {
         [newBalance.toFixed(2), userId]
       );
 
-      // Cancel the order (delete food orders and then the order itself)
-      await connection.query("DELETE FROM food_orders WHERE order_id = ?", [
-        orderId,
-      ]);
-
-      const [result]: any = await connection.query(
-        "DELETE FROM orders WHERE id = ?",
-        [orderId]
+        await connection.query(
+        "UPDATE orders SET active = 0, updated_at = NOW() WHERE user_id = ?",
+        [userId]
       );
 
-      if (result.affectedRows === 0) {
-        await connection.rollback();
-        connection.release();
-        return res
-          .status(404)
-          .json(createResponse(404, "Order not found or already canceled."));
-      }
+
+      // // Cancel the order (delete food orders and then the order itself)
+      // await connection.query("DELETE FROM food_orders WHERE order_id = ?", [
+      //   orderId,
+      // ]);
+
+      // const [result]: any = await connection.query(
+      //   "DELETE FROM orders WHERE id = ?",
+      //   [orderId]
+      // );
+
+      // if (result.affectedRows === 0) {
+      //   await connection.rollback();
+      //   connection.release();
+      //   return res
+      //     .status(404)
+      //     .json(createResponse(404, "Order not found or already canceled."));
+      // }
 
       // Log the wallet transaction
       const today = new Date();
