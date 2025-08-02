@@ -2155,6 +2155,7 @@ export const getCalendarOneTimeOrdersModel = (
     LEFT JOIN orders o
         ON DATE(o.order_date) = c.calendar_date
         AND o.user_id = ?
+        AND o.active = 1
         AND (o.order_type = '1' OR o.order_type = '3' OR o.order_type = '5')
     LEFT JOIN food_orders fo
         ON fo.order_id = o.id
