@@ -320,7 +320,7 @@ export const getAllOrdersWithOutUserId = async (
     LEFT JOIN users u ON o.user_id = u.id
     LEFT JOIN payments p ON o.payment_id = p.id
     LEFT JOIN localities l ON o.locality_id = l.id
-    WHERE 1=1 ${conditions};
+    WHERE o.active = 1 ${conditions};
 
 `;
 
@@ -502,7 +502,7 @@ export const getAllOrdersWithOutUserId = async (
   LEFT JOIN order_statuses os ON o.order_status_id =os.id
   LEFT JOIN users u ON o.user_id = u.id
   WHERE 
-    1 = 1 
+  o.active = 1
     ${conditions}
   ORDER BY ${sortColumn} ${sortOrderClause}
   LIMIT ?, ?;
