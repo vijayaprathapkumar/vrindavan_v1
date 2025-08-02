@@ -435,9 +435,7 @@ export const cancelOneTimeOrder = async (req: Request, res: Response) => {
 
       // Log the wallet transaction
       const today = new Date();
-      const formattedDate = `${today.getFullYear()}-${(today.getMonth() + 1)
-        .toString()
-        .padStart(2, "0")}-${today.getDate().toString().padStart(2, "0")}`;
+      const formattedDate = order?.order_date;
 
       const formattedDescDate = `${today
         .getDate()
