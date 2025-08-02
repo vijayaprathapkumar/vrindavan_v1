@@ -2131,6 +2131,7 @@ export const getCalendarOneTimeOrdersModel = (
         o.tax,
         o.delivery_fee,
         o.is_wallet_deduct,
+        o.active,
         fo.price AS item_price,
         fo.quantity,
         f.name AS food_name,

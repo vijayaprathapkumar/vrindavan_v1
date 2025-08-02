@@ -193,6 +193,7 @@ export const getAllPlaceOrdersUsers = async (
     WHERE 
       DATE(o.order_date) = ?
       AND o.is_wallet_deduct = 0
+      AND o.active = 1
       ORDER BY o.id ASC
   `;
 
@@ -287,7 +288,9 @@ export const everyDayPaymentProcessJob = (): void => {
         VALUES (NOW(), ?, NOW(), NOW())
       `;
       const initialLogMessage = `Job Start: ${jobStartTime}, Status: Started`;
-      const [insertResult]: any = await db.promise().query(insertSql, [initialLogMessage]);
+      const [insertResult]: any = await db
+        .promise()
+        .query(insertSql, [initialLogMessage]);
       insertedLogId = insertResult.insertId;
 
       // Execute job logic
