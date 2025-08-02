@@ -64,7 +64,7 @@ export const getAllOrders = async (
     LEFT JOIN food_orders fo ON o.id = fo.order_id
     LEFT JOIN foods f ON fo.food_id = f.id  
     LEFT JOIN media m ON f.id = m.model_id AND m.model_type = 'App\\\\Models\\\\Food' 
-    WHERE o.user_id = ? ${dateCondition} ${searchCondition}
+    WHERE o.active = 1 AND o.user_id = ? ${dateCondition} ${searchCondition}
     ORDER BY o.created_at DESC
     LIMIT ?, ?
   `;
@@ -2155,7 +2155,6 @@ export const getCalendarOneTimeOrdersModel = (
     LEFT JOIN orders o
         ON DATE(o.order_date) = c.calendar_date
         AND o.user_id = ?
-        AND o.active = 1
         AND (o.order_type = '1' OR o.order_type = '3' OR o.order_type = '5')
     LEFT JOIN food_orders fo
         ON fo.order_id = o.id
