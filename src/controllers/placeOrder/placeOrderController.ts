@@ -4,6 +4,10 @@ import {
   addOrdersEntry,
   addFoodOrderEntry,
   getCartItemsByUserId,
+  deductFromWalletOneTimeOrder,
+  logWalletOneTimeOrder,
+  getFoodNameById,
+  updateOrderWalletInfo,
 } from "../../models/placeOrder/placeOrderModels";
 import { createResponse } from "../../utils/responseHandler";
 import {
@@ -12,6 +16,7 @@ import {
   updateDealQuantity,
   updateFoodDiscountPrice,
 } from "../../models/dealOfTheDay/dealOfTheDayModel";
+import { db } from "../../config/databaseConnection";
 
 // Add a place order and clear the cart
 export const placeOneTimeOrder = async (
@@ -22,6 +27,8 @@ export const placeOneTimeOrder = async (
 
   try {
     const cartItems = await getCartItemsByUserId(userId);
+    console.log('cartItems',cartItems);
+    
     if (!cartItems.length) {
       return res.status(400).json(createResponse(400, "No items in cart."));
     }
@@ -77,6 +84,39 @@ const placeOrder = async (productData, user_id, orderDate) => {
       if (productAmount > 0) {
         const orderData = await addOrdersEntry(user_id, orderDate);
         if (orderData?.orderId) {
+          const totalAmount = productAmount * quantity;
+
+          // Get current balance before deduction
+          const [walletRows]: any = await db
+            .promise()
+            .query("SELECT balance FROM wallet_balances WHERE user_id = ?", [
+              user_id,
+            ]);
+          const currentBalance = walletRows[0]?.balance || 0;
+
+          const { success, paymentId } = await deductFromWalletOneTimeOrder(
+            user_id,
+            totalAmount
+          );
+          if (!success || !paymentId) {
+            console.log(`Failed to deduct from wallet for user ${user_id}`);
+            return null;
+          }
+
+          const foodName = await getFoodNameById(food_id);
+          // Log wallet transaction
+          await logWalletOneTimeOrder({
+            userId: user_id,
+            orderId: orderData.orderId,
+            beforeBalance: currentBalance,
+            amount: totalAmount,
+            orderDate: orderDate,
+            afterBalance: currentBalance - totalAmount,
+            foodName: foodName,
+            quantity: quantity,
+          });
+          await updateOrderWalletInfo(orderData.orderId, paymentId);
+
           await addFoodOrderEntry(
             productAmount,
             quantity,
@@ -113,6 +153,43 @@ const placeOrder = async (productData, user_id, orderDate) => {
     const orderData = await addOrdersEntry(user_id, orderDate);
 
     if (orderData?.orderId) {
+      const totalAmount = productAmount * quantity;
+
+      // Get current balance before deduction
+      const [walletRows]: any = await db
+        .promise()
+        .query("SELECT balance FROM wallet_balances WHERE user_id = ?", [
+          user_id,
+        ]);
+      const currentBalance = walletRows[0]?.balance || 0;
+
+      // Deduct from wallet balance
+      const { success, paymentId } = await deductFromWalletOneTimeOrder(
+        user_id,
+        totalAmount
+      );
+      if (!success || !paymentId) {
+        console.log(`Failed to deduct from wallet for user ${user_id}`);
+        return null;
+      }
+
+      console.log("productData3", productData);
+      const foodName = await getFoodNameById(food_id);
+      // Log wallet transaction
+      await logWalletOneTimeOrder({
+        userId: user_id,
+        orderId: orderData.orderId,
+        beforeBalance: currentBalance,
+        amount: totalAmount,
+        orderDate: orderDate,
+        afterBalance: currentBalance - totalAmount,
+        foodName: foodName,
+        quantity: quantity,
+      });
+
+      // Update order with wallet deduction info
+      await updateOrderWalletInfo(orderData.orderId, paymentId);
+
       await addFoodOrderEntry(
         productAmount,
         quantity,
@@ -128,8 +205,7 @@ const placeOrder = async (productData, user_id, orderDate) => {
 };
 
 //admin panel One time order
-
-export const oneTimeOrdersInCustomer = async (req: any, res: any) => {
+export const oneTimeOrdersInCustomer = async (req: Request, res: Response) => {
   try {
     const { user_id, orderDate, productData } = req.body;
 
@@ -139,32 +215,70 @@ export const oneTimeOrdersInCustomer = async (req: any, res: any) => {
 
     const { discount_price, price, food_id, quantity } = productData;
     const productAmount = discount_price > 0 ? discount_price : price;
-
+    const foodName = await getFoodNameById(food_id);
     if (quantity <= 0) {
-      console.log(`Skipping food ID ${food_id} due to zero quantity.`);
-      return;
+      return res
+        .status(400)
+        .json({ message: "Quantity must be greater than 0" });
     }
 
     if (productAmount <= 0) {
       return res.status(400).json({ message: "Invalid product amount" });
     }
 
+    const totalAmount = productAmount * quantity;
+
+    // Get current balance before deduction
+    const [walletRows]: any = await db
+      .promise()
+      .query("SELECT balance FROM wallet_balances WHERE user_id = ?", [
+        user_id,
+      ]);
+    const currentBalance = walletRows[0]?.balance || 0;
+
+    // Deduct from wallet balance
+    const { success, paymentId } = await deductFromWalletOneTimeOrder(
+      user_id,
+      totalAmount
+    );
+    if (!success || !paymentId) {
+      console.log(`Failed to deduct from wallet for user ${user_id}`);
+      return null;
+    }
+
     const orderData = await addOrdersEntry(user_id, orderDate);
-    if (orderData?.orderId) {
-      await addFoodOrderEntry(
-        productAmount,
-        quantity,
-        food_id,
-        orderData.orderId
-      );
-      return res.status(201).json({
-        message: "Order placed successfully",
-        orderId: orderData.orderId,
-      });
-    } else {
+    if (!orderData?.orderId) {
       console.error("Failed to create order entry");
       return res.status(500).json({ message: "Failed to place order" });
     }
+    console.log("productData", productData);
+
+    // Log wallet transaction
+    await logWalletOneTimeOrder({
+      userId: user_id,
+      orderId: orderData.orderId,
+      beforeBalance: currentBalance,
+      amount: totalAmount,
+      orderDate: orderDate,
+      afterBalance: currentBalance - totalAmount,
+      foodName: foodName,
+      quantity: quantity,
+    });
+
+    // Update order with wallet deduction info
+    await updateOrderWalletInfo(orderData.orderId, paymentId);
+
+    await addFoodOrderEntry(
+      productAmount,
+      quantity,
+      food_id,
+      orderData.orderId
+    );
+
+    return res.status(201).json({
+      message: "Order placed successfully",
+      orderId: orderData.orderId,
+    });
   } catch (error) {
     console.error("Error placing order:", error);
     return res

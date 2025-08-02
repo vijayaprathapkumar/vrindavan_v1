@@ -169,3 +169,151 @@ export const deleteAllCartItemsByUserId = async (userId: number) => {
     throw new Error("Failed to clear cart items.");
   }
 };
+
+
+export const deductFromWalletOneTimeOrder = async (
+  userId: number,
+  amount: number
+): Promise<{ success: boolean; paymentId?: number }> => {
+  const connection = await db.promise().getConnection();
+  try {
+    await connection.beginTransaction();
+
+    // Check current balance
+    const [walletRows]: any = await connection.query(
+      "SELECT balance FROM wallet_balances WHERE user_id = ? FOR UPDATE",
+      [userId]
+    );
+
+    if (walletRows.length === 0) {
+      console.log(`No wallet found for user ${userId}`);
+      await connection.rollback();
+      return { success: false };
+    }
+
+    const currentBalance = parseFloat(walletRows[0].balance);
+    if (currentBalance < amount) {
+      console.log(`Insufficient balance for user ${userId}`);
+      await connection.rollback();
+      return { success: false };
+    }
+
+    // Create payment entry first
+    const [paymentResult]: any = await connection.query(
+      `INSERT INTO payments 
+       (price, description, user_id, status, method, created_at, updated_at) 
+       VALUES (?, ?, ?, ?, ?, NOW(), NOW())`,
+      [amount, '', userId, 'completed', 'wallet']
+    );
+
+    const paymentId = paymentResult.insertId;
+
+    // Deduct the amount from wallet
+    await connection.query(
+      "UPDATE wallet_balances SET balance = balance - ?, updated_at = NOW() WHERE user_id = ?",
+      [amount, userId]
+    );
+
+    await connection.commit();
+    
+    return { 
+      success: true,
+      paymentId: paymentId
+    };
+  } catch (error) {
+    await connection.rollback();
+    console.error(`Error deducting from wallet for user ${userId}:`, error);
+    return { success: false };
+  } finally {
+    connection.release();
+  }
+};
+
+export const logWalletOneTimeOrder = async (data: {
+  userId: number;
+  orderId: number;
+  beforeBalance: number;
+  amount: number;
+  orderDate: string;
+  afterBalance: number;
+  description?: string;
+  foodName?: string;
+  quantity?: number;
+}): Promise<void> => {
+  const todayDate = new Date();
+  const formattedTodayDate = `${todayDate
+    .getDate()
+    .toString()
+    .padStart(2, "0")}-${(todayDate.getMonth() + 1)
+    .toString()
+    .padStart(2, "0")}-${todayDate.getFullYear()}`;
+
+  // Format the description if foodName and quantity are provided
+  const formattedDescription =
+    data.foodName && data.quantity
+      ? `₹${data.amount} deducted for ${data.foodName} x ${data.quantity} (One Time Order | Ordered On: ${formattedTodayDate}). Balance ₹${data.beforeBalance} → ₹${data.afterBalance}`
+      : data.description || `Deduction for order ${data.orderId}`;
+
+  const walletLogSql = `
+    INSERT INTO wallet_logs (
+      user_id, 
+      order_id, 
+      order_date, 
+      before_balance, 
+      amount, 
+      after_balance, 
+      wallet_type, 
+      description, 
+      created_at, 
+      updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW());
+  `;
+
+  try {
+    await db.promise().query(walletLogSql, [
+      data.userId,
+      data.orderId,
+      data.orderDate,
+      data.beforeBalance,
+      data.amount,
+      data.afterBalance,
+      "deduction",
+      formattedDescription,
+    ]);
+  } catch (error) {
+    console.error("Error logging wallet transaction:", error);
+    throw error;
+  }
+};
+
+export const updateOrderWalletInfo = async (
+  orderId: number,
+  paymentId: number
+): Promise<void> => {
+  const sql = `
+    UPDATE orders 
+    SET is_wallet_deduct = 1, 
+        payment_id = ?,
+        updated_at = NOW()
+    WHERE id = ?;
+  `;
+
+  try {
+    await db.promise().query(sql, [paymentId, orderId]);
+  } catch (error) {
+    console.error("Error updating order wallet info:", error);
+    throw error;
+  }
+};
+
+export const getFoodNameById = async (foodId: number): Promise<string> => {
+  try {
+    const [foodRows]: any = await db
+      .promise()
+      .query("SELECT name FROM foods WHERE id = ?", [foodId]);
+    return foodRows[0]?.name || "Unknown Food Item";
+  } catch (error) {
+    console.error(`Error fetching food name for ID ${foodId}:`, error);
+    return "Unknown Food Item";
+  }
+};
