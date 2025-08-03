@@ -200,8 +200,15 @@ export const updateOrderQty = async (
   const { orderId, quantity, orderDate, orderType, subscriptionId, userId } =
     req.body;
 
+  const currentDate = new Date().toISOString().split("T")[0]; // 'YYYY-MM-DD'
+
+  const effectiveOrderDate = orderDate;
+
   try {
-    if (orderType === 1 || orderId) {
+    if (
+      orderType === 1 ||
+      (orderType === 2 && effectiveOrderDate === currentDate)
+    ) {
       await updateOneTimeOrders(orderId, quantity, userId);
     } else if (orderType === 2) {
       await updateSubscriptionOrders(subscriptionId, quantity, orderDate);
@@ -343,7 +350,7 @@ export const cancelOneTimeOrder = async (req: Request, res: Response) => {
     await connection.beginTransaction();
 
     try {
-      // First, get order details including user_id
+      // First, get order details including user_id and order_type
       const [orderRows]: any = await connection.query(
         "SELECT * FROM orders WHERE id = ?",
         [orderId]
@@ -357,17 +364,16 @@ export const cancelOneTimeOrder = async (req: Request, res: Response) => {
 
       const order = orderRows[0];
       const userId = order.user_id;
-      console.log("order", order);
+      const orderType = order.order_type;
 
       // Get all food items for this order with food names from foods table
       const [foodOrderRows]: any = await connection.query(
-        `SELECT fo.*, f.name as food_name 
+        `SELECT fo.*, f.name as food_name ,f.unit as food_unit
          FROM food_orders fo
          JOIN foods f ON fo.food_id = f.id
          WHERE fo.order_id = ?`,
         [order.id]
       );
-      console.log("foodOrderRows", foodOrderRows);
 
       if (foodOrderRows.length === 0) {
         await connection.rollback();
@@ -377,100 +383,85 @@ export const cancelOneTimeOrder = async (req: Request, res: Response) => {
           .json(createResponse(404, "No food items found for this order."));
       }
 
-      // Calculate total amount from food items (price * quantity)
-      const amount = foodOrderRows.reduce(
-        (total: number, item: any) => total + item.price * item.quantity,
-        0
-      );
+      // Only process wallet refund if order type is not 2
+      if (orderType !== "2") {
+        // Calculate total amount from food items (price * quantity)
+        const amount = foodOrderRows.reduce(
+          (total: number, item: any) => total + item.price * item.quantity,
+          0
+        );
 
-      // Validate amount
-      if (isNaN(amount)) {
-        await connection.rollback();
-        connection.release();
-        return res
-          .status(400)
-          .json(createResponse(400, "Invalid order amount."));
-      }
+        // Validate amount
+        if (isNaN(amount)) {
+          await connection.rollback();
+          connection.release();
+          return res
+            .status(400)
+            .json(createResponse(400, "Invalid order amount."));
+        }
 
-      // Get current wallet balance
-      const [walletRows]: any = await connection.query(
-        "SELECT balance FROM wallet_balances WHERE user_id = ?",
-        [userId]
-      );
+        // Get current wallet balance
+        const [walletRows]: any = await connection.query(
+          "SELECT balance FROM wallet_balances WHERE user_id = ?",
+          [userId]
+        );
 
-      if (walletRows.length === 0) {
-        await connection.rollback();
-        connection.release();
-        return res
-          .status(404)
-          .json(createResponse(404, "Wallet not found for this user."));
-      }
+        if (walletRows.length === 0) {
+          await connection.rollback();
+          connection.release();
+          return res
+            .status(404)
+            .json(createResponse(404, "Wallet not found for this user."));
+        }
 
-      const currentBalance = parseFloat(walletRows[0].balance);
-      const newBalance = currentBalance + amount;
+        const currentBalance = parseFloat(walletRows[0].balance);
+        const newBalance = currentBalance + amount;
 
-      // Update wallet balance - ensure values are properly formatted
-      await connection.query(
-        "UPDATE wallet_balances SET balance = ?, updated_at = NOW() WHERE user_id = ?",
-        [newBalance.toFixed(2), userId]
-      );
-
+        // Update wallet balance - ensure values are properly formatted
         await connection.query(
-        "UPDATE orders SET active = 0, updated_at = NOW() WHERE user_id = ?",
-        [userId]
+          "UPDATE wallet_balances SET balance = ?, updated_at = NOW() WHERE user_id = ?",
+          [newBalance.toFixed(2), userId]
+        );
+
+        // Log the wallet transaction
+        const today = new Date();
+        const formattedDate = order?.order_date;
+
+        const formattedDescDate = `${today
+          .getDate()
+          .toString()
+          .padStart(2, "0")}-${(today.getMonth() + 1)
+          .toString()
+          .padStart(2, "0")}-${today.getFullYear()}`;
+        // Prepare description with food items
+        const foodNames = foodOrderRows
+          .map((item: any) => `${item.food_name} ${item.food_unit} x ${item.quantity}`)
+          .join(", ");
+
+        const description = `₹${amount.toFixed(
+          2
+        )} Refunded - cancelled ${foodNames} (One Time Order | Order Id: ${orderId} | Ordered On: ${formattedDescDate}). Balance ₹${currentBalance.toFixed(
+          2
+        )} → ₹${newBalance.toFixed(2)}`;
+
+        await logWalletOneCancelTimeOrder({
+          userId,
+          orderId: parseInt(orderId),
+          beforeBalance: currentBalance,
+          amount,
+          orderDate: formattedDate,
+          afterBalance: newBalance,
+          description,
+          foodName: foodOrderRows[0].food_name,
+          quantity: foodOrderRows[0].quantity,
+        });
+      }
+
+      // Update order status (active = 0) for all order types
+      await connection.query(
+        "UPDATE orders SET active = 0, updated_at = NOW() WHERE id = ?",
+        [orderId]
       );
-
-
-      // // Cancel the order (delete food orders and then the order itself)
-      // await connection.query("DELETE FROM food_orders WHERE order_id = ?", [
-      //   orderId,
-      // ]);
-
-      // const [result]: any = await connection.query(
-      //   "DELETE FROM orders WHERE id = ?",
-      //   [orderId]
-      // );
-
-      // if (result.affectedRows === 0) {
-      //   await connection.rollback();
-      //   connection.release();
-      //   return res
-      //     .status(404)
-      //     .json(createResponse(404, "Order not found or already canceled."));
-      // }
-
-      // Log the wallet transaction
-      const today = new Date();
-      const formattedDate = order?.order_date;
-
-      const formattedDescDate = `${today
-        .getDate()
-        .toString()
-        .padStart(2, "0")}-${(today.getMonth() + 1)
-        .toString()
-        .padStart(2, "0")}-${today.getFullYear()}`;
-      // Prepare description with food items
-      const foodNames = foodOrderRows
-        .map((item: any) => `${item.food_name} x ${item.quantity}`)
-        .join(", ");
-
-      const description = `₹${amount.toFixed(
-        2
-      )} Refunded for canceled order - ${foodNames} (Ordered On: ${formattedDescDate}). Balance ₹${currentBalance.toFixed(
-        2
-      )} → ₹${newBalance.toFixed(2)}`;
-
-      await logWalletOneCancelTimeOrder({
-        userId,
-        orderId: parseInt(orderId),
-        beforeBalance: currentBalance,
-        amount,
-        orderDate: formattedDate,
-        afterBalance: newBalance,
-        description,
-        foodName: foodOrderRows[0].food_name,
-        quantity: foodOrderRows[0].quantity,
-      });
 
       await connection.commit();
       connection.release();
@@ -480,7 +471,9 @@ export const cancelOneTimeOrder = async (req: Request, res: Response) => {
         .json(
           createResponse(
             200,
-            "Order canceled successfully and amount refunded to wallet."
+            orderType === 2 
+              ? "Order canceled successfully (no refund for this order type)." 
+              : "Order canceled successfully and amount refunded to wallet."
           )
         );
     } catch (error) {
@@ -502,7 +495,6 @@ export const cancelOneTimeOrder = async (req: Request, res: Response) => {
       );
   }
 };
-
 export const getCalendarWiseOrders = async (req: Request, res: Response) => {
   const userId = parseInt(req.params.userId, 10);
   const { startDate, endDate } = req.query;

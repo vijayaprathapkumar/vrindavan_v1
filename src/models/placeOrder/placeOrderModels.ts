@@ -170,7 +170,6 @@ export const deleteAllCartItemsByUserId = async (userId: number) => {
   }
 };
 
-
 export const deductFromWalletOneTimeOrder = async (
   userId: number,
   amount: number
@@ -203,7 +202,7 @@ export const deductFromWalletOneTimeOrder = async (
       `INSERT INTO payments 
        (price, description, user_id, status, method, created_at, updated_at) 
        VALUES (?, ?, ?, ?, ?, NOW(), NOW())`,
-      [amount, '', userId, 'completed', 'wallet']
+      [amount, "", userId, "completed", "wallet"]
     );
 
     const paymentId = paymentResult.insertId;
@@ -215,10 +214,10 @@ export const deductFromWalletOneTimeOrder = async (
     );
 
     await connection.commit();
-    
-    return { 
+
+    return {
       success: true,
-      paymentId: paymentId
+      paymentId: paymentId,
     };
   } catch (error) {
     await connection.rollback();
@@ -239,6 +238,7 @@ export const logWalletOneTimeOrder = async (data: {
   description?: string;
   foodName?: string;
   quantity?: number;
+  unit?: string;
 }): Promise<void> => {
   const todayDate = new Date();
   const formattedTodayDate = `${todayDate
@@ -251,7 +251,7 @@ export const logWalletOneTimeOrder = async (data: {
   // Format the description if foodName and quantity are provided
   const formattedDescription =
     data.foodName && data.quantity
-      ? `₹${data.amount} deducted for ${data.foodName} x ${data.quantity} (One Time Order | Ordered On: ${formattedTodayDate}). Balance ₹${data.beforeBalance} → ₹${data.afterBalance}`
+      ? `₹${data.amount} deducted - ${data.foodName} ${data.unit} x ${data.quantity} (One Time Order | Order Id: ${data.orderId} | Ordered On: ${formattedTodayDate}). Balance ₹${data.beforeBalance} → ₹${data.afterBalance}`
       : data.description || `Deduction for order ${data.orderId}`;
 
   const walletLogSql = `
@@ -270,16 +270,18 @@ export const logWalletOneTimeOrder = async (data: {
   `;
 
   try {
-    await db.promise().query(walletLogSql, [
-      data.userId,
-      data.orderId,
-      data.orderDate,
-      data.beforeBalance,
-      data.amount,
-      data.afterBalance,
-      "deduction",
-      formattedDescription,
-    ]);
+    await db
+      .promise()
+      .query(walletLogSql, [
+        data.userId,
+        data.orderId,
+        data.orderDate,
+        data.beforeBalance,
+        data.amount,
+        data.afterBalance,
+        "deduction",
+        formattedDescription,
+      ]);
   } catch (error) {
     console.error("Error logging wallet transaction:", error);
     throw error;
@@ -306,14 +308,24 @@ export const updateOrderWalletInfo = async (
   }
 };
 
-export const getFoodNameById = async (foodId: number): Promise<string> => {
+export const getFoodNameById = async (
+  foodId: number
+): Promise<{ foodName: string; unit: string }> => {
   try {
     const [foodRows]: any = await db
       .promise()
-      .query("SELECT name FROM foods WHERE id = ?", [foodId]);
-    return foodRows[0]?.name || "Unknown Food Item";
+      .query("SELECT name, unit FROM foods WHERE id = ?", [foodId]);
+
+    const food = foodRows[0];
+    return {
+      foodName: food?.name || "Unknown Food Item",
+      unit: food?.unit || "",
+    };
   } catch (error) {
     console.error(`Error fetching food name for ID ${foodId}:`, error);
-    return "Unknown Food Item";
+    return {
+      foodName: "Unknown Food Item",
+      unit: "",
+    };
   }
 };
