@@ -64,7 +64,7 @@ export const getAllOrders = async (
     LEFT JOIN food_orders fo ON o.id = fo.order_id
     LEFT JOIN foods f ON fo.food_id = f.id  
     LEFT JOIN media m ON f.id = m.model_id AND m.model_type = 'App\\\\Models\\\\Food' 
-    WHERE o.user_id = ? ${dateCondition} ${searchCondition}
+    WHERE o.active = 1 AND o.user_id = ? ${dateCondition} ${searchCondition}
     ORDER BY o.created_at DESC
     LIMIT ?, ?
   `;
