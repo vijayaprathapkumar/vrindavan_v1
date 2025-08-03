@@ -19,6 +19,7 @@ import {
 import { db } from "../../config/databaseConnection";
 
 // Add a place order and clear the cart
+// Controller Function — Place Order and Clear Cart
 export const placeOneTimeOrder = async (
   req: Request,
   res: Response
@@ -32,26 +33,19 @@ export const placeOneTimeOrder = async (
       return res.status(400).json(createResponse(400, "No items in cart."));
     }
 
-    const orderPromises = cartItems.map(async (item) => {
-      if (item.quantity > 0) {
-        await placeMultipleOrders(item, userId, orderDate);
-      } else {
-        console.log("Failed to add place order.");
-      }
-    });
+    // Place multiple orders (passing cartItems array directly)
+    await placeMultipleOrders(cartItems, userId, orderDate);
 
-    await Promise.all(orderPromises);
+    // After placing all orders, clear the cart
     await deleteAllCartItemsByUserId(userId);
 
-    return res
-      .status(201)
-      .json(
-        createResponse(
-          201,
-          "Place order added successfully, cart cleared, and wallet updated.",
-          null
-        )
-      );
+    return res.status(201).json(
+      createResponse(
+        201,
+        "Orders placed successfully, cart cleared, and wallet updated.",
+        null
+      )
+    );
   } catch (error) {
     console.error("Error adding place order:", error);
     return res
@@ -60,8 +54,10 @@ export const placeOneTimeOrder = async (
   }
 };
 
+// Function to Place a Single Product Order
 const placeOrder = async (productData, user_id, orderDate) => {
   const { price, food_id, quantity, discount_price } = productData;
+
   if (quantity <= 0) {
     console.log(`Skipping food ID ${food_id} due to zero quantity.`);
     return;
@@ -76,70 +72,7 @@ const placeOrder = async (productData, user_id, orderDate) => {
 
     if (deal && deal.quantity > 0) {
       productAmount = deal.offer_price;
-
       await updateFoodDiscountPrice(food_id, deal.offer_price);
-
-      // Add order only if valid amount
-      if (productAmount > 0) {
-        const orderData = await addOrdersEntry(user_id, orderDate);
-        if (orderData?.orderId) {
-          const totalAmount = productAmount * quantity;
-
-          // Get current balance before deduction
-          const [walletRows]: any = await db
-            .promise()
-            .query("SELECT balance FROM wallet_balances WHERE user_id = ?", [
-              user_id,
-            ]);
-          const currentBalance = walletRows[0]?.balance || 0;
-
-          const { success, paymentId } = await deductFromWalletOneTimeOrder(
-            user_id,
-            totalAmount
-          );
-          if (!success || !paymentId) {
-            console.log(`Failed to deduct from wallet for user ${user_id}`);
-            return null;
-          }
-
-          const { foodName, unit } = await getFoodNameById(food_id);
-          // Log wallet transaction
-          await logWalletOneTimeOrder({
-            userId: user_id,
-            orderId: orderData.orderId,
-            beforeBalance: currentBalance,
-            amount: totalAmount,
-            orderDate: orderDate,
-            afterBalance: currentBalance - totalAmount,
-            foodName: foodName,
-            quantity: quantity,
-            unit: unit,
-          });
-          await updateOrderWalletInfo(orderData.orderId, paymentId);
-
-          await addFoodOrderEntry(
-            productAmount,
-            quantity,
-            food_id,
-            orderData.orderId
-          );
-
-          const updatedDeal = (await updateDealQuantity(
-            food_id,
-            quantity
-          )) as any;
-
-          if (updatedDeal?.quantity === 0) {
-            await resetFoodDiscountPrice(food_id);
-            console.log(`Deal for food ID ${food_id} is now inactive.`);
-          }
-
-          return;
-        }
-      }
-
-      console.log("Failed to place order for item: " + food_id);
-      return null;
     }
   }
 
@@ -148,14 +81,14 @@ const placeOrder = async (productData, user_id, orderDate) => {
     productAmount = price;
   }
 
-  // Proceed with order using the determined price
+  // Proceed to place order
   if (productAmount > 0) {
     const orderData = await addOrdersEntry(user_id, orderDate);
 
     if (orderData?.orderId) {
       const totalAmount = productAmount * quantity;
 
-      // Get current balance before deduction
+      // Get current wallet balance
       const [walletRows]: any = await db
         .promise()
         .query("SELECT balance FROM wallet_balances WHERE user_id = ?", [
@@ -163,16 +96,19 @@ const placeOrder = async (productData, user_id, orderDate) => {
         ]);
       const currentBalance = walletRows[0]?.balance || 0;
 
-      // Deduct from wallet balance
+      // Deduct wallet balance
       const { success, paymentId } = await deductFromWalletOneTimeOrder(
         user_id,
         totalAmount
       );
+
       if (!success || !paymentId) {
         console.log(`Failed to deduct from wallet for user ${user_id}`);
-        return null;
+        return;
       }
+
       const { foodName, unit } = await getFoodNameById(food_id);
+
       // Log wallet transaction
       await logWalletOneTimeOrder({
         userId: user_id,
@@ -186,7 +122,6 @@ const placeOrder = async (productData, user_id, orderDate) => {
         unit: unit,
       });
 
-      // Update order with wallet deduction info
       await updateOrderWalletInfo(orderData.orderId, paymentId);
 
       await addFoodOrderEntry(
@@ -195,21 +130,30 @@ const placeOrder = async (productData, user_id, orderDate) => {
         food_id,
         orderData.orderId
       );
-      return;
-    }
-  }
 
-  console.log("Failed to place order for item: " + food_id);
-  return null;
+      const updatedDeal = (await updateDealQuantity(food_id, quantity)) as any;
+
+      if (updatedDeal?.quantity === 0) {
+        await resetFoodDiscountPrice(food_id);
+        console.log(`Deal for food ID ${food_id} is now inactive.`);
+      }
+
+      console.log(`Order placed successfully for food ID ${food_id}`);
+    } else {
+      console.log(`Failed to create order entry for food ID ${food_id}`);
+    }
+  } else {
+    console.log(`Invalid product amount for food ID ${food_id}`);
+  }
 };
 
+// Function to Place Multiple Orders Sequentially
 const placeMultipleOrders = async (products, user_id, orderDate) => {
   for (const productData of products) {
     await placeOrder(productData, user_id, orderDate);
   }
   console.log("All orders processed.");
 };
-
 
 //admin panel One time order
 export const oneTimeOrdersInCustomer = async (req: Request, res: Response) => {
