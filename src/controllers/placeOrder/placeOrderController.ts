@@ -27,8 +27,7 @@ export const placeOneTimeOrder = async (
 
   try {
     const cartItems = await getCartItemsByUserId(userId);
-    console.log('cartItems',cartItems);
-    
+
     if (!cartItems.length) {
       return res.status(400).json(createResponse(400, "No items in cart."));
     }
@@ -103,7 +102,7 @@ const placeOrder = async (productData, user_id, orderDate) => {
             return null;
           }
 
-          const foodName = await getFoodNameById(food_id);
+          const { foodName, unit } = await getFoodNameById(food_id);
           // Log wallet transaction
           await logWalletOneTimeOrder({
             userId: user_id,
@@ -114,6 +113,7 @@ const placeOrder = async (productData, user_id, orderDate) => {
             afterBalance: currentBalance - totalAmount,
             foodName: foodName,
             quantity: quantity,
+            unit:unit
           });
           await updateOrderWalletInfo(orderData.orderId, paymentId);
 
@@ -172,9 +172,7 @@ const placeOrder = async (productData, user_id, orderDate) => {
         console.log(`Failed to deduct from wallet for user ${user_id}`);
         return null;
       }
-
-      console.log("productData3", productData);
-      const foodName = await getFoodNameById(food_id);
+      const { foodName, unit } = await getFoodNameById(food_id);
       // Log wallet transaction
       await logWalletOneTimeOrder({
         userId: user_id,
@@ -185,6 +183,7 @@ const placeOrder = async (productData, user_id, orderDate) => {
         afterBalance: currentBalance - totalAmount,
         foodName: foodName,
         quantity: quantity,
+        unit:unit
       });
 
       // Update order with wallet deduction info
@@ -215,7 +214,8 @@ export const oneTimeOrdersInCustomer = async (req: Request, res: Response) => {
 
     const { discount_price, price, food_id, quantity } = productData;
     const productAmount = discount_price > 0 ? discount_price : price;
-    const foodName = await getFoodNameById(food_id);
+    const { foodName, unit } = await getFoodNameById(food_id);
+
     if (quantity <= 0) {
       return res
         .status(400)
@@ -251,7 +251,6 @@ export const oneTimeOrdersInCustomer = async (req: Request, res: Response) => {
       console.error("Failed to create order entry");
       return res.status(500).json({ message: "Failed to place order" });
     }
-    console.log("productData", productData);
 
     // Log wallet transaction
     await logWalletOneTimeOrder({
@@ -263,6 +262,7 @@ export const oneTimeOrdersInCustomer = async (req: Request, res: Response) => {
       afterBalance: currentBalance - totalAmount,
       foodName: foodName,
       quantity: quantity,
+      unit: unit,
     });
 
     // Update order with wallet deduction info

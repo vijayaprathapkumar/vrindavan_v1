@@ -64,7 +64,7 @@ export const getAllOrders = async (
     LEFT JOIN food_orders fo ON o.id = fo.order_id
     LEFT JOIN foods f ON fo.food_id = f.id  
     LEFT JOIN media m ON f.id = m.model_id AND m.model_type = 'App\\\\Models\\\\Food' 
-    WHERE o.active = 1 AND o.user_id = ? ${dateCondition} ${searchCondition}
+    WHERE o.user_id = ? ${dateCondition} ${searchCondition}
     ORDER BY o.created_at DESC
     LIMIT ?, ?
   `;
@@ -1265,7 +1265,7 @@ export const updateOneTimeOrders = async (
 
     // Get current order details
     const getOrderSql = `
-      SELECT fo.quantity, fo.price, o.payment_id, o.user_id, o.order_date, f.name as foodName 
+      SELECT fo.quantity, fo.price, o.payment_id, o.user_id, o.order_date, f.name as foodName , f.unit as foodUnit
       FROM food_orders fo
       JOIN orders o ON fo.order_id = o.id
       JOIN foods f ON fo.food_id = f.id
@@ -1284,6 +1284,7 @@ export const updateOneTimeOrders = async (
       user_id,
       order_date,
       foodName,
+      foodUnit
     } = orderRows[0];
 
     // If no quantity change or no new quantity provided, skip update
@@ -1353,9 +1354,12 @@ export const updateOneTimeOrders = async (
         .padStart(2, "0")}-${todayDate.getFullYear()}`;
 
       // Create wallet log entry
-      const formattedDescription = `₹${Math.abs(
-        amountDifference
-      )} deducted for ${foodName} x ${newQuantity} to previous order (Ordered On: ${formattedTodayDate}). Balance ₹${currentBalance} → ₹${newBalance}`;
+      const formattedDescription =
+        foodName && newQuantity
+          ? `₹${Math.abs(
+              amountDifference
+            )} deducted - ${foodName} ${foodUnit} x ${newQuantity} to previous order (One Time Order | Order Id: ${orderId} | Ordered On: ${formattedTodayDate}). Balance ₹${currentBalance} → ₹${newBalance}`
+          : `Deduction for order ${orderId}`;
 
       await connection.query(
         `INSERT INTO wallet_logs (
