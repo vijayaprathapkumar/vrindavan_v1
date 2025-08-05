@@ -13,7 +13,7 @@ export const getAllHubOrders = async (
   hubId?: number | null
 ): Promise<{ hubOrders: RowDataPacket[]; total: number }> => {
   const offset = (page - 1) * limit;
-  let conditions = "WHERE 1=1";
+  let conditions = "WHERE o.active = 1";
   const queryParams: (string | number)[] = [];
 
   if (routeId) {
