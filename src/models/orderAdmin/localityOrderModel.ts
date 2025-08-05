@@ -11,7 +11,8 @@ export const getLocalityOrdersAdmin = async (
   productId?: number | null
 ): Promise<{ orders: RowDataPacket[]; total: number }> => {
   const offset = (page - 1) * limit;
-  let conditions = "WHERE o.locality_id IS NOT NULL";
+  let conditions = "WHERE o.locality_id IS NOT NULL AND o.active = 1";
+
   const queryParams: (string | number)[] = [];
 
   if (localityId) {
@@ -100,7 +101,8 @@ export const getLocalityOrderSummaryAdmin = async (
   searchTerm?: string | null
 ): Promise<{ summaryData: RowDataPacket[]; total: number }> => {
   const offset = (page - 1) * limit;
-  let conditions = "WHERE o.locality_id IS NOT NULL";
+  let conditions = "WHERE o.locality_id IS NOT NULL AND o.active = 1";
+
   const queryParams: (string | number)[] = [];
 
   if (localityId) {

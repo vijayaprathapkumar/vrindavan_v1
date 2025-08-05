@@ -12,7 +12,7 @@ export const getAllFoodOrders = async (
 ): Promise<{ foodOrders: RowDataPacket[]; total: number }> => {
   const offset = (page - 1) * limit;
 
-  let conditions = "WHERE 1=1";
+  let conditions = "WHERE o.active = 1";
   const queryParams: (string | number | Date)[] = [];
 
   if (routeId) {
@@ -96,7 +96,7 @@ export const getFoodOrderSummary = async (
   endDate?: Date | null,
   searchTerm?: string | null
 ): Promise<{ summaryData: RowDataPacket[]; total: number }> => {
-  let conditions = "WHERE 1=1";
+  let conditions = "WHERE o.active = 1";
   const queryParams: (string | number | Date)[] = [];
 
   if (routeId) {
