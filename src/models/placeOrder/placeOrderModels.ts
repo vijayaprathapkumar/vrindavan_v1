@@ -251,7 +251,7 @@ export const logWalletOneTimeOrder = async (data: {
   // Format the description if foodName and quantity are provided
   const formattedDescription =
     data.foodName && data.quantity
-      ? `₹${data.amount} deducted - ${data.foodName} ${data.unit} x ${data.quantity} (One Time Order | Order Id: ${data.orderId} | Ordered On: ${formattedTodayDate}). Balance ₹${data.beforeBalance} → ₹${data.afterBalance}`
+      ? `₹${data.amount} deducted - ${data.foodName} ${data.unit} x ${data.quantity} (One Time Order | Order Id: ${data.orderId}). Balance ₹${data.beforeBalance} → ₹${data.afterBalance}`
       : data.description || `Deduction for order ${data.orderId}`;
 
   const walletLogSql = `

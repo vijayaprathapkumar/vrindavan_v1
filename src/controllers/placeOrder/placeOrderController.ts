@@ -56,11 +56,36 @@ export const placeOneTimeOrder = async (
 
 // Function to Place a Single Product Order
 const placeOrder = async (productData, user_id, orderDate) => {
-  const { price, food_id, quantity, discount_price } = productData;
+  const { price, food_id, quantity, discount_price, track_inventory } = productData;
 
   if (quantity <= 0) {
     console.log(`Skipping food ID ${food_id} due to zero quantity.`);
     return;
+  }
+
+  // Check inventory if tracking is enabled
+  if (track_inventory) {
+    // Get current stock
+    const [stockRows]: any = await db
+      .promise()
+      .query(
+        "SELECT COALESCE(SUM(amount), 0) AS stockCount FROM stock_mutations WHERE stockable_id = ?",
+        [food_id]
+      );
+    
+    const availableStock = stockRows[0]?.stockCount || 0;
+
+    if (availableStock <= 0) {
+      console.log(`Skipping food ID ${food_id} - out of stock.`);
+      return;
+    }
+
+    // Adjust quantity if requested is more than available
+    const actualQuantity = Math.min(quantity, availableStock);
+    if (actualQuantity < quantity) {
+      console.log(`Reducing quantity for food ID ${food_id} from ${quantity} to ${actualQuantity} due to stock limits`);
+    }
+    productData.quantity = actualQuantity; // Update the quantity for the order
   }
 
   // Start with discount_price if available
@@ -86,7 +111,7 @@ const placeOrder = async (productData, user_id, orderDate) => {
     const orderData = await addOrdersEntry(user_id, orderDate);
 
     if (orderData?.orderId) {
-      const totalAmount = productAmount * quantity;
+      const totalAmount = productAmount * productData.quantity; // Use the potentially adjusted quantity
 
       // Get current wallet balance
       const [walletRows]: any = await db
@@ -118,7 +143,7 @@ const placeOrder = async (productData, user_id, orderDate) => {
         orderDate: orderDate,
         afterBalance: currentBalance - totalAmount,
         foodName: foodName,
-        quantity: quantity,
+        quantity: productData.quantity, // Use the potentially adjusted quantity
         unit: unit,
       });
 
@@ -126,12 +151,12 @@ const placeOrder = async (productData, user_id, orderDate) => {
 
       await addFoodOrderEntry(
         productAmount,
-        quantity,
+        productData.quantity, // Use the potentially adjusted quantity
         food_id,
         orderData.orderId
       );
 
-      const updatedDeal = (await updateDealQuantity(food_id, quantity)) as any;
+      const updatedDeal = (await updateDealQuantity(food_id, productData.quantity)) as any; // Use the potentially adjusted quantity
 
       if (updatedDeal?.quantity === 0) {
         await resetFoodDiscountPrice(food_id);

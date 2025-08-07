@@ -1358,7 +1358,7 @@ export const updateOneTimeOrders = async (
         foodName && newQuantity
           ? `₹${Math.abs(
               amountDifference
-            )} deducted - ${foodName} ${foodUnit} x ${newQuantity} to previous order (One Time Order | Order Id: ${orderId} | Ordered On: ${formattedTodayDate}). Balance ₹${currentBalance} → ₹${newBalance}`
+            )} deducted - ${foodName} ${foodUnit} x ${newQuantity} to previous order (One Time Order | Order Id: ${orderId}). Balance ₹${currentBalance} → ₹${newBalance}`
           : `Deduction for order ${orderId}`;
 
       await connection.query(
