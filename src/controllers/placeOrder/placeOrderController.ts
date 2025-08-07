@@ -39,13 +39,15 @@ export const placeOneTimeOrder = async (
     // After placing all orders, clear the cart
     await deleteAllCartItemsByUserId(userId);
 
-    return res.status(201).json(
-      createResponse(
-        201,
-        "Orders placed successfully, cart cleared, and wallet updated.",
-        null
-      )
-    );
+    return res
+      .status(201)
+      .json(
+        createResponse(
+          201,
+          "Orders placed successfully, cart cleared, and wallet updated.",
+          null
+        )
+      );
   } catch (error) {
     console.error("Error adding place order:", error);
     return res
@@ -56,119 +58,132 @@ export const placeOneTimeOrder = async (
 
 // Function to Place a Single Product Order
 const placeOrder = async (productData, user_id, orderDate) => {
-  const { price, food_id, quantity, discount_price, track_inventory } = productData;
+  const { price, food_id, quantity, discount_price, track_inventory } =
+    productData;
 
   if (quantity <= 0) {
     console.log(`Skipping food ID ${food_id} due to zero quantity.`);
     return;
   }
 
-  // Check inventory if tracking is enabled
-  if (track_inventory) {
-    // Get current stock
-    const [stockRows]: any = await db
-      .promise()
-      .query(
-        "SELECT COALESCE(SUM(amount), 0) AS stockCount FROM stock_mutations WHERE stockable_id = ?",
-        [food_id]
-      );
-    
-    const availableStock = stockRows[0]?.stockCount || 0;
+  let finalQuantity = quantity;
 
-    if (availableStock <= 0) {
-      console.log(`Skipping food ID ${food_id} - out of stock.`);
-      return;
-    }
-
-    // Adjust quantity if requested is more than available
-    const actualQuantity = Math.min(quantity, availableStock);
-    if (actualQuantity < quantity) {
-      console.log(`Reducing quantity for food ID ${food_id} from ${quantity} to ${actualQuantity} due to stock limits`);
-    }
-    productData.quantity = actualQuantity; // Update the quantity for the order
-  }
-
-  // Start with discount_price if available
-  let productAmount = discount_price ?? null;
-
-  // If no discount_price, check for an active deal
-  if (productAmount === null) {
-    const deal = await getDealByFoodId(food_id);
-
-    if (deal && deal.quantity > 0) {
-      productAmount = deal.offer_price;
-      await updateFoodDiscountPrice(food_id, deal.offer_price);
-    }
-  }
-
-  // If still no discount or deal, use regular price
-  if (productAmount === null) {
-    productAmount = price;
-  }
-
-  // Proceed to place order
-  if (productAmount > 0) {
-    const orderData = await addOrdersEntry(user_id, orderDate);
-
-    if (orderData?.orderId) {
-      const totalAmount = productAmount * productData.quantity; // Use the potentially adjusted quantity
-
-      // Get current wallet balance
-      const [walletRows]: any = await db
+  try {
+    if (track_inventory === "1") {
+      const [stockRows]: any = await db
         .promise()
-        .query("SELECT balance FROM wallet_balances WHERE user_id = ?", [
-          user_id,
-        ]);
-      const currentBalance = walletRows[0]?.balance || 0;
+        .query(
+          "SELECT COALESCE(SUM(amount), 0) AS stockCount FROM stock_mutations WHERE stockable_id = ?",
+          [food_id]
+        );
 
-      // Deduct wallet balance
-      const { success, paymentId } = await deductFromWalletOneTimeOrder(
-        user_id,
-        totalAmount
-      );
+      const availableStock = stockRows[0]?.stockCount || 0;
 
-      if (!success || !paymentId) {
-        console.log(`Failed to deduct from wallet for user ${user_id}`);
+      if (availableStock <= 0) {
+        console.log(`Skipping food ID ${food_id} - out of stock.`);
         return;
       }
 
-      const { foodName, unit } = await getFoodNameById(food_id);
-
-      // Log wallet transaction
-      await logWalletOneTimeOrder({
-        userId: user_id,
-        orderId: orderData.orderId,
-        beforeBalance: currentBalance,
-        amount: totalAmount,
-        orderDate: orderDate,
-        afterBalance: currentBalance - totalAmount,
-        foodName: foodName,
-        quantity: productData.quantity, // Use the potentially adjusted quantity
-        unit: unit,
-      });
-
-      await updateOrderWalletInfo(orderData.orderId, paymentId);
-
-      await addFoodOrderEntry(
-        productAmount,
-        productData.quantity, // Use the potentially adjusted quantity
-        food_id,
-        orderData.orderId
-      );
-
-      const updatedDeal = (await updateDealQuantity(food_id, productData.quantity)) as any; // Use the potentially adjusted quantity
-
-      if (updatedDeal?.quantity === 0) {
-        await resetFoodDiscountPrice(food_id);
-        console.log(`Deal for food ID ${food_id} is now inactive.`);
+      if (finalQuantity > availableStock) {
+        console.log(
+          `Reducing quantity for food ID ${food_id} from ${finalQuantity} to ${availableStock} due to stock limits.`
+        );
+        finalQuantity = availableStock;
       }
-
-      console.log(`Order placed successfully for food ID ${food_id}`);
-    } else {
-      console.log(`Failed to create order entry for food ID ${food_id}`);
     }
-  } else {
-    console.log(`Invalid product amount for food ID ${food_id}`);
+
+    let productAmount = discount_price ?? null;
+
+    if (productAmount === null) {
+      const deal = await getDealByFoodId(food_id);
+      if (deal && deal.quantity > 0) {
+        productAmount = deal.offer_price;
+        await updateFoodDiscountPrice(food_id, deal.offer_price);
+      }
+    }
+
+    if (productAmount === null) {
+      productAmount = price;
+    }
+
+    if (!productAmount || productAmount <= 0) {
+      console.log(`Invalid product amount for food ID ${food_id}`);
+      return;
+    }
+
+    const [walletRows]: any = await db
+      .promise()
+      .query("SELECT balance FROM wallet_balances WHERE user_id = ?", [
+        user_id,
+      ]);
+    const currentBalance = walletRows[0]?.balance || 0;
+
+    const maxAffordableQty = Math.floor(currentBalance / productAmount);
+
+    if (maxAffordableQty <= 0) {
+      console.log(
+        `Insufficient wallet balance for even 1 unit of food ID ${food_id}`
+      );
+      return;
+    }
+
+    if (finalQuantity > maxAffordableQty) {
+      console.log(
+        `Reducing quantity for food ID ${food_id} from ${finalQuantity} to ${maxAffordableQty} due to wallet balance.`
+      );
+      finalQuantity = maxAffordableQty;
+    }
+
+    const totalAmount = productAmount * finalQuantity;
+
+    const orderData = await addOrdersEntry(user_id, orderDate);
+    if (!orderData?.orderId) {
+      console.log(`Failed to create order entry for food ID ${food_id}`);
+      return;
+    }
+
+    const { success, paymentId } = await deductFromWalletOneTimeOrder(
+      user_id,
+      totalAmount
+    );
+    if (!success || !paymentId) {
+      console.log(`Failed to deduct from wallet for user ${user_id}`);
+      return;
+    }
+
+    await addFoodOrderEntry(
+      productAmount,
+      finalQuantity,
+      food_id,
+      orderData.orderId
+    );
+
+    const { foodName, unit } = await getFoodNameById(food_id);
+    await logWalletOneTimeOrder({
+      userId: user_id,
+      orderId: orderData.orderId,
+      beforeBalance: currentBalance,
+      amount: totalAmount,
+      orderDate: orderDate,
+      afterBalance: currentBalance - totalAmount,
+      foodName: foodName,
+      quantity: finalQuantity,
+      unit: unit,
+    });
+
+    await updateOrderWalletInfo(orderData.orderId, paymentId);
+
+    const updatedDeal = await updateDealQuantity(food_id, finalQuantity);
+    if (updatedDeal?.quantity === 0) {
+      await resetFoodDiscountPrice(food_id);
+      console.log(`Deal for food ID ${food_id} is now inactive.`);
+    }
+
+    console.log(
+      `Order placed successfully for food ID ${food_id} with quantity ${finalQuantity}`
+    );
+  } catch (error) {
+    console.error(`Error placing order for food ID ${food_id}:`, error);
   }
 };
 
