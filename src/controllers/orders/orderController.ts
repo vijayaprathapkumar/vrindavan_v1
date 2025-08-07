@@ -440,7 +440,7 @@ export const cancelOneTimeOrder = async (req: Request, res: Response) => {
 
         const description = `₹${amount.toFixed(
           2
-        )} Refunded - cancelled ${foodNames} (One Time Order | Order Id: ${orderId} | Ordered On: ${formattedDescDate}). Balance ₹${currentBalance.toFixed(
+        )} Refunded - cancelled ${foodNames} (One Time Order | Order Id: ${orderId}). Balance ₹${currentBalance.toFixed(
           2
         )} → ₹${newBalance.toFixed(2)}`;
 
