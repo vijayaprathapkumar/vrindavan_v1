@@ -27,6 +27,15 @@ export const getSimilarProductsWithCount = async (
   SELECT 
     f.*, 
     CASE 
+  WHEN f.track_inventory = 1 THEN (
+    SELECT COALESCE(SUM(amount), 0) 
+    FROM stock_mutations 
+    WHERE stockable_id = f.id
+  )
+  ELSE NULL
+END AS stockCount,
+
+    CASE 
       WHEN m.conversions_disk = 'public1' 
       THEN CONCAT('https://media-image-upload.s3.ap-south-1.amazonaws.com/foods/', m.file_name)
       ELSE CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name)
@@ -71,6 +80,7 @@ export const getSimilarProductsWithCount = async (
       products: productRows.map((row) => ({
         ...row,
         original_url: row.original_url,
+        stockCount: row.stockCount,
         outOfStock: String(row.outOfStock),
       })),
       totalProducts: countRows[0]?.totalProducts || 0,
