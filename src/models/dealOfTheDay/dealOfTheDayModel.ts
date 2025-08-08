@@ -14,6 +14,7 @@ export interface DealOfTheDay {
   weightage?: number;
   created_at?: Date;
   updated_at?: Date;
+  stockCount?: string | number;
   media?: any;
 }
 
@@ -338,6 +339,14 @@ export const getDealById = async (id: number): Promise<DealOfTheDay | null> => {
       m.created_at AS media_created_at,
       m.updated_at AS media_updated_at,
        CASE 
+        WHEN f.track_inventory = 1 THEN (
+          SELECT COALESCE(SUM(amount), 0) 
+          FROM stock_mutations 
+          WHERE stockable_id = f.id
+        )
+        ELSE NULL
+      END AS stockCount,
+       CASE 
         WHEN m.conversions_disk = 'public1' 
         THEN CONCAT('https://media-image-upload.s3.ap-south-1.amazonaws.com/foods/', m.file_name)
         ELSE CONCAT('https://vrindavanmilk.com/storage/app/public/', m.id, '/', m.file_name)
@@ -369,6 +378,7 @@ export const getDealById = async (id: number): Promise<DealOfTheDay | null> => {
     weightage: rows[0].weightage,
     created_at: rows[0].deal_created_at,
     updated_at: rows[0].deal_updated_at,
+    stockCount: rows[0].stockCount,
     media: {
       id: rows[0].media_id,
       model_type: rows[0].model_type,
