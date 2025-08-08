@@ -209,6 +209,7 @@ END DESC`; // ✅ DESC puts '1' at top
       status: row.status,
       created_at: row.created_at,
       updated_at: row.updated_at,
+      low_stock_threshold: row.low_stock_threshold,
       stockCount: row.stockCount,
       outOfStock: String(row.outOfStock),
       media: row.media_id
@@ -333,7 +334,8 @@ END AS stockCount,
     status: foodData.status,
     created_at: foodData.created_at,
     updated_at: foodData.updated_at,
-    stockCount:foodData.stockCount,
+    low_stock_threshold: foodData.low_stock_threshold,
+    stockCount: foodData.stockCount,
     outOfStock: String(foodData.outOfStock),
     media: [],
   };
@@ -378,8 +380,8 @@ export const createFood = async (foodData: Food): Promise<number> => {
       deliverable, restaurant_id, category_id, 
       subcategory_id, product_type_id, hub_id, locality_id,
       product_brand_id, weightage, status, created_at, 
-      updated_at, food_locality
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+      updated_at, food_locality,low_stock_threshold
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
   `;
 
   const values = [
@@ -412,6 +414,7 @@ export const createFood = async (foodData: Food): Promise<number> => {
     new Date(),
     new Date(),
     foodData.food_locality ?? null,
+    foodData.low_stock_threshold ?? null,
   ];
 
   try {
@@ -435,7 +438,7 @@ export const updateFood = async (
     subscription_type = ?, track_inventory = ?, featured = ?, deliverable = ?, 
     restaurant_id = ?, category_id = ?, subcategory_id = ?, product_type_id = ?, 
     hub_id = ?, locality_id = ?, product_brand_id = ?, weightage = ?, 
-    status = ?, updated_at = NOW() WHERE id = ?
+    status = ?, low_stock_threshold = ?, updated_at = NOW() WHERE id = ?
   `;
 
   const values = [
@@ -465,6 +468,7 @@ export const updateFood = async (
     foodData.product_brand_id ?? null,
     foodData.weightage ?? null,
     foodData.status ?? null,
+    foodData.low_stock_threshold ?? null,
     id,
   ];
 

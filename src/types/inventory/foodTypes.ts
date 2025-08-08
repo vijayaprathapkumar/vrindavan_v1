@@ -55,5 +55,6 @@ export interface Food {
   food_locality?: string | null;
   stockCount?: string | null | number;
   outOfStock?: string | null | number;
+  low_stock_threshold?: string | null | number;
   media?: Media[]; // Ensure this property is present
 }

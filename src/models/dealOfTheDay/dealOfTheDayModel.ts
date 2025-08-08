@@ -15,6 +15,7 @@ export interface DealOfTheDay {
   created_at?: Date;
   updated_at?: Date;
   stockCount?: string | number;
+  low_stock_threshold?: number;
   media?: any;
 }
 
@@ -69,6 +70,7 @@ export const getAllDeals = async (
       m.order_column,
       m.created_at AS media_created_at,
       m.updated_at AS media_updated_at,
+      f.low_stock_threshold AS low_stock_threshold,
       CASE 
         WHEN m.conversions_disk = 'public1' 
         THEN CONCAT('https://media-image-upload.s3.ap-south-1.amazonaws.com/foods/', m.file_name)
@@ -220,6 +222,7 @@ export const getAllDeals = async (
         original_url: row.original_url,
       },
       stockCount: row.stockCount,
+      low_stock_threshold: row.low_stock_threshold,
     })),
     total: totalCount,
   };
@@ -338,6 +341,7 @@ export const getDealById = async (id: number): Promise<DealOfTheDay | null> => {
       m.order_column,
       m.created_at AS media_created_at,
       m.updated_at AS media_updated_at,
+      f.low_stock_threshold AS low_stock_threshold,
        CASE 
         WHEN f.track_inventory = 1 THEN (
           SELECT COALESCE(SUM(amount), 0) 
@@ -379,6 +383,7 @@ export const getDealById = async (id: number): Promise<DealOfTheDay | null> => {
     created_at: rows[0].deal_created_at,
     updated_at: rows[0].deal_updated_at,
     stockCount: rows[0].stockCount,
+    low_stock_threshold: rows[0].low_stock_threshold,
     media: {
       id: rows[0].media_id,
       model_type: rows[0].model_type,

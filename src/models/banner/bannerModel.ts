@@ -254,6 +254,7 @@ END DESC`; // ✅ DESC puts '1' at top
               updated_at: foodRow.updated_at,
               stockCount: String(foodRow.stockCount),
               outOfStock: String(foodRow.outOfStock),
+              low_stock_threshold: foodRow.low_stock_threshold,
               media: [],
             };
           }
@@ -550,7 +551,8 @@ END AS stockCount,
           order_column: row.order_column,
           created_at: row.media_created_at,
           updated_at: row.media_updated_at,
-          stockCount:row.stockCount,
+          stockCount: row.stockCount,
+          low_stock_threshold: row.low_stock_threshold,
           original_url: row.original_url,
         }
       : null,
