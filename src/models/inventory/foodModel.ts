@@ -333,6 +333,7 @@ END AS stockCount,
     status: foodData.status,
     created_at: foodData.created_at,
     updated_at: foodData.updated_at,
+    stockCount:foodData.stockCount,
     outOfStock: String(foodData.outOfStock),
     media: [],
   };
