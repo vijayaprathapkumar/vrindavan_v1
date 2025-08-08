@@ -1319,7 +1319,9 @@ export const updateOneTimeOrders = async (
         );
 
         console.log(
-          `Stock adjusted for food_id ${food_id}: ${qtyDiff > 0 ? "decreased" : "increased"} by ${Math.abs(qtyDiff)}`
+          `Stock adjusted for food_id ${food_id}: ${
+            qtyDiff > 0 ? "decreased" : "increased"
+          } by ${Math.abs(qtyDiff)}`
         );
       }
     }
@@ -1375,12 +1377,16 @@ export const updateOneTimeOrders = async (
         .padStart(2, "0")}-${todayDate.getFullYear()}`;
 
       // Create wallet log entry
+      const qtyDiff = newQuantity - currentQuantity;
+      const actionType = qtyDiff > 0 ? "deducted" : "refunded";
+      const amountLabel = `₹${Math.abs(amountDifference)} ${actionType}`;
+
       const formattedDescription =
         foodName && newQuantity
-          ? `₹${Math.abs(
-              amountDifference
-            )} deducted - ${foodName} ${foodUnit} x ${newQuantity} to previous order (One Time Order | Order Id: ${orderId}). Balance ₹${currentBalance} → ₹${newBalance}`
-          : `Deduction for order ${orderId}`;
+          ? `${amountLabel} - ${foodName} ${foodUnit} x ${newQuantity} (was ${currentQuantity}) in previous order (One Time Order | Order Id: ${orderId}). Balance ₹${currentBalance} → ₹${newBalance}`
+          : `${
+              actionType === "deducted" ? "Deduction" : "Refund"
+            } for order ${orderId}`;
 
       await connection.query(
         `INSERT INTO wallet_logs (
@@ -1402,7 +1408,7 @@ export const updateOneTimeOrders = async (
           currentBalance,
           amountDifference,
           newBalance,
-          "deduction",
+          qtyDiff > 0 ? "deduction" : "refund",
           formattedDescription,
         ]
       );
