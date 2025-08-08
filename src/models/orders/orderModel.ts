@@ -1265,7 +1265,8 @@ export const updateOneTimeOrders = async (
 
     // Get current order details
     const getOrderSql = `
-      SELECT fo.quantity, fo.price, o.payment_id, o.user_id, o.order_date, f.name as foodName , f.unit as foodUnit
+      SELECT fo.quantity, fo.price, o.payment_id, o.user_id, o.order_date, 
+             f.name as foodName, f.unit as foodUnit, f.track_inventory, f.id as food_id
       FROM food_orders fo
       JOIN orders o ON fo.order_id = o.id
       JOIN foods f ON fo.food_id = f.id
@@ -1284,7 +1285,9 @@ export const updateOneTimeOrders = async (
       user_id,
       order_date,
       foodName,
-      foodUnit
+      foodUnit,
+      track_inventory,
+      food_id,
     } = orderRows[0];
 
     // If no quantity change or no new quantity provided, skip update
@@ -1302,6 +1305,24 @@ export const updateOneTimeOrders = async (
     // Update food order quantity
     const updateOrderSql = `UPDATE food_orders SET quantity = ?, updated_at = NOW() WHERE order_id = ?`;
     await connection.query(updateOrderSql, [newQuantity, orderId]);
+
+    // Inventory stock adjustment
+    if (track_inventory === "1") {
+      const qtyDiff = newQuantity - currentQuantity;
+
+      if (qtyDiff !== 0) {
+        await connection.query(
+          `INSERT INTO stock_mutations 
+           (stockable_type, stockable_id, amount, created_at)
+           VALUES (?, ?, ?, NOW())`,
+          ["Food", food_id, -qtyDiff] // reduce if qty increased, restore if decreased
+        );
+
+        console.log(
+          `Stock adjusted for food_id ${food_id}: ${qtyDiff > 0 ? "decreased" : "increased"} by ${Math.abs(qtyDiff)}`
+        );
+      }
+    }
 
     // If there's a payment record and the amount changed
     if (payment_id && amountDifference !== 0) {
@@ -1334,7 +1355,7 @@ export const updateOneTimeOrders = async (
          SET balance = balance + ?, 
              updated_at = NOW() 
          WHERE user_id = ?`,
-        [-amountDifference, user_id || userId] // Subtract for positive difference, add for negative
+        [-amountDifference, user_id || userId] // subtract for positive, add for negative
       );
 
       // Get new balance after update
